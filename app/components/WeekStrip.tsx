@@ -16,7 +16,7 @@ export default function WeekStrip({
   const today = new Date();
 
   return (
-    <div className="no-scrollbar flex gap-2 overflow-x-auto pb-1 pr-1">
+    <div className="no-scrollbar flex gap-2 overflow-x-auto py-2 pr-1">
       {weekDays.map((day) => {
         const isSelected = isSameDay(day, selectedDate);
         const isToday = isSameDay(day, today);
