@@ -1,17 +1,17 @@
-import type { Metadata } from "next";
-import { Fraunces, Manrope } from "next/font/google";
-import "./globals.css";
+import type { Metadata } from 'next';
+import { Fraunces, Manrope } from 'next/font/google';
+import './globals.css';
 
-const manrope = Manrope({ subsets: ["latin"], variable: "--font-body" });
-const fraunces = Fraunces({ subsets: ["latin"], variable: "--font-display" });
+const manrope = Manrope({ subsets: ['latin'], variable: '--font-body' });
+const fraunces = Fraunces({ subsets: ['latin'], variable: '--font-display' });
 
-const appTitle = process.env.NEXT_PUBLIC_APP_NAME ?? "Planner App";
+const appTitle = process.env.NEXT_PUBLIC_APP_NAME ?? 'Planner App';
 const appDescription =
-  process.env.NEXT_PUBLIC_APP_DESCRIPTION ?? "Telegram Mini App Planner";
-const appLang = process.env.NEXT_PUBLIC_APP_LANG ?? "ru";
+  process.env.NEXT_PUBLIC_APP_DESCRIPTION ?? 'Telegram Mini App Planner';
+const appLang = process.env.NEXT_PUBLIC_APP_LANG ?? 'ru';
 const telegramScriptSrc =
   process.env.NEXT_PUBLIC_TELEGRAM_SCRIPT_URL ??
-  "https://telegram.org/js/telegram-web-app.js";
+  'https://telegram.org/js/telegram-web-app.js';
 
 export const metadata: Metadata = {
   title: appTitle,
@@ -38,3 +38,4 @@ export default function RootLayout({
     </html>
   );
 }
+
