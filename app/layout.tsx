@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Fraunces, Manrope } from "next/font/google";
 import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"] });
+const manrope = Manrope({ subsets: ["latin"], variable: "--font-body" });
+const fraunces = Fraunces({ subsets: ["latin"], variable: "--font-display" });
 
 const appTitle = process.env.NEXT_PUBLIC_APP_NAME ?? "Planner App";
 const appDescription =
@@ -27,7 +28,9 @@ export default function RootLayout({
       <head>
         <script src={telegramScriptSrc} async />
       </head>
-      <body className={inter.className}>{children}</body>
+      <body className={`${manrope.variable} ${fraunces.variable} antialiased`}>
+        {children}
+      </body>
     </html>
   );
 }

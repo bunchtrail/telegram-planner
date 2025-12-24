@@ -1,26 +1,84 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg: #f7f1e7;
+  --bg-2: #efe3d2;
+  --bg-soft: #fff7ed;
+  --surface: #ffffff;
+  --surface-2: #f9f2e6;
+  --ink: #1f1a14;
+  --muted: #6d6358;
+  --border: #e7dacb;
+  --accent: #1f7a6f;
+  --accent-strong: #175f56;
+  --accent-soft: #e2f2ee;
+  --accent-ink: #f1fffb;
+  --accent-glow: rgba(31, 122, 111, 0.16);
+  --danger: #c45133;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-background: var(--bg);
+  --color-foreground: var(--ink);
+  --font-sans: var(--font-body);
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --bg: #151210;
+    --bg-2: #0f0c0a;
+    --bg-soft: #1c1713;
+    --surface: #1b1713;
+    --surface-2: #241e18;
+    --ink: #f4efe8;
+    --muted: #b3a79b;
+    --border: #2c241d;
+    --accent: #53c1ae;
+    --accent-strong: #3aa493;
+    --accent-soft: #143631;
+    --accent-ink: #e8fff8;
+    --accent-glow: rgba(83, 193, 174, 0.12);
+    --danger: #e0765a;
   }
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  min-height: 100%;
+  background:
+    radial-gradient(900px 520px at 12% -10%, var(--bg-soft) 0%, transparent 60%),
+    radial-gradient(700px 480px at 90% 0%, var(--accent-glow) 0%, transparent 60%),
+    linear-gradient(160deg, var(--bg) 0%, var(--bg-2) 100%);
+  color: var(--ink);
+  font-family: var(--font-body), sans-serif;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+@keyframes sheetIn {
+  from {
+    transform: translateY(24px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
