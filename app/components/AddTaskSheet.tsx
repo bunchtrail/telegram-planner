@@ -33,6 +33,7 @@ export default function AddTaskSheet({
   isAddDisabled,
 }: AddTaskSheetProps) {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const titleInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -68,8 +69,14 @@ export default function AddTaskSheet({
 
     const root = document.documentElement;
     const update = () => {
-      root.style.setProperty("--vvh", `${viewport.height}px`);
-      root.style.setProperty("--vv-top", `${viewport.offsetTop}px`);
+      const rawKeyboardHeight =
+        window.innerHeight - viewport.height - viewport.offsetTop;
+      const keyboardHeight = rawKeyboardHeight < 2 ? 0 : rawKeyboardHeight;
+      root.style.setProperty(
+        "--vv-top",
+        `${keyboardHeight ? viewport.offsetTop : 0}px`,
+      );
+      root.style.setProperty("--kb", `${keyboardHeight}px`);
     };
 
     update();
@@ -79,20 +86,27 @@ export default function AddTaskSheet({
     return () => {
       viewport.removeEventListener("resize", update);
       viewport.removeEventListener("scroll", update);
-      root.style.removeProperty("--vvh");
       root.style.removeProperty("--vv-top");
+      root.style.removeProperty("--kb");
     };
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const timeout = window.setTimeout(() => {
+      titleInputRef.current?.focus({ preventScroll: true });
+    }, 260);
+
+    return () => window.clearTimeout(timeout);
   }, [isOpen]);
 
   if (!isOpen) return null;
 
   return (
     <div
-      className="fixed left-0 right-0 z-50 flex items-end justify-center px-3 pb-[calc(12px+env(safe-area-inset-bottom))] sm:items-center sm:px-6 sm:pb-6"
-      style={{
-        top: "var(--vv-top, 0px)",
-        height: "var(--vvh, var(--tg-viewport-stable-height, 100dvh))",
-      }}
+      className="fixed inset-0 z-50 px-3 sm:px-6"
+      style={{ top: "var(--vv-top, 0px)" }}
     >
       <div
         className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-[fadeIn_180ms_ease-out]"
@@ -100,38 +114,44 @@ export default function AddTaskSheet({
       />
 
       <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="add-task-title"
-        className="relative w-full max-w-lg animate-[modalIn_220ms_cubic-bezier(0.22,1,0.36,1)] overflow-hidden rounded-3xl border border-[var(--border)] bg-[var(--surface)] shadow-[0_20px_50px_-30px_rgba(16,12,8,0.6)]"
+        className="relative flex h-full items-end justify-center pb-[calc(12px+env(safe-area-inset-bottom))] transition-transform duration-200 ease-out sm:items-center sm:pb-6"
+        style={{
+          transform: "translate3d(0, calc(-1 * var(--kb, 0px)), 0)",
+        }}
       >
         <div
-          className="flex flex-col"
-          style={{
-            maxHeight: "calc(var(--tg-viewport-stable-height, 100vh) * 0.85)",
-          }}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="add-task-title"
+          className="relative w-full max-w-lg animate-[modalIn_220ms_cubic-bezier(0.22,1,0.36,1)] overflow-hidden rounded-3xl border border-[var(--border)] bg-[var(--surface)] shadow-[0_20px_50px_-30px_rgba(16,12,8,0.6)]"
         >
-          <div className="flex items-center justify-between border-b border-[var(--border)] px-6 py-5">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--muted)]">
-                План
-              </p>
-              <h2
-                id="add-task-title"
-                className="text-2xl font-semibold text-[var(--ink)] font-[var(--font-display)]"
+          <div
+            className="flex flex-col"
+            style={{
+              maxHeight: "calc(var(--tg-viewport-stable-height, 100vh) * 0.85)",
+            }}
+          >
+            <div className="flex items-center justify-between border-b border-[var(--border)] px-6 py-5">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--muted)]">
+                  План
+                </p>
+                <h2
+                  id="add-task-title"
+                  className="text-2xl font-semibold text-[var(--ink)] font-[var(--font-display)]"
+                >
+                  Новая задача
+                </h2>
+              </div>
+              <button
+                type="button"
+                onClick={onClose}
+                aria-label="Закрыть"
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-[var(--border)] text-[var(--muted)] transition-colors hover:border-[var(--accent)] hover:text-[var(--ink)]"
               >
-                Новая задача
-              </h2>
+                <X size={18} />
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={onClose}
-              aria-label="Закрыть"
-              className="flex h-10 w-10 items-center justify-center rounded-full border border-[var(--border)] text-[var(--muted)] transition-colors hover:border-[var(--accent)] hover:text-[var(--ink)]"
-            >
-              <X size={18} />
-            </button>
-          </div>
 
           <form
             onSubmit={(event) => {
@@ -152,7 +172,7 @@ export default function AddTaskSheet({
                 Название задачи
               </label>
               <input
-                autoFocus
+                ref={titleInputRef}
                 id="task-title"
                 type="text"
                 placeholder="Например, созвон с командой"
@@ -204,6 +224,7 @@ export default function AddTaskSheet({
           </form>
         </div>
       </div>
+    </div>
     </div>
   );
 }
