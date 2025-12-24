@@ -1,8 +1,13 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { X } from "lucide-react";
 import { cn } from "../lib/cn";
+import {
+  clearAllBodyScrollLocks,
+  disableBodyScroll,
+  enableBodyScroll,
+} from "body-scroll-lock";
 
 const DURATION_OPTIONS = [15, 30, 45, 60, 90, 120];
 
@@ -27,32 +32,18 @@ export default function AddTaskSheet({
   onAdd,
   isAddDisabled,
 }: AddTaskSheetProps) {
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     if (!isOpen) return;
 
-    const { body } = document;
-    const scrollY = window.scrollY;
-    const previousStyles = {
-      overflow: body.style.overflow,
-      position: body.style.position,
-      top: body.style.top,
-      width: body.style.width,
-      touchAction: body.style.touchAction,
-    };
-
-    body.style.overflow = "hidden";
-    body.style.position = "fixed";
-    body.style.top = `-${scrollY}px`;
-    body.style.width = "100%";
-    body.style.touchAction = "none";
+    const el = scrollAreaRef.current;
+    if (!el) return;
+    disableBodyScroll(el, { reserveScrollBarGap: true });
 
     return () => {
-      body.style.overflow = previousStyles.overflow;
-      body.style.position = previousStyles.position;
-      body.style.top = previousStyles.top;
-      body.style.width = previousStyles.width;
-      body.style.touchAction = previousStyles.touchAction;
-      window.scrollTo(0, scrollY);
+      enableBodyScroll(el);
+      clearAllBodyScrollLocks();
     };
   }, [isOpen]);
 
@@ -69,10 +60,40 @@ export default function AddTaskSheet({
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, onClose]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const viewport = window.visualViewport;
+    if (!viewport) return;
+
+    const root = document.documentElement;
+    const update = () => {
+      root.style.setProperty("--vvh", `${viewport.height}px`);
+      root.style.setProperty("--vv-top", `${viewport.offsetTop}px`);
+    };
+
+    update();
+    viewport.addEventListener("resize", update);
+    viewport.addEventListener("scroll", update);
+
+    return () => {
+      viewport.removeEventListener("resize", update);
+      viewport.removeEventListener("scroll", update);
+      root.style.removeProperty("--vvh");
+      root.style.removeProperty("--vv-top");
+    };
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center px-3 pb-[calc(12px+env(safe-area-inset-bottom))] sm:items-center sm:px-6 sm:pb-6">
+    <div
+      className="fixed left-0 right-0 z-50 flex items-end justify-center px-3 pb-[calc(12px+env(safe-area-inset-bottom))] sm:items-center sm:px-6 sm:pb-6"
+      style={{
+        top: "var(--vv-top, 0px)",
+        height: "var(--vvh, var(--tg-viewport-stable-height, 100dvh))",
+      }}
+    >
       <div
         className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-[fadeIn_180ms_ease-out]"
         onClick={onClose}
@@ -84,7 +105,12 @@ export default function AddTaskSheet({
         aria-labelledby="add-task-title"
         className="relative w-full max-w-lg animate-[modalIn_220ms_cubic-bezier(0.22,1,0.36,1)] overflow-hidden rounded-3xl border border-[var(--border)] bg-[var(--surface)] shadow-[0_20px_50px_-30px_rgba(16,12,8,0.6)]"
       >
-        <div className="flex max-h-[85dvh] flex-col">
+        <div
+          className="flex flex-col"
+          style={{
+            maxHeight: "calc(var(--tg-viewport-stable-height, 100vh) * 0.85)",
+          }}
+        >
           <div className="flex items-center justify-between border-b border-[var(--border)] px-6 py-5">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--muted)]">
@@ -115,7 +141,10 @@ export default function AddTaskSheet({
             }}
             className="flex flex-1 flex-col"
           >
-            <div className="flex-1 overflow-y-auto px-6 py-5">
+            <div
+              ref={scrollAreaRef}
+              className="flex-1 overflow-y-auto overscroll-contain px-6 py-5 [-webkit-overflow-scrolling:touch]"
+            >
               <label
                 className="mb-2 block text-sm font-semibold text-[var(--muted)]"
                 htmlFor="task-title"
