@@ -1,6 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { X } from "lucide-react";
 import { cn } from "../lib/cn";
 import {
@@ -10,6 +17,10 @@ import {
 } from "body-scroll-lock";
 
 const DURATION_OPTIONS = [15, 30, 45, 60, 90, 120];
+
+export type AddTaskSheetHandle = {
+  focusTitleInput: () => void;
+};
 
 type AddTaskSheetProps = {
   isOpen: boolean;
@@ -22,20 +33,34 @@ type AddTaskSheetProps = {
   isAddDisabled: boolean;
 };
 
-export default function AddTaskSheet({
-  isOpen,
-  title,
-  duration,
-  onClose,
-  onTitleChange,
-  onDurationChange,
-  onAdd,
-  isAddDisabled,
-}: AddTaskSheetProps) {
+const AddTaskSheet = forwardRef<AddTaskSheetHandle, AddTaskSheetProps>(
+  (
+    {
+      isOpen,
+      title,
+      duration,
+      onClose,
+      onTitleChange,
+      onDurationChange,
+      onAdd,
+      isAddDisabled,
+    },
+    ref,
+  ) => {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const titleInputRef = useRef<HTMLInputElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
   const [showTitleError, setShowTitleError] = useState(false);
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      focusTitleInput: () => {
+        titleInputRef.current?.focus();
+      },
+    }),
+    [],
+  );
 
   useEffect(() => {
     if (!isOpen) return;
@@ -88,21 +113,21 @@ export default function AddTaskSheet({
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, onClose]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!isOpen) return;
 
-    let timeoutId: number | null = null;
-    const rafId = window.requestAnimationFrame(() => {
-      timeoutId = window.setTimeout(() => {
-        titleInputRef.current?.focus({ preventScroll: true });
-      }, 50);
-    });
+    const input = titleInputRef.current;
+    if (!input) return;
+
+    input.focus();
+    const timeoutId = window.setTimeout(() => {
+      if (document.activeElement !== input) {
+        input.focus();
+      }
+    }, 150);
 
     return () => {
-      window.cancelAnimationFrame(rafId);
-      if (timeoutId) {
-        window.clearTimeout(timeoutId);
-      }
+      window.clearTimeout(timeoutId);
     };
   }, [isOpen]);
 
@@ -166,7 +191,7 @@ export default function AddTaskSheet({
               event.preventDefault();
               if (isAddDisabled) {
                 setShowTitleError(true);
-                titleInputRef.current?.focus({ preventScroll: true });
+                titleInputRef.current?.focus();
                 return;
               }
               onAdd();
@@ -190,6 +215,7 @@ export default function AddTaskSheet({
                 placeholder="Например, созвон с командой"
                 value={title}
                 onChange={(event) => onTitleChange(event.target.value)}
+                autoFocus
                 enterKeyHint="done"
                 aria-invalid={showTitleError}
                 aria-describedby={showTitleError ? "task-title-error" : undefined}
@@ -253,4 +279,9 @@ export default function AddTaskSheet({
       </div>
     </div>
   );
-}
+  },
+);
+
+AddTaskSheet.displayName = "AddTaskSheet";
+
+export default AddTaskSheet;

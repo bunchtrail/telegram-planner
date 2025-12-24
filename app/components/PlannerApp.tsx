@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import AddTaskSheet from "./AddTaskSheet";
+import { flushSync } from "react-dom";
+import AddTaskSheet, { type AddTaskSheetHandle } from "./AddTaskSheet";
 import FloatingActionButton from "./FloatingActionButton";
 import PlannerHeader from "./PlannerHeader";
 import TaskList from "./TaskList";
@@ -31,6 +32,7 @@ export default function PlannerApp() {
     restoreTask,
   } = usePlanner();
   const fabRef = useRef<HTMLButtonElement>(null);
+  const sheetRef = useRef<AddTaskSheetHandle>(null);
   const [undoTask, setUndoTask] = useState<Task | null>(null);
   const undoTimeoutRef = useRef<number | null>(null);
   const prevIsAddOpenRef = useRef(isAddOpen);
@@ -77,6 +79,11 @@ export default function PlannerApp() {
     }
   };
 
+  const handleOpenAdd = () => {
+    flushSync(() => setIsAddOpen(true));
+    sheetRef.current?.focusTitleInput();
+  };
+
   return (
     <div className="min-h-screen pb-[calc(6rem+env(safe-area-inset-bottom))] font-sans text-[var(--ink)] selection:bg-[var(--accent-soft)]">
       <PlannerHeader
@@ -92,13 +99,14 @@ export default function PlannerApp() {
           tasks={currentTasks}
           onToggle={toggleTask}
           onDelete={handleDelete}
-          onAdd={() => setIsAddOpen(true)}
+          onAdd={handleOpenAdd}
         />
       </main>
 
-      <FloatingActionButton ref={fabRef} onClick={() => setIsAddOpen(true)} />
+      <FloatingActionButton ref={fabRef} onClick={handleOpenAdd} />
 
       <AddTaskSheet
+        ref={sheetRef}
         isOpen={isAddOpen}
         title={newTaskTitle}
         duration={newTaskDuration}
