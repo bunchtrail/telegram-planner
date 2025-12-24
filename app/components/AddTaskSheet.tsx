@@ -91,41 +91,19 @@ export default function AddTaskSheet({
   useEffect(() => {
     if (!isOpen) return;
 
-    const viewport = window.visualViewport;
-    if (!viewport) return;
-
-    const root = document.documentElement;
-    const update = () => {
-      const rawKeyboardHeight =
-        window.innerHeight - viewport.height - viewport.offsetTop;
-      const keyboardHeight = rawKeyboardHeight < 2 ? 0 : rawKeyboardHeight;
-      root.style.setProperty(
-        "--vv-top",
-        `${keyboardHeight ? viewport.offsetTop : 0}px`,
-      );
-      root.style.setProperty("--kb", `${keyboardHeight}px`);
-    };
-
-    update();
-    viewport.addEventListener("resize", update);
-    viewport.addEventListener("scroll", update);
+    let timeoutId: number | null = null;
+    const rafId = window.requestAnimationFrame(() => {
+      timeoutId = window.setTimeout(() => {
+        titleInputRef.current?.focus({ preventScroll: true });
+      }, 50);
+    });
 
     return () => {
-      viewport.removeEventListener("resize", update);
-      viewport.removeEventListener("scroll", update);
-      root.style.removeProperty("--vv-top");
-      root.style.removeProperty("--kb");
+      window.cancelAnimationFrame(rafId);
+      if (timeoutId) {
+        window.clearTimeout(timeoutId);
+      }
     };
-  }, [isOpen]);
-
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const timeout = window.setTimeout(() => {
-      titleInputRef.current?.focus({ preventScroll: true });
-    }, 260);
-
-    return () => window.clearTimeout(timeout);
   }, [isOpen]);
 
   useEffect(() => {
@@ -143,20 +121,14 @@ export default function AddTaskSheet({
   if (!isOpen) return null;
 
   return (
-    <div
-      className="fixed inset-0 z-50 px-3 sm:px-6"
-      style={{ top: "var(--vv-top, 0px)" }}
-    >
+    <div className="fixed inset-0 z-50 flex flex-col justify-end px-3 sm:items-center sm:justify-center sm:px-6">
       <div
         className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-[fadeIn_180ms_ease-out]"
         onClick={onClose}
       />
 
       <div
-        className="relative flex h-full items-end justify-center pb-[calc(12px+env(safe-area-inset-bottom))] transition-transform duration-200 ease-out sm:items-center sm:pb-6"
-        style={{
-          transform: "translate3d(0, calc(-1 * var(--kb, 0px)), 0)",
-        }}
+        className="relative z-10 w-full max-w-lg pb-[env(safe-area-inset-bottom)] transition-all sm:pb-0"
       >
         <div
           role="dialog"
@@ -164,35 +136,30 @@ export default function AddTaskSheet({
           aria-labelledby="add-task-title"
           ref={dialogRef}
           tabIndex={-1}
-          className="relative w-full max-w-lg animate-[modalIn_220ms_cubic-bezier(0.22,1,0.36,1)] overflow-hidden rounded-3xl border border-[var(--border)] bg-[var(--surface)] shadow-[0_20px_50px_-30px_rgba(16,12,8,0.6)]"
+          className="relative flex w-full flex-col animate-[modalIn_220ms_cubic-bezier(0.22,1,0.36,1)] overflow-hidden rounded-3xl border border-[var(--border)] bg-[var(--surface)] shadow-[0_20px_50px_-30px_rgba(16,12,8,0.6)]"
+          style={{ maxHeight: "85vh" }}
         >
-          <div
-            className="flex flex-col"
-            style={{
-              maxHeight: "calc(var(--tg-viewport-stable-height, 100vh) * 0.85)",
-            }}
-          >
-            <div className="flex items-center justify-between border-b border-[var(--border)] px-6 py-5">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--muted)]">
-                  План
-                </p>
-                <h2
-                  id="add-task-title"
-                  className="text-2xl font-semibold text-[var(--ink)] font-[var(--font-display)]"
-                >
-                  Новая задача
-                </h2>
-              </div>
-              <button
-                type="button"
-                onClick={onClose}
-                aria-label="Закрыть"
-                className="flex h-10 w-10 items-center justify-center rounded-full border border-[var(--border)] text-[var(--muted)] transition-colors hover:border-[var(--accent)] hover:text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+          <div className="flex items-center justify-between border-b border-[var(--border)] px-6 py-5">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--muted)]">
+                План
+              </p>
+              <h2
+                id="add-task-title"
+                className="text-2xl font-semibold text-[var(--ink)] font-[var(--font-display)]"
               >
-                <X size={18} />
-              </button>
+                Новая задача
+              </h2>
             </div>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Закрыть"
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-[var(--border)] text-[var(--muted)] transition-colors hover:border-[var(--accent)] hover:text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+            >
+              <X size={18} />
+            </button>
+          </div>
 
           <form
             onSubmit={(event) => {
@@ -204,11 +171,11 @@ export default function AddTaskSheet({
               }
               onAdd();
             }}
-            className="flex flex-1 flex-col"
+            className="flex min-h-0 flex-1 flex-col"
           >
             <div
               ref={scrollAreaRef}
-              className="flex-1 overflow-y-auto overscroll-contain px-6 py-5 [-webkit-overflow-scrolling:touch]"
+              className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 py-5 [-webkit-overflow-scrolling:touch]"
             >
               <label
                 className="mb-2 block text-sm font-semibold text-[var(--muted)]"
@@ -284,7 +251,6 @@ export default function AddTaskSheet({
           </form>
         </div>
       </div>
-    </div>
     </div>
   );
 }
