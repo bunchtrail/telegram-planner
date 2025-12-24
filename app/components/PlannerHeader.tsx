@@ -30,7 +30,10 @@ export default function PlannerHeader({
           </h1>
         </div>
         <div className="text-right">
-          <div className="flex items-center gap-1 rounded-lg bg-[var(--accent-soft)] px-2 py-1 text-sm font-semibold text-[var(--accent-strong)]">
+          <p className="text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">
+            Осталось
+          </p>
+          <div className="mt-1 flex items-center gap-1 rounded-lg bg-[var(--accent-soft)] px-2 py-1 text-sm font-semibold text-[var(--accent-strong)]">
             <Clock size={14} />
             <span>
               {hours}ч {minutes}м

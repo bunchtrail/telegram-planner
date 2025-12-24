@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
 import { cn } from "../lib/cn";
 import {
@@ -34,6 +34,8 @@ export default function AddTaskSheet({
 }: AddTaskSheetProps) {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const titleInputRef = useRef<HTMLInputElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const [showTitleError, setShowTitleError] = useState(false);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -54,6 +56,31 @@ export default function AddTaskSheet({
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         onClose();
+        return;
+      }
+
+      if (event.key !== "Tab") return;
+
+      const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+      );
+      if (!focusable || focusable.length === 0) return;
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const active = document.activeElement as HTMLElement | null;
+
+      if (event.shiftKey) {
+        if (!active || active === first) {
+          event.preventDefault();
+          last.focus();
+        }
+        return;
+      }
+
+      if (active === last) {
+        event.preventDefault();
+        first.focus();
       }
     };
 
@@ -101,6 +128,18 @@ export default function AddTaskSheet({
     return () => window.clearTimeout(timeout);
   }, [isOpen]);
 
+  useEffect(() => {
+    if (!isOpen) {
+      setShowTitleError(false);
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (title.trim()) {
+      setShowTitleError(false);
+    }
+  }, [title]);
+
   if (!isOpen) return null;
 
   return (
@@ -123,6 +162,8 @@ export default function AddTaskSheet({
           role="dialog"
           aria-modal="true"
           aria-labelledby="add-task-title"
+          ref={dialogRef}
+          tabIndex={-1}
           className="relative w-full max-w-lg animate-[modalIn_220ms_cubic-bezier(0.22,1,0.36,1)] overflow-hidden rounded-3xl border border-[var(--border)] bg-[var(--surface)] shadow-[0_20px_50px_-30px_rgba(16,12,8,0.6)]"
         >
           <div
@@ -147,7 +188,7 @@ export default function AddTaskSheet({
                 type="button"
                 onClick={onClose}
                 aria-label="Закрыть"
-                className="flex h-10 w-10 items-center justify-center rounded-full border border-[var(--border)] text-[var(--muted)] transition-colors hover:border-[var(--accent)] hover:text-[var(--ink)]"
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-[var(--border)] text-[var(--muted)] transition-colors hover:border-[var(--accent)] hover:text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
               >
                 <X size={18} />
               </button>
@@ -156,7 +197,11 @@ export default function AddTaskSheet({
           <form
             onSubmit={(event) => {
               event.preventDefault();
-              if (isAddDisabled) return;
+              if (isAddDisabled) {
+                setShowTitleError(true);
+                titleInputRef.current?.focus({ preventScroll: true });
+                return;
+              }
               onAdd();
             }}
             className="flex flex-1 flex-col"
@@ -179,8 +224,18 @@ export default function AddTaskSheet({
                 value={title}
                 onChange={(event) => onTitleChange(event.target.value)}
                 enterKeyHint="done"
+                aria-invalid={showTitleError}
+                aria-describedby={showTitleError ? "task-title-error" : undefined}
                 className="w-full rounded-2xl border border-transparent bg-[var(--surface-2)] px-4 py-3 text-lg text-[var(--ink)] placeholder:text-[var(--muted)] outline-none transition-shadow focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]"
               />
+              {showTitleError && (
+                <p
+                  id="task-title-error"
+                  className="mt-2 text-sm font-medium text-[var(--danger)]"
+                >
+                  Введите название задачи
+                </p>
+              )}
 
               <div className="mt-6">
                 <div className="flex items-center justify-between">
@@ -199,7 +254,7 @@ export default function AddTaskSheet({
                       onClick={() => onDurationChange(mins)}
                       aria-pressed={duration === mins}
                       className={cn(
-                        "rounded-xl border px-3 py-2 text-sm font-semibold transition-all",
+                        "h-11 rounded-xl border px-3 text-sm font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]",
                         duration === mins
                           ? "border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-ink)] shadow-[0_10px_20px_-16px_rgba(23,95,86,0.6)]"
                           : "border-[var(--border)] bg-[var(--surface)] text-[var(--muted)] hover:border-[var(--accent)] hover:text-[var(--ink)]",
@@ -215,8 +270,13 @@ export default function AddTaskSheet({
             <div className="border-t border-[var(--border)] px-6 pt-4 pb-[calc(16px+env(safe-area-inset-bottom))]">
               <button
                 type="submit"
-                disabled={isAddDisabled}
-                className="w-full rounded-2xl bg-[var(--accent)] py-4 text-lg font-semibold text-[var(--accent-ink)] shadow-[0_16px_28px_-18px_rgba(23,95,86,0.6)] transition-all hover:bg-[var(--accent-strong)] disabled:cursor-not-allowed disabled:bg-[var(--border)] disabled:text-[var(--muted)] disabled:shadow-none active:scale-[0.98]"
+                aria-disabled={isAddDisabled}
+                className={cn(
+                  "w-full rounded-2xl bg-[var(--accent)] py-4 text-lg font-semibold text-[var(--accent-ink)] shadow-[0_16px_28px_-18px_rgba(23,95,86,0.6)] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface)]",
+                  isAddDisabled
+                    ? "cursor-not-allowed bg-[var(--border)] text-[var(--muted)] shadow-none"
+                    : "hover:bg-[var(--accent-strong)] active:scale-[0.98]",
+                )}
               >
                 Добавить в план
               </button>

@@ -38,7 +38,7 @@
     --accent: #53c1ae;
     --accent-strong: #3aa493;
     --accent-soft: #143631;
-    --accent-ink: #e8fff8;
+    --accent-ink: var(--bg-2);
     --accent-glow: rgba(83, 193, 174, 0.12);
     --danger: #e0765a;
   }
@@ -91,5 +91,15 @@ body {
   }
   to {
     opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
   }
 }

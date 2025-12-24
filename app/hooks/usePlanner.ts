@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { addDays, isSameDay, startOfWeek } from "date-fns";
 import type { Task } from "../types/task";
 import { seedTasks } from "../data/seedTasks";
@@ -35,6 +35,11 @@ export function usePlanner(initialTasks: Task[] = seedTasks) {
   const minutes = totalMinutes % 60;
   const isAddDisabled = newTaskTitle.trim().length === 0;
 
+  const resetNewTask = useCallback(() => {
+    setNewTaskTitle("");
+    setNewTaskDuration(DEFAULT_DURATION);
+  }, [setNewTaskTitle, setNewTaskDuration]);
+
   const handleAddTask = () => {
     if (!newTaskTitle.trim()) return;
 
@@ -47,8 +52,7 @@ export function usePlanner(initialTasks: Task[] = seedTasks) {
     };
 
     setTasks((prev) => [...prev, newTask]);
-    setNewTaskTitle("");
-    setNewTaskDuration(DEFAULT_DURATION);
+    resetNewTask();
     setIsAddOpen(false);
   };
 
@@ -69,6 +73,10 @@ export function usePlanner(initialTasks: Task[] = seedTasks) {
     setTasks((prev) => prev.filter((task) => task.id !== id));
   };
 
+  const restoreTask = (task: Task) => {
+    setTasks((prev) => [...prev, task]);
+  };
+
   return {
     selectedDate,
     setSelectedDate,
@@ -84,8 +92,10 @@ export function usePlanner(initialTasks: Task[] = seedTasks) {
     newTaskDuration,
     setNewTaskDuration,
     isAddDisabled,
+    resetNewTask,
     handleAddTask,
     toggleTask,
     deleteTask,
+    restoreTask,
   };
 }
