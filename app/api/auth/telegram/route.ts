@@ -99,6 +99,7 @@ const verifyInitData = (initData: string, botToken: string) => {
 };
 
 export async function POST(request: Request) {
+  console.log("🔹 API Auth: Начало запроса");
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
   const jwtSecret = process.env.SUPABASE_JWT_SECRET;
 
@@ -112,6 +113,7 @@ export async function POST(request: Request) {
   const body = (await request.json().catch(() => null)) as
     | { initData?: string }
     | null;
+  console.log("🔹 API Auth: Body received", body ? "Yes" : "No");
   const initData = body?.initData;
 
   if (!initData || typeof initData !== "string") {
@@ -123,6 +125,7 @@ export async function POST(request: Request) {
 
   const verification = verifyInitData(initData, botToken);
   if (!verification.ok) {
+    console.error("❌ API Auth: Ошибка верификации:", verification.error);
     return NextResponse.json(
       { error: verification.error },
       { status: 401 },
@@ -130,6 +133,7 @@ export async function POST(request: Request) {
   }
 
   const telegramId = String(verification.user.id);
+  console.log("✅ API Auth: Пользователь верифицирован, ID:", telegramId);
   const token = signJwt(
     {
       aud: "authenticated",

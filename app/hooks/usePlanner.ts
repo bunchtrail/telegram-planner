@@ -168,9 +168,15 @@ export function usePlanner() {
   }, []);
 
   const handleAddTask = async () => {
-    if (!newTaskTitle.trim()) return;
+    if (!newTaskTitle.trim()) {
+      console.log("❌ Ошибка: Пустой заголовок задачи");
+      return;
+    }
+    console.log("🔍 Текущий User ID перед отправкой:", userId);
     if (!userId) {
-      console.error("User ID not found.");
+      console.error(
+        "❌ Ошибка: User ID не установлен. Авторизация не прошла или не завершена.",
+      );
       return;
     }
 
@@ -188,6 +194,13 @@ export function usePlanner() {
     resetNewTask();
     setIsAddOpen(false);
 
+    console.log("🚀 Отправка запроса в Supabase:", {
+      title: newTask.title,
+      duration: newTask.duration,
+      date: formatDateOnly(newTask.date),
+      telegram_id: userId,
+    });
+
     const { data, error } = await supabase
       .from("tasks")
       .insert({
@@ -201,9 +214,14 @@ export function usePlanner() {
       .single();
 
     if (error) {
-      console.error("Error adding task:", error);
+      console.error(
+        "❌ Ошибка Supabase INSERT:",
+        JSON.stringify(error, null, 2),
+      );
+      console.error("Детали:", error.message, error.details, error.hint);
       setTasks((prev) => prev.filter((t) => t.id !== tempId));
     } else if (data) {
+      console.log("✅ Успешно записано в БД:", data);
       setTasks((prev) =>
         prev.map((t) => (t.id === tempId ? { ...t, id: data.id } : t)),
       );
