@@ -1,3 +1,4 @@
+import { AnimatePresence, motion } from "framer-motion";
 import { Calendar as CalendarIcon, Loader2 } from "lucide-react";
 import type { Task } from "../types/task";
 import TaskItem from "./TaskItem";
@@ -27,7 +28,12 @@ export default function TaskList({
 
   if (tasks.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-[var(--muted)] opacity-70">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.4 }}
+        className="flex flex-col items-center justify-center py-20 text-[var(--muted)] opacity-70"
+      >
         <CalendarIcon size={48} className="mb-4 text-[var(--border)]" />
         <p>Нет планов на этот день</p>
         <button
@@ -37,20 +43,22 @@ export default function TaskList({
         >
           Добавить задачу
         </button>
-      </div>
+      </motion.div>
     );
   }
 
   return (
-    <ul className="space-y-3" role="list">
-      {tasks.map((task) => (
-        <TaskItem
-          key={task.id}
-          task={task}
-          onToggle={onToggle}
-          onDelete={onDelete}
-        />
-      ))}
+    <ul className="space-y-3 pb-20" role="list">
+      <AnimatePresence initial={false} mode="popLayout">
+        {tasks.map((task) => (
+          <TaskItem
+            key={task.id}
+            task={task}
+            onToggle={onToggle}
+            onDelete={onDelete}
+          />
+        ))}
+      </AnimatePresence>
     </ul>
   );
 }
