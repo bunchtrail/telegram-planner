@@ -1,9 +1,10 @@
-import { Calendar as CalendarIcon } from "lucide-react";
+import { Calendar as CalendarIcon, Loader2 } from "lucide-react";
 import type { Task } from "../types/task";
 import TaskItem from "./TaskItem";
 
 type TaskListProps = {
   tasks: Task[];
+  isLoading?: boolean;
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
   onAdd: () => void;
@@ -11,10 +12,19 @@ type TaskListProps = {
 
 export default function TaskList({
   tasks,
+  isLoading,
   onToggle,
   onDelete,
   onAdd,
 }: TaskListProps) {
+  if (isLoading) {
+    return (
+      <div className="flex justify-center py-20 text-[var(--muted)]">
+        <Loader2 size={32} className="animate-spin" />
+      </div>
+    );
+  }
+
   if (tasks.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-[var(--muted)] opacity-70">

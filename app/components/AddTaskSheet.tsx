@@ -2,6 +2,7 @@
 
 import {
   forwardRef,
+  useCallback,
   useEffect,
   useImperativeHandle,
   useLayoutEffect,
@@ -62,6 +63,21 @@ const AddTaskSheet = forwardRef<AddTaskSheetHandle, AddTaskSheetProps>(
     [],
   );
 
+  const handleClose = useCallback(() => {
+    setShowTitleError(false);
+    onClose();
+  }, [onClose]);
+
+  const handleTitleChange = useCallback(
+    (value: string) => {
+      if (showTitleError && value.trim()) {
+        setShowTitleError(false);
+      }
+      onTitleChange(value);
+    },
+    [onTitleChange, showTitleError],
+  );
+
   useEffect(() => {
     if (!isOpen) return;
 
@@ -80,7 +96,7 @@ const AddTaskSheet = forwardRef<AddTaskSheetHandle, AddTaskSheetProps>(
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        onClose();
+        handleClose();
         return;
       }
 
@@ -111,7 +127,7 @@ const AddTaskSheet = forwardRef<AddTaskSheetHandle, AddTaskSheetProps>(
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, onClose]);
+  }, [handleClose, isOpen]);
 
   useLayoutEffect(() => {
     if (!isOpen) return;
@@ -131,25 +147,13 @@ const AddTaskSheet = forwardRef<AddTaskSheetHandle, AddTaskSheetProps>(
     };
   }, [isOpen]);
 
-  useEffect(() => {
-    if (!isOpen) {
-      setShowTitleError(false);
-    }
-  }, [isOpen]);
-
-  useEffect(() => {
-    if (title.trim()) {
-      setShowTitleError(false);
-    }
-  }, [title]);
-
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col justify-end px-3 sm:items-center sm:justify-center sm:px-6">
       <div
         className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-[fadeIn_180ms_ease-out]"
-        onClick={onClose}
+        onClick={handleClose}
       />
 
       <div
@@ -178,7 +182,7 @@ const AddTaskSheet = forwardRef<AddTaskSheetHandle, AddTaskSheetProps>(
             </div>
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleClose}
               aria-label="Закрыть"
               className="flex h-10 w-10 items-center justify-center rounded-full border border-[var(--border)] text-[var(--muted)] transition-colors hover:border-[var(--accent)] hover:text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
             >
@@ -214,7 +218,7 @@ const AddTaskSheet = forwardRef<AddTaskSheetHandle, AddTaskSheetProps>(
                 type="text"
                 placeholder="Например, созвон с командой"
                 value={title}
-                onChange={(event) => onTitleChange(event.target.value)}
+                onChange={(event) => handleTitleChange(event.target.value)}
                 autoFocus
                 enterKeyHint="done"
                 aria-invalid={showTitleError}

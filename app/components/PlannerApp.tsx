@@ -15,7 +15,6 @@ export default function PlannerApp() {
     setSelectedDate,
     isAddOpen,
     setIsAddOpen,
-    tasks,
     currentTasks,
     weekDays,
     hours,
@@ -30,6 +29,7 @@ export default function PlannerApp() {
     toggleTask,
     deleteTask,
     restoreTask,
+    isLoading,
   } = usePlanner();
   const fabRef = useRef<HTMLButtonElement>(null);
   const sheetRef = useRef<AddTaskSheetHandle>(null);
@@ -53,12 +53,10 @@ export default function PlannerApp() {
     };
   }, []);
 
-  const handleDelete = (id: string) => {
-    const taskToDelete = tasks.find((task) => task.id === id);
-    if (!taskToDelete) return;
-
-    deleteTask(id);
-    setUndoTask(taskToDelete);
+  const handleDelete = async (id: string) => {
+    const deletedTask = await deleteTask(id);
+    if (!deletedTask) return;
+    setUndoTask(deletedTask);
 
     if (undoTimeoutRef.current) {
       window.clearTimeout(undoTimeoutRef.current);
@@ -97,6 +95,7 @@ export default function PlannerApp() {
       <main className="px-4 py-6">
         <TaskList
           tasks={currentTasks}
+          isLoading={isLoading}
           onToggle={toggleTask}
           onDelete={handleDelete}
           onAdd={handleOpenAdd}
