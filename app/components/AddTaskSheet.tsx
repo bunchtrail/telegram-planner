@@ -51,6 +51,9 @@ const AddTaskSheet = forwardRef<AddTaskSheetHandle, AddTaskSheetProps>(
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const titleInputRef = useRef<HTMLInputElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
+  const baseViewportHeightRef = useRef(0);
+  const [keyboardInset, setKeyboardInset] = useState(0);
+  const [viewportHeight, setViewportHeight] = useState<number | null>(null);
   const [showTitleError, setShowTitleError] = useState(false);
 
   useImperativeHandle(
@@ -132,6 +135,59 @@ const AddTaskSheet = forwardRef<AddTaskSheetHandle, AddTaskSheetProps>(
   useLayoutEffect(() => {
     if (!isOpen) return;
 
+    const viewport = window.visualViewport;
+    baseViewportHeightRef.current = window.innerHeight;
+    setViewportHeight(baseViewportHeightRef.current);
+
+    let frameId: number | null = null;
+
+    const updateKeyboardInset = () => {
+      const baseHeight = baseViewportHeightRef.current || window.innerHeight;
+      const visualHeight = viewport?.height ?? window.innerHeight;
+      const offsetTop = viewport?.offsetTop ?? 0;
+      const nextInset = Math.max(0, baseHeight - visualHeight - offsetTop);
+
+      if (frameId !== null) {
+        window.cancelAnimationFrame(frameId);
+      }
+      frameId = window.requestAnimationFrame(() => {
+        setKeyboardInset(nextInset);
+        frameId = null;
+      });
+    };
+
+    updateKeyboardInset();
+
+    if (viewport) {
+      viewport.addEventListener("resize", updateKeyboardInset);
+      viewport.addEventListener("scroll", updateKeyboardInset);
+    } else {
+      window.addEventListener("resize", updateKeyboardInset);
+    }
+
+    return () => {
+      if (frameId !== null) {
+        window.cancelAnimationFrame(frameId);
+      }
+      if (viewport) {
+        viewport.removeEventListener("resize", updateKeyboardInset);
+        viewport.removeEventListener("scroll", updateKeyboardInset);
+      } else {
+        window.removeEventListener("resize", updateKeyboardInset);
+      }
+    };
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (isOpen) return;
+    setKeyboardInset(0);
+    setViewportHeight(null);
+    baseViewportHeightRef.current = 0;
+  }, [isOpen]);
+
+  useLayoutEffect(() => {
+    if (!isOpen) return;
+
     const input = titleInputRef.current;
     if (!input) return;
 
@@ -150,7 +206,13 @@ const AddTaskSheet = forwardRef<AddTaskSheetHandle, AddTaskSheetProps>(
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col justify-end px-3 sm:items-center sm:justify-center sm:px-6">
+    <div
+      className="fixed left-0 right-0 top-0 z-50 flex flex-col justify-end px-3 transition-[padding-bottom] duration-200 ease-out sm:items-center sm:justify-center sm:px-6"
+      style={{
+        height: viewportHeight ? `${viewportHeight}px` : "100%",
+        paddingBottom: keyboardInset ? `${keyboardInset}px` : undefined,
+      }}
+    >
       <div
         className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-[fadeIn_180ms_ease-out]"
         onClick={handleClose}

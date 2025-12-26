@@ -52,6 +52,14 @@ const parseDateOnly = (value: string) => {
   return new Date(year, month - 1, day);
 };
 
+const mapTaskRow = (row: TaskRow): Task => ({
+  id: row.id,
+  title: row.title,
+  duration: row.duration,
+  date: parseDateOnly(row.date),
+  completed: row.completed,
+});
+
 export function usePlanner() {
   const [selectedDate, setSelectedDate] = useState(() => new Date());
   const [userId, setUserId] = useState<string | null>(null);
@@ -61,6 +69,7 @@ export function usePlanner() {
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [newTaskDuration, setNewTaskDuration] = useState(DEFAULT_DURATION);
   const toggleRequestRef = useRef(new Map<string, number>());
+  const pendingInsertRef = useRef(new Map<string, TaskRow>());
 
   const weekDays = useMemo(() => {
     const startDate = startOfWeek(new Date(), { weekStartsOn: 1 });
@@ -82,7 +91,6 @@ export function usePlanner() {
       try {
         const initData = getTelegramInitData();
         if (!initData) {
-          console.error("Telegram initData is missing.");
           return;
         }
 
@@ -96,10 +104,6 @@ export function usePlanner() {
           | null;
 
         if (!response.ok || !payload?.token) {
-          console.error(
-            "Telegram auth error:",
-            payload?.error ?? response.statusText,
-          );
           return;
         }
 
@@ -115,22 +119,13 @@ export function usePlanner() {
           .order("created_at", { ascending: true });
 
         if (tasksError) {
-          console.error("Error fetching tasks:", tasksError);
           return;
         }
 
         if (tasksData && !isCancelled) {
-          const loadedTasks: Task[] = tasksData.map((t: TaskRow) => ({
-            id: t.id,
-            title: t.title,
-            duration: t.duration,
-            date: parseDateOnly(t.date),
-            completed: t.completed,
-          }));
-          setTasks(loadedTasks);
+          setTasks(tasksData.map((t: TaskRow) => mapTaskRow(t)));
         }
       } catch (error) {
-        console.error("Error initializing planner:", error);
       } finally {
         if (!isCancelled) {
           setIsLoading(false);
@@ -143,6 +138,75 @@ export function usePlanner() {
       isCancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    if (!userId) return;
+
+    const channel = supabase
+      .channel(`tasks-${userId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "tasks",
+          filter: `telegram_id=eq.${userId}`,
+        },
+        (payload) => {
+          if (payload.eventType === "INSERT") {
+            const row = payload.new as TaskRow;
+            if (!row?.id) return;
+
+            setTasks((prev) => {
+              if (prev.some((task) => task.id === row.id)) {
+                return prev;
+              }
+
+              let pendingMatchId: string | null = null;
+              for (const [tempId, pending] of pendingInsertRef.current) {
+                if (
+                  pending.title === row.title &&
+                  pending.duration === row.duration &&
+                  pending.date === row.date &&
+                  pending.completed === row.completed
+                ) {
+                  pendingMatchId = tempId;
+                  break;
+                }
+              }
+
+              if (pendingMatchId) {
+                pendingInsertRef.current.delete(pendingMatchId);
+                return prev.map((task) =>
+                  task.id === pendingMatchId ? mapTaskRow(row) : task,
+                );
+              }
+
+              return [...prev, mapTaskRow(row)];
+            });
+          }
+
+          if (payload.eventType === "UPDATE") {
+            const row = payload.new as TaskRow;
+            if (!row?.id) return;
+            setTasks((prev) =>
+              prev.map((task) => (task.id === row.id ? mapTaskRow(row) : task)),
+            );
+          }
+
+          if (payload.eventType === "DELETE") {
+            const row = payload.old as TaskRow;
+            if (!row?.id) return;
+            setTasks((prev) => prev.filter((task) => task.id !== row.id));
+          }
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [userId]);
 
   const currentTasks = useMemo(
     () => tasks.filter((task) => isSameDay(task.date, selectedDate)),
@@ -169,18 +233,21 @@ export function usePlanner() {
 
   const handleAddTask = async () => {
     if (!newTaskTitle.trim()) {
-      console.log("❌ Ошибка: Пустой заголовок задачи");
       return;
     }
-    console.log("🔍 Текущий User ID перед отправкой:", userId);
     if (!userId) {
-      console.error(
-        "❌ Ошибка: User ID не установлен. Авторизация не прошла или не завершена.",
-      );
       return;
     }
 
     const tempId = Math.random().toString(36).substring(2, 9);
+    const pendingRow: TaskRow = {
+      id: tempId,
+      title: newTaskTitle,
+      duration: newTaskDuration,
+      date: formatDateOnly(selectedDate),
+      completed: false,
+    };
+    pendingInsertRef.current.set(tempId, pendingRow);
 
     const newTask: Task = {
       id: tempId,
@@ -194,13 +261,6 @@ export function usePlanner() {
     resetNewTask();
     setIsAddOpen(false);
 
-    console.log("🚀 Отправка запроса в Supabase:", {
-      title: newTask.title,
-      duration: newTask.duration,
-      date: formatDateOnly(newTask.date),
-      telegram_id: userId,
-    });
-
     const { data, error } = await supabase
       .from("tasks")
       .insert({
@@ -213,15 +273,11 @@ export function usePlanner() {
       .select()
       .single();
 
+    pendingInsertRef.current.delete(tempId);
+
     if (error) {
-      console.error(
-        "❌ Ошибка Supabase INSERT:",
-        JSON.stringify(error, null, 2),
-      );
-      console.error("Детали:", error.message, error.details, error.hint);
       setTasks((prev) => prev.filter((t) => t.id !== tempId));
     } else if (data) {
-      console.log("✅ Успешно записано в БД:", data);
       setTasks((prev) =>
         prev.map((t) => (t.id === tempId ? { ...t, id: data.id } : t)),
       );
@@ -252,7 +308,6 @@ export function usePlanner() {
       .eq("id", id);
 
     if (error) {
-      console.error("Error toggling task:", error);
       if (toggleRequestRef.current.get(id) !== requestId) {
         return;
       }
@@ -277,7 +332,6 @@ export function usePlanner() {
       .eq("id", id);
 
     if (error) {
-      console.error("Error deleting task:", error);
       setTasks((prev) => {
         const next = [...prev];
         const index =
@@ -296,7 +350,6 @@ export function usePlanner() {
     setTasks((prev) => [...prev, task]);
 
     if (!userId) {
-      console.error("User ID not found.");
       setTasks((prev) => prev.filter((t) => t.id !== task.id));
       return;
     }
@@ -314,7 +367,6 @@ export function usePlanner() {
       .single();
 
     if (error) {
-      console.error("Error restoring task", error);
       setTasks((prev) => prev.filter((t) => t.id !== task.id));
     } else if (data) {
       setTasks((prev) =>
