@@ -18,6 +18,29 @@ import {
 } from "body-scroll-lock";
 
 const DURATION_OPTIONS = [15, 30, 45, 60, 90, 120];
+const MIN_DURATION = 1;
+const MAX_DURATION = 23 * 60 + 59;
+
+const clampDuration = (value: number) =>
+  Math.min(Math.max(value, MIN_DURATION), MAX_DURATION);
+
+const formatDurationInputValue = (value: number) => {
+  const clamped = clampDuration(value);
+  const hours = Math.floor(clamped / 60);
+  const minutes = clamped % 60;
+  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+};
+
+const parseDurationInputValue = (value: string) => {
+  if (!value) return null;
+  const [hoursRaw, minutesRaw] = value.split(":");
+  const hours = Number(hoursRaw);
+  const minutes = Number(minutesRaw);
+  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) {
+    return null;
+  }
+  return clampDuration(hours * 60 + minutes);
+};
 
 export type AddTaskSheetHandle = {
   focusTitleInput: () => void;
@@ -322,6 +345,39 @@ const AddTaskSheet = forwardRef<AddTaskSheetHandle, AddTaskSheetProps>(
                       {mins}м
                     </button>
                   ))}
+                </div>
+                <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-3">
+                  <label
+                    htmlFor="task-duration-time"
+                    className="block text-xs font-semibold uppercase tracking-[0.2em] text-[var(--muted)]"
+                  >
+                    Точная длительность
+                  </label>
+                  <div className="mt-2 flex items-center gap-3">
+                    <input
+                      id="task-duration-time"
+                      type="time"
+                      step={60}
+                      min="00:01"
+                      max="23:59"
+                      value={formatDurationInputValue(duration)}
+                      onChange={(event) => {
+                        const parsed = parseDurationInputValue(
+                          event.target.value,
+                        );
+                        if (parsed !== null) {
+                          onDurationChange(parsed);
+                        }
+                      }}
+                      className="w-full bg-transparent text-2xl font-semibold text-[var(--ink)] outline-none tabular-nums [appearance:none]"
+                    />
+                    <span className="text-sm font-semibold text-[var(--muted)]">
+                      ч:м
+                    </span>
+                  </div>
+                  <p className="mt-2 text-xs text-[var(--muted)]">
+                    На iOS откроется барабан выбора времени
+                  </p>
                 </div>
               </div>
             </div>
