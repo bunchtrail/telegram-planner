@@ -54,6 +54,7 @@ const parseDateOnly = (value: string) => {
 
 export function usePlanner() {
   const [selectedDate, setSelectedDate] = useState(() => new Date());
+  const [userId, setUserId] = useState<string | null>(null);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -91,7 +92,7 @@ export function usePlanner() {
           body: JSON.stringify({ initData }),
         });
         const payload = (await response.json().catch(() => null)) as
-          | { token?: string; error?: string }
+          | { token?: string; error?: string; user?: { id?: string | number } }
           | null;
 
         if (!response.ok || !payload?.token) {
@@ -103,6 +104,9 @@ export function usePlanner() {
         }
 
         setSupabaseAccessToken(payload.token);
+        if (payload.user?.id != null) {
+          setUserId(String(payload.user.id));
+        }
 
         const { data: tasksData, error: tasksError } = await supabase
           .from("tasks")
@@ -165,6 +169,10 @@ export function usePlanner() {
 
   const handleAddTask = async () => {
     if (!newTaskTitle.trim()) return;
+    if (!userId) {
+      console.error("User ID not found.");
+      return;
+    }
 
     const tempId = Math.random().toString(36).substring(2, 9);
 
@@ -187,6 +195,7 @@ export function usePlanner() {
         duration: newTask.duration,
         date: formatDateOnly(newTask.date),
         completed: false,
+        telegram_id: userId,
       })
       .select()
       .single();
@@ -268,6 +277,12 @@ export function usePlanner() {
   const restoreTask = async (task: Task) => {
     setTasks((prev) => [...prev, task]);
 
+    if (!userId) {
+      console.error("User ID not found.");
+      setTasks((prev) => prev.filter((t) => t.id !== task.id));
+      return;
+    }
+
     const { data, error } = await supabase
       .from("tasks")
       .insert({
@@ -275,6 +290,7 @@ export function usePlanner() {
         duration: task.duration,
         date: formatDateOnly(task.date),
         completed: task.completed,
+        telegram_id: userId,
       })
       .select()
       .single();
