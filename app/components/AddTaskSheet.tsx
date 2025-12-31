@@ -313,7 +313,7 @@ const AddTaskSheet = forwardRef<AddTaskSheetHandle, AddTaskSheetProps>(
         }}
       >
         <motion.div
-          className="absolute inset-0 bg-black/60 backdrop-blur-[2px]"
+          className="absolute inset-0 bg-black/40 backdrop-blur-[4px]"
           onClick={handleClose}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -327,7 +327,7 @@ const AddTaskSheet = forwardRef<AddTaskSheetHandle, AddTaskSheetProps>(
           aria-modal="true"
           aria-labelledby="add-task-title"
           tabIndex={-1}
-          className="relative z-10 w-full max-w-lg overflow-hidden rounded-t-[32px] bg-[var(--surface)] shadow-[0_24px_60px_-30px_rgba(16,12,8,0.7)] sm:rounded-[32px]"
+          className="relative z-10 w-full max-w-lg overflow-hidden rounded-t-[32px] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-pop)] sm:rounded-[32px]"
           style={{
             maxHeight: "92vh",
             paddingBottom: "env(safe-area-inset-bottom)",
@@ -350,7 +350,7 @@ const AddTaskSheet = forwardRef<AddTaskSheetHandle, AddTaskSheetProps>(
             <div className="h-1.5 w-12 rounded-full bg-[var(--border)] opacity-70" />
           </div>
 
-          <div className="flex items-center justify-between px-6 pb-1 pt-2">
+          <div className="flex items-center justify-between border-b border-[var(--border)] px-6 pb-3 pt-2">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--muted)]">
                 План
@@ -401,7 +401,7 @@ const AddTaskSheet = forwardRef<AddTaskSheetHandle, AddTaskSheetProps>(
                   enterKeyHint="done"
                   aria-invalid={showTitleError}
                   aria-describedby={showTitleError ? "task-title-error" : undefined}
-                  className="w-full bg-transparent text-2xl font-medium text-[var(--ink)] placeholder:text-[var(--muted)]/50 outline-none"
+                  className="w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-3 text-2xl font-medium text-[var(--ink)] outline-none transition-shadow placeholder:text-[var(--muted)] placeholder:opacity-60 focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
                 />
                 {showTitleError && (
                   <p
@@ -413,7 +413,7 @@ const AddTaskSheet = forwardRef<AddTaskSheetHandle, AddTaskSheetProps>(
                 )}
               </div>
 
-              <div className="mt-8 space-y-4">
+              <div className="mt-8 space-y-5">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-[var(--muted)]">
                     <Clock size={16} />
@@ -428,7 +428,7 @@ const AddTaskSheet = forwardRef<AddTaskSheetHandle, AddTaskSheetProps>(
 
                 <div
                   ref={sliderTrackRef}
-                  className="relative flex h-8 items-center cursor-pointer touch-none"
+                  className="relative flex h-9 items-center cursor-pointer touch-none"
                   onPointerDown={handleSliderPointerDown}
                   onPointerMove={handleSliderPointerMove}
                   onPointerUp={handleSliderPointerUp}
@@ -445,14 +445,14 @@ const AddTaskSheet = forwardRef<AddTaskSheetHandle, AddTaskSheetProps>(
                     className="absolute inset-0 z-20 h-full w-full cursor-pointer opacity-0 pointer-events-none"
                     aria-label="Длительность задачи"
                   />
-                  <div className="absolute left-0 right-0 top-1/2 h-2 -translate-y-1/2 rounded-full bg-[var(--surface-2)]">
+                  <div className="absolute left-0 right-0 top-1/2 h-2.5 -translate-y-1/2 rounded-full bg-[var(--surface-2)]">
                     <div
                       className="h-full rounded-full bg-[var(--accent)] transition-[width] duration-75"
                       style={{ width: `${progress}%` }}
                     />
                   </div>
                   <div
-                    className="absolute top-1/2 h-6 w-6 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-[var(--surface)] bg-[var(--accent)] shadow-md pointer-events-none transition-[left] duration-75"
+                    className="absolute top-1/2 h-7 w-7 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-[var(--surface)] bg-[var(--accent)] shadow-[0_12px_20px_-12px_rgba(176,106,63,0.5)] pointer-events-none transition-[left] duration-75"
                     style={{ left: `${progress}%` }}
                   />
                 </div>
@@ -470,7 +470,7 @@ const AddTaskSheet = forwardRef<AddTaskSheetHandle, AddTaskSheetProps>(
                       className={cn(
                         "flex-shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition-all active:scale-95",
                         safeDuration === mins
-                          ? "bg-[var(--accent)] text-[var(--accent-ink)] shadow-[0_12px_24px_-18px_rgba(23,95,86,0.7)]"
+                          ? "bg-[var(--accent)] text-[var(--accent-ink)] shadow-[0_12px_24px_-18px_rgba(176,106,63,0.55)]"
                           : "bg-[var(--surface-2)] text-[var(--muted)] hover:bg-[var(--border)] hover:text-[var(--ink)]",
                       )}
                     >
@@ -486,10 +486,10 @@ const AddTaskSheet = forwardRef<AddTaskSheetHandle, AddTaskSheetProps>(
                 type="submit"
                 disabled={isAddDisabled}
                 className={cn(
-                  "group relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-2xl py-4 text-lg font-bold transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]",
+                  "group relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-2xl border border-transparent py-4 text-lg font-bold transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]",
                   isAddDisabled
-                    ? "bg-[var(--surface-2)] text-[var(--muted)]"
-                    : "bg-[var(--ink)] text-[var(--bg)] shadow-[0_16px_30px_-20px_rgba(16,12,8,0.45)] active:scale-[0.98]",
+                    ? "border-[var(--border)] bg-[var(--surface-2)] text-[var(--muted)]"
+                    : "bg-[var(--accent)] text-[var(--accent-ink)] shadow-[var(--shadow-card)] active:scale-[0.98]",
                 )}
               >
                 <span className="z-10 flex items-center gap-2">

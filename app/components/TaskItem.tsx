@@ -34,8 +34,8 @@ export default function TaskItem({ task, onToggle, onDelete }: TaskItemProps) {
       exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.2 } }}
       whileTap={{ scale: 0.98 }}
       className={cn(
-        "group relative flex items-center rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-[0_12px_24px_-18px_rgba(16,12,8,0.4)] transition-colors focus-within:outline-none focus-within:ring-2 focus-within:ring-[var(--accent)]",
-        task.completed && "bg-[var(--surface-2)]",
+        "group relative flex items-center rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-card)] transition-all focus-within:outline-none focus-within:ring-2 focus-within:ring-[var(--accent)]",
+        task.completed && "bg-[var(--surface-2)] shadow-[var(--shadow-soft)]",
       )}
     >
       <input
@@ -48,11 +48,11 @@ export default function TaskItem({ task, onToggle, onDelete }: TaskItemProps) {
 
       <label
         htmlFor={checkboxId}
-        className="flex min-w-0 flex-1 cursor-pointer items-center gap-4 px-4 py-4"
+        className="flex min-w-0 flex-1 cursor-pointer items-center gap-4 px-4 py-3.5"
       >
         <div
           className={cn(
-            "flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full border-2 transition-colors duration-300",
+            "flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full border-2 transition-colors duration-300",
             task.completed
               ? "border-[var(--accent)] bg-[var(--accent)]"
               : "border-[var(--border)] group-hover:border-[var(--accent)]",
@@ -66,14 +66,14 @@ export default function TaskItem({ task, onToggle, onDelete }: TaskItemProps) {
             }}
             transition={{ type: "spring", stiffness: 400, damping: 25 }}
           >
-            <Check size={14} className="text-[var(--accent-ink)]" />
+            <Check size={16} className="text-[var(--accent-ink)]" />
           </motion.div>
         </div>
 
         <div className="min-w-0 flex-1">
           <p
             className={cn(
-              "truncate text-base font-medium transition-all duration-300",
+              "truncate text-base font-medium leading-snug transition-all duration-300",
               task.completed
                 ? "text-[var(--muted)] line-through opacity-60"
                 : "text-[var(--ink)]",
@@ -87,9 +87,9 @@ export default function TaskItem({ task, onToggle, onDelete }: TaskItemProps) {
       <div className="flex items-center gap-3 pr-4">
         <span
           className={cn(
-            "whitespace-nowrap rounded-lg px-2.5 py-1 text-xs font-semibold transition-colors duration-300",
+            "whitespace-nowrap rounded-full px-3 py-1 text-xs font-semibold transition-colors duration-300",
             task.completed
-              ? "bg-[var(--surface-2)] text-[var(--muted)]"
+              ? "bg-[var(--surface)] text-[var(--muted)]"
               : "bg-[var(--accent-soft)] text-[var(--accent-strong)]",
           )}
         >
@@ -99,7 +99,7 @@ export default function TaskItem({ task, onToggle, onDelete }: TaskItemProps) {
           onClick={handleDelete}
           type="button"
           aria-label={`Удалить задачу: ${task.title}`}
-          className="flex h-10 w-10 items-center justify-center rounded-xl text-[var(--muted)] transition-colors hover:text-[var(--danger)] active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+          className="flex h-10 w-10 items-center justify-center rounded-xl text-[var(--muted)] transition-all hover:bg-[var(--surface-2)] hover:text-[var(--danger)] active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
         >
           <Trash2 size={18} />
         </button>

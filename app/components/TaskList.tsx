@@ -20,7 +20,7 @@ export default function TaskList({
 }: TaskListProps) {
   if (isLoading) {
     return (
-      <div className="flex justify-center py-20 text-[var(--muted)]">
+      <div className="flex justify-center py-20 text-[var(--accent-strong)]">
         <Loader2 size={32} className="animate-spin" />
       </div>
     );
@@ -32,14 +32,18 @@ export default function TaskList({
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.4 }}
-        className="flex flex-col items-center justify-center py-20 text-[var(--muted)] opacity-70"
+        className="flex flex-col items-center justify-center py-20 text-center"
       >
-        <CalendarIcon size={48} className="mb-4 text-[var(--border)]" />
-        <p>Нет планов на этот день</p>
+        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-3xl bg-[var(--accent-soft)] text-[var(--accent)] shadow-[0_12px_20px_-16px_rgba(176,106,63,0.35)]">
+          <CalendarIcon size={32} />
+        </div>
+        <p className="text-base font-semibold text-[var(--ink)]">
+          Нет планов на этот день
+        </p>
         <button
           type="button"
           onClick={onAdd}
-          className="mt-6 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-semibold text-[var(--ink)] transition-colors hover:border-[var(--accent)] hover:text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+          className="mt-6 rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-semibold text-[var(--accent-ink)] shadow-[var(--shadow-soft)] transition-all hover:shadow-[var(--shadow-card)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
         >
           Добавить задачу
         </button>

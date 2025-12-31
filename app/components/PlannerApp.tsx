@@ -201,12 +201,12 @@ export default function PlannerApp() {
             role="status"
             aria-live="polite"
           >
-            <div className="flex items-center justify-between gap-4 rounded-2xl border border-[var(--border)] bg-[var(--ink)] px-5 py-4 text-sm font-medium text-[var(--bg)] shadow-[0_16px_30px_-20px_rgba(16,12,8,0.45)]">
+            <div className="flex items-center justify-between gap-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-5 py-4 text-sm font-medium text-[var(--ink)] shadow-[var(--shadow-pop)] backdrop-blur-[10px]">
               <span>Задача удалена</span>
               <button
                 type="button"
                 onClick={handleUndoDelete}
-                className="rounded-lg px-2 py-1 font-bold text-[var(--accent)] transition-colors hover:text-[var(--surface)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+                className="rounded-full bg-[var(--accent-soft)] px-3 py-1 font-semibold text-[var(--accent-strong)] transition-all hover:bg-[var(--accent)] hover:text-[var(--accent-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
               >
                 Отменить
               </button>

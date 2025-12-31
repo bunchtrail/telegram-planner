@@ -1,20 +1,24 @@
 @import "tailwindcss";
 
 :root {
-  --bg: #f7f1e7;
-  --bg-2: #efe3d2;
-  --bg-soft: #fff7ed;
-  --surface: #ffffff;
-  --surface-2: #f9f2e6;
-  --ink: #1f1a14;
-  --muted: #6d6358;
-  --border: #e7dacb;
-  --accent: #1f7a6f;
-  --accent-strong: #175f56;
-  --accent-soft: #e2f2ee;
-  --accent-ink: #f1fffb;
-  --accent-glow: rgba(31, 122, 111, 0.16);
-  --danger: #c45133;
+  --bg: #f9f3ea;
+  --bg-2: #f2e6d7;
+  --bg-soft: #fff7ef;
+  --surface: #fffdf9;
+  --surface-2: #f7eee4;
+  --surface-glass: rgba(255, 252, 247, 0.92);
+  --ink: #2b241c;
+  --muted: #7a6e63;
+  --border: #eadfce;
+  --accent: #b06a3f;
+  --accent-strong: #955531;
+  --accent-soft: #f6e7d8;
+  --accent-ink: #fff8f1;
+  --accent-glow: rgba(176, 106, 63, 0.18);
+  --danger: #c4573b;
+  --shadow-soft: 0 8px 24px -20px rgba(60, 43, 30, 0.28);
+  --shadow-card: 0 16px 32px -24px rgba(60, 43, 30, 0.35);
+  --shadow-pop: 0 26px 50px -28px rgba(60, 43, 30, 0.5);
 }
 
 @theme inline {
@@ -29,26 +33,30 @@
   :root {
     --bg: #151210;
     --bg-2: #0f0c0a;
-    --bg-soft: #1c1713;
-    --surface: #1b1713;
-    --surface-2: #241e18;
-    --ink: #f4efe8;
-    --muted: #b3a79b;
-    --border: #2c241d;
-    --accent: #53c1ae;
-    --accent-strong: #3aa493;
-    --accent-soft: #143631;
-    --accent-ink: var(--bg-2);
-    --accent-glow: rgba(83, 193, 174, 0.12);
-    --danger: #e0765a;
+    --bg-soft: #1e1814;
+    --surface: #1f1914;
+    --surface-2: #2a211b;
+    --surface-glass: rgba(26, 20, 16, 0.9);
+    --ink: #f6efe6;
+    --muted: #b7aa9d;
+    --border: #342a22;
+    --accent: #d49a6f;
+    --accent-strong: #c18458;
+    --accent-soft: #3a261a;
+    --accent-ink: #1a120c;
+    --accent-glow: rgba(212, 154, 111, 0.14);
+    --danger: #e07a5f;
+    --shadow-soft: 0 12px 30px -22px rgba(0, 0, 0, 0.6);
+    --shadow-card: 0 18px 36px -26px rgba(0, 0, 0, 0.65);
+    --shadow-pop: 0 30px 60px -36px rgba(0, 0, 0, 0.7);
   }
 }
 
 body {
   min-height: 100%;
   background:
-    radial-gradient(900px 520px at 12% -10%, var(--bg-soft) 0%, transparent 60%),
-    radial-gradient(700px 480px at 90% 0%, var(--accent-glow) 0%, transparent 60%),
+    radial-gradient(860px 520px at 10% -12%, var(--bg-soft) 0%, transparent 62%),
+    radial-gradient(680px 480px at 90% -10%, var(--accent-glow) 0%, transparent 65%),
     linear-gradient(160deg, var(--bg) 0%, var(--bg-2) 100%);
   color: var(--ink);
   font-family: var(--font-body), sans-serif;

@@ -43,7 +43,7 @@ export default function WeekStrip({
   return (
     <div
       ref={scrollContainerRef}
-      className="no-scrollbar flex gap-2 overflow-x-auto py-2 pr-4 pl-1"
+      className="no-scrollbar flex gap-2.5 overflow-x-auto py-2.5 pr-4 pl-1"
     >
       {weekDays.map((day) => {
         const isSelected = isSameDay(day, selectedDate);
@@ -58,13 +58,13 @@ export default function WeekStrip({
             aria-current={isSelected ? "date" : undefined}
             aria-label={format(day, "EEEE, d MMMM", { locale: ru })}
             className={cn(
-              "flex h-[64px] min-w-[52px] shrink-0 flex-col items-center justify-center rounded-2xl border transition-all duration-300",
+              "flex h-[66px] min-w-[56px] shrink-0 flex-col items-center justify-center rounded-2xl border transition-all duration-300 active:scale-[0.98]",
               isSelected
-                ? "scale-105 transform border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-ink)] shadow-[0_10px_24px_-14px_rgba(23,95,86,0.6)]"
+                ? "scale-[1.02] transform border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-ink)] shadow-[var(--shadow-soft)]"
                 : "border-[var(--border)] bg-[var(--surface)] text-[var(--muted)] hover:border-[var(--accent)] hover:bg-[var(--surface-2)] hover:text-[var(--ink)]",
             )}
           >
-            <span className="text-[10px] font-medium uppercase opacity-80">
+            <span className="text-[11px] font-semibold uppercase tracking-[0.2em] opacity-70">
               {format(day, "EE", { locale: ru })}
             </span>
             <span
@@ -80,7 +80,7 @@ export default function WeekStrip({
               {format(day, "d")}
             </span>
             {isToday && !isSelected && (
-              <div className="mt-1 h-1 w-1 rounded-full bg-[var(--accent)]" />
+              <div className="mt-1 h-1.5 w-1.5 rounded-full bg-[var(--accent)]" />
             )}
           </button>
         );

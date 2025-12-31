@@ -33,8 +33,8 @@ export default function MonthGrid({
   };
 
   return (
-    <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-3 shadow-[0_12px_24px_-18px_rgba(16,12,8,0.4)]">
-      <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-semibold uppercase tracking-wider text-[var(--muted)]">
+    <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-3 shadow-[var(--shadow-card)]">
+      <div className="grid grid-cols-7 gap-1 text-center text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--muted)]">
         {weekDayLabels.map((day) => (
           <span key={format(day, "EEE", { locale: ru })}>
             {format(day, "EE", { locale: ru })}
@@ -58,19 +58,21 @@ export default function MonthGrid({
               aria-current={isSelected ? "date" : undefined}
               aria-label={format(day, "EEEE, d MMMM", { locale: ru })}
               className={cn(
-                "relative flex h-11 flex-col items-center justify-center rounded-xl border text-sm font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]",
+                "relative flex h-11 flex-col items-center justify-center rounded-2xl border text-sm font-semibold transition-all duration-200 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]",
                 isSelected
-                  ? "border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-ink)] shadow-[0_10px_24px_-14px_rgba(23,95,86,0.6)]"
+                  ? "border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-ink)] shadow-[var(--shadow-soft)]"
                   : "border-transparent text-[var(--ink)] hover:border-[var(--accent)] hover:bg-[var(--surface-2)]",
                 isOutside && !isSelected && "text-[var(--muted)] opacity-70",
-                isToday && !isSelected && "border-[var(--accent)] text-[var(--accent)]",
+                isToday &&
+                  !isSelected &&
+                  "border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent-strong)]",
               )}
             >
               <span>{format(day, "d")}</span>
               {hasTasks && (
                 <span
                   className={cn(
-                    "mt-1 h-1.5 w-1.5 rounded-full",
+                    "mt-1.5 h-1.5 w-1.5 rounded-full",
                     isSelected
                       ? "bg-[var(--accent-ink)]"
                       : isOutside

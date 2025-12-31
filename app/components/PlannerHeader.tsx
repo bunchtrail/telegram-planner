@@ -46,7 +46,7 @@ export default function PlannerHeader({
   ];
 
   return (
-    <header className="sticky top-0 z-10 border-b border-[var(--border)] bg-[var(--surface)] px-4 pt-6 pb-4 shadow-[0_8px_30px_-20px_rgba(16,12,8,0.35)]">
+    <header className="sticky top-0 z-10 border-b border-[var(--border)] bg-[var(--surface-glass)] px-4 pt-6 pb-4 shadow-[var(--shadow-soft)] backdrop-blur-[12px]">
       <div className="mb-4 flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-sm font-semibold uppercase tracking-wider text-[var(--muted)]">
@@ -60,7 +60,7 @@ export default function PlannerHeader({
           <p className="text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">
             Осталось
           </p>
-          <div className="mt-1 flex items-center gap-1 rounded-lg bg-[var(--accent-soft)] px-2 py-1 text-sm font-semibold text-[var(--accent-strong)]">
+          <div className="mt-1 flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--accent-soft)] px-3 py-1.5 text-[13px] font-semibold text-[var(--accent-strong)] shadow-[0_10px_20px_-16px_rgba(176,106,63,0.35)]">
             <Clock size={14} />
             <span>
               {hours}ч {minutes}м
@@ -75,14 +75,14 @@ export default function PlannerHeader({
             type="button"
             onClick={onPrev}
             aria-label={prevLabel}
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface)] text-[var(--muted)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+            className="flex h-10 w-10 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface)] text-[var(--muted)] transition-all hover:border-[var(--accent)] hover:bg-[var(--surface-2)] hover:text-[var(--accent-strong)] active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
           >
             <ChevronLeft size={18} />
           </button>
           <button
             type="button"
             onClick={onToday}
-            className="rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--muted)] transition-colors hover:border-[var(--accent)] hover:text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+            className="rounded-full border border-[var(--border)] bg-[var(--surface-2)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--muted)] transition-all hover:border-[var(--accent)] hover:bg-[var(--surface)] hover:text-[var(--ink)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
           >
             Сегодня
           </button>
@@ -90,13 +90,13 @@ export default function PlannerHeader({
             type="button"
             onClick={onNext}
             aria-label={nextLabel}
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface)] text-[var(--muted)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+            className="flex h-10 w-10 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface)] text-[var(--muted)] transition-all hover:border-[var(--accent)] hover:bg-[var(--surface-2)] hover:text-[var(--accent-strong)] active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
           >
             <ChevronRight size={18} />
           </button>
         </div>
 
-        <div className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface)] p-1">
+        <div className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-2)] p-1 shadow-[0_10px_20px_-16px_rgba(60,43,30,0.3)]">
           {viewOptions.map((option) => (
             <button
               key={option.id}
@@ -104,9 +104,9 @@ export default function PlannerHeader({
               onClick={() => onViewModeChange(option.id)}
               aria-pressed={viewMode === option.id}
               className={cn(
-                "rounded-full px-3 py-1.5 text-xs font-semibold uppercase tracking-wider transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]",
+                "rounded-full px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]",
                 viewMode === option.id
-                  ? "bg-[var(--accent)] text-[var(--accent-ink)] shadow-[0_8px_18px_-12px_rgba(23,95,86,0.6)]"
+                  ? "bg-[var(--surface)] text-[var(--accent-strong)] shadow-[0_10px_20px_-16px_rgba(60,43,30,0.35)]"
                   : "text-[var(--muted)] hover:text-[var(--ink)]",
               )}
             >
