@@ -16,10 +16,14 @@ export default function PlannerApp() {
   const {
     selectedDate,
     setSelectedDate,
+    viewMode,
+    setViewMode,
     isAddOpen,
     setIsAddOpen,
     currentTasks,
     weekDays,
+    monthDays,
+    taskDates,
     hours,
     minutes,
     newTaskTitle,
@@ -28,6 +32,9 @@ export default function PlannerApp() {
     setNewTaskDuration,
     isAddDisabled,
     resetNewTask,
+    goToToday,
+    goToPreviousPeriod,
+    goToNextPeriod,
     handleAddTask,
     toggleTask,
     deleteTask,
@@ -140,9 +147,16 @@ export default function PlannerApp() {
       <PlannerHeader
         selectedDate={selectedDate}
         weekDays={weekDays}
+        monthDays={monthDays}
+        taskDates={taskDates}
+        viewMode={viewMode}
         hours={hours}
         minutes={minutes}
         onSelectDate={setSelectedDate}
+        onViewModeChange={setViewMode}
+        onPrev={goToPreviousPeriod}
+        onNext={goToNextPeriod}
+        onToday={goToToday}
       />
 
       <main className="px-4 py-6">

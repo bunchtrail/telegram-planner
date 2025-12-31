@@ -1,9 +1,22 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { addDays, format, isSameDay, startOfWeek } from "date-fns";
+import {
+  addDays,
+  addMonths,
+  addWeeks,
+  endOfMonth,
+  endOfWeek,
+  format,
+  isSameDay,
+  startOfMonth,
+  startOfWeek,
+  subMonths,
+  subWeeks,
+} from "date-fns";
 import { setSupabaseAccessToken, supabase } from "../lib/supabase";
 import type { Task } from "../types/task";
 
 const DEFAULT_DURATION = 30;
+type PlannerViewMode = "week" | "month";
 
 type TaskRow = {
   id: string;
@@ -62,6 +75,7 @@ const mapTaskRow = (row: TaskRow): Task => ({
 
 export function usePlanner() {
   const [selectedDate, setSelectedDate] = useState(() => new Date());
+  const [viewMode, setViewMode] = useState<PlannerViewMode>("week");
   const [userId, setUserId] = useState<string | null>(null);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -71,10 +85,59 @@ export function usePlanner() {
   const toggleRequestRef = useRef(new Map<string, number>());
   const pendingInsertRef = useRef(new Map<string, TaskRow>());
 
+  const activeMonthKey = useMemo(
+    () => format(selectedDate, "yyyy-MM"),
+    [selectedDate],
+  );
+
+  const { monthStart, monthEnd, monthStartKey, monthEndKey } = useMemo(() => {
+    const start = startOfMonth(selectedDate);
+    const end = endOfMonth(start);
+    return {
+      monthStart: start,
+      monthEnd: end,
+      monthStartKey: formatDateOnly(start),
+      monthEndKey: formatDateOnly(end),
+    };
+  }, [activeMonthKey]);
+
   const weekDays = useMemo(() => {
-    const startDate = startOfWeek(new Date(), { weekStartsOn: 1 });
+    const startDate = startOfWeek(selectedDate, { weekStartsOn: 1 });
     return Array.from({ length: 7 }, (_, i) => addDays(startDate, i));
-  }, []);
+  }, [selectedDate]);
+
+  const monthDays = useMemo(() => {
+    const gridStart = startOfWeek(monthStart, { weekStartsOn: 1 });
+    const gridEnd = endOfWeek(monthEnd, { weekStartsOn: 1 });
+    const days: Date[] = [];
+    let cursor = gridStart;
+
+    while (cursor <= gridEnd) {
+      days.push(cursor);
+      cursor = addDays(cursor, 1);
+    }
+
+    return days;
+  }, [monthStartKey, monthEndKey, monthStart, monthEnd]);
+
+  const taskDates = useMemo(() => {
+    const dateSet = new Set<string>();
+    tasks.forEach((task) => {
+      dateSet.add(formatDateOnly(task.date));
+    });
+    return dateSet;
+  }, [tasks]);
+
+  const isDateInActiveMonth = useCallback(
+    (value: string | Date | null | undefined) => {
+      if (!value) return false;
+      if (typeof value === "string") {
+        return value.slice(0, 7) === activeMonthKey;
+      }
+      return format(value, "yyyy-MM") === activeMonthKey;
+    },
+    [activeMonthKey],
+  );
 
   useEffect(() => {
     const webApp = getTelegramWebApp();
@@ -85,12 +148,17 @@ export function usePlanner() {
   useEffect(() => {
     let isCancelled = false;
 
-    const initAuthAndFetch = async () => {
-      setIsLoading(true);
+    const initAuth = async () => {
+      if (!isCancelled) {
+        setIsLoading(true);
+      }
 
       try {
         const initData = getTelegramInitData();
         if (!initData) {
+          if (!isCancelled) {
+            setIsLoading(false);
+          }
           return;
         }
 
@@ -104,36 +172,26 @@ export function usePlanner() {
           | null;
 
         if (!response.ok || !payload?.token) {
+          if (!isCancelled) {
+            setIsLoading(false);
+          }
           return;
         }
 
         setSupabaseAccessToken(payload.token);
         if (payload.user?.id != null) {
           setUserId(String(payload.user.id));
-        }
-
-        const { data: tasksData, error: tasksError } = await supabase
-          .from("tasks")
-          .select("*")
-          .order("date", { ascending: true })
-          .order("created_at", { ascending: true });
-
-        if (tasksError) {
-          return;
-        }
-
-        if (tasksData && !isCancelled) {
-          setTasks(tasksData.map((t: TaskRow) => mapTaskRow(t)));
+        } else if (!isCancelled) {
+          setIsLoading(false);
         }
       } catch (error) {
-      } finally {
         if (!isCancelled) {
           setIsLoading(false);
         }
       }
     };
 
-    initAuthAndFetch();
+    initAuth();
     return () => {
       isCancelled = true;
     };
@@ -155,7 +213,7 @@ export function usePlanner() {
         (payload) => {
           if (payload.eventType === "INSERT") {
             const row = payload.new as TaskRow;
-            if (!row?.id) return;
+            if (!row?.id || !isDateInActiveMonth(row.date)) return;
 
             setTasks((prev) => {
               if (prev.some((task) => task.id === row.id)) {
@@ -189,14 +247,28 @@ export function usePlanner() {
           if (payload.eventType === "UPDATE") {
             const row = payload.new as TaskRow;
             if (!row?.id) return;
-            setTasks((prev) =>
-              prev.map((task) => (task.id === row.id ? mapTaskRow(row) : task)),
-            );
+            const isInMonth = isDateInActiveMonth(row.date);
+
+            setTasks((prev) => {
+              const exists = prev.some((task) => task.id === row.id);
+
+              if (isInMonth) {
+                if (exists) {
+                  return prev.map((task) =>
+                    task.id === row.id ? mapTaskRow(row) : task,
+                  );
+                }
+                return [...prev, mapTaskRow(row)];
+              }
+
+              if (!exists) return prev;
+              return prev.filter((task) => task.id !== row.id);
+            });
           }
 
           if (payload.eventType === "DELETE") {
             const row = payload.old as TaskRow;
-            if (!row?.id) return;
+            if (!row?.id || !isDateInActiveMonth(row.date)) return;
             setTasks((prev) => prev.filter((task) => task.id !== row.id));
           }
         },
@@ -206,7 +278,38 @@ export function usePlanner() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [userId]);
+  }, [userId, isDateInActiveMonth]);
+
+  useEffect(() => {
+    if (!userId) return;
+    let isCancelled = false;
+
+    const fetchTasks = async () => {
+      setIsLoading(true);
+      setTasks([]);
+      pendingInsertRef.current.clear();
+
+      const { data: tasksData, error: tasksError } = await supabase
+        .from("tasks")
+        .select("*")
+        .gte("date", monthStartKey)
+        .lte("date", monthEndKey)
+        .order("date", { ascending: true })
+        .order("created_at", { ascending: true });
+
+      if (!isCancelled) {
+        if (!tasksError && tasksData) {
+          setTasks(tasksData.map((t: TaskRow) => mapTaskRow(t)));
+        }
+        setIsLoading(false);
+      }
+    };
+
+    fetchTasks();
+    return () => {
+      isCancelled = true;
+    };
+  }, [userId, monthStartKey, monthEndKey]);
 
   const currentTasks = useMemo(
     () => tasks.filter((task) => isSameDay(task.date, selectedDate)),
@@ -230,6 +333,22 @@ export function usePlanner() {
     setNewTaskTitle("");
     setNewTaskDuration(DEFAULT_DURATION);
   }, []);
+
+  const goToToday = useCallback(() => {
+    setSelectedDate(new Date());
+  }, []);
+
+  const goToPreviousPeriod = useCallback(() => {
+    setSelectedDate((current) =>
+      viewMode === "month" ? subMonths(current, 1) : subWeeks(current, 1),
+    );
+  }, [viewMode]);
+
+  const goToNextPeriod = useCallback(() => {
+    setSelectedDate((current) =>
+      viewMode === "month" ? addMonths(current, 1) : addWeeks(current, 1),
+    );
+  }, [viewMode]);
 
   const handleAddTask = async () => {
     if (!newTaskTitle.trim()) {
@@ -378,11 +497,15 @@ export function usePlanner() {
   return {
     selectedDate,
     setSelectedDate,
+    viewMode,
+    setViewMode,
     isAddOpen,
     setIsAddOpen,
     tasks,
     currentTasks,
     weekDays,
+    monthDays,
+    taskDates,
     hours,
     minutes,
     newTaskTitle,
@@ -391,6 +514,9 @@ export function usePlanner() {
     setNewTaskDuration,
     isAddDisabled,
     resetNewTask,
+    goToToday,
+    goToPreviousPeriod,
+    goToNextPeriod,
     handleAddTask,
     toggleTask,
     deleteTask,

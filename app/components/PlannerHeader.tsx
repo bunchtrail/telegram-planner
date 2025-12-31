@@ -1,29 +1,56 @@
 import { format } from "date-fns";
 import { ru } from "date-fns/locale";
-import { Clock } from "lucide-react";
+import { ChevronLeft, ChevronRight, Clock } from "lucide-react";
+import MonthGrid from "./MonthGrid";
 import WeekStrip from "./WeekStrip";
+import { cn } from "../lib/cn";
+
+type PlannerViewMode = "week" | "month";
 
 type PlannerHeaderProps = {
   selectedDate: Date;
   weekDays: Date[];
+  monthDays: Date[];
+  taskDates: Set<string>;
+  viewMode: PlannerViewMode;
   hours: number;
   minutes: number;
   onSelectDate: (date: Date) => void;
+  onViewModeChange: (mode: PlannerViewMode) => void;
+  onPrev: () => void;
+  onNext: () => void;
+  onToday: () => void;
 };
 
 export default function PlannerHeader({
   selectedDate,
   weekDays,
+  monthDays,
+  taskDates,
+  viewMode,
   hours,
   minutes,
   onSelectDate,
+  onViewModeChange,
+  onPrev,
+  onNext,
+  onToday,
 }: PlannerHeaderProps) {
+  const prevLabel =
+    viewMode === "month" ? "Предыдущий месяц" : "Предыдущая неделя";
+  const nextLabel =
+    viewMode === "month" ? "Следующий месяц" : "Следующая неделя";
+  const viewOptions: Array<{ id: PlannerViewMode; label: string }> = [
+    { id: "week", label: "Неделя" },
+    { id: "month", label: "Месяц" },
+  ];
+
   return (
     <header className="sticky top-0 z-10 border-b border-[var(--border)] bg-[var(--surface)] px-4 pt-6 pb-4 shadow-[0_8px_30px_-20px_rgba(16,12,8,0.35)]">
-      <div className="mb-4 flex items-end justify-between">
+      <div className="mb-4 flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-sm font-semibold uppercase tracking-wider text-[var(--muted)]">
-            {format(selectedDate, "MMMM", { locale: ru })}
+            {format(selectedDate, "MMMM yyyy", { locale: ru })}
           </p>
           <h1 className="text-2xl font-semibold capitalize text-[var(--ink)] font-[var(--font-display)]">
             {format(selectedDate, "EEEE, d", { locale: ru })}
@@ -42,11 +69,67 @@ export default function PlannerHeader({
         </div>
       </div>
 
-      <WeekStrip
-        weekDays={weekDays}
-        selectedDate={selectedDate}
-        onSelectDate={onSelectDate}
-      />
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onPrev}
+            aria-label={prevLabel}
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface)] text-[var(--muted)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+          >
+            <ChevronLeft size={18} />
+          </button>
+          <button
+            type="button"
+            onClick={onToday}
+            className="rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--muted)] transition-colors hover:border-[var(--accent)] hover:text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+          >
+            Сегодня
+          </button>
+          <button
+            type="button"
+            onClick={onNext}
+            aria-label={nextLabel}
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface)] text-[var(--muted)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+          >
+            <ChevronRight size={18} />
+          </button>
+        </div>
+
+        <div className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface)] p-1">
+          {viewOptions.map((option) => (
+            <button
+              key={option.id}
+              type="button"
+              onClick={() => onViewModeChange(option.id)}
+              aria-pressed={viewMode === option.id}
+              className={cn(
+                "rounded-full px-3 py-1.5 text-xs font-semibold uppercase tracking-wider transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]",
+                viewMode === option.id
+                  ? "bg-[var(--accent)] text-[var(--accent-ink)] shadow-[0_8px_18px_-12px_rgba(23,95,86,0.6)]"
+                  : "text-[var(--muted)] hover:text-[var(--ink)]",
+              )}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {viewMode === "week" ? (
+        <WeekStrip
+          weekDays={weekDays}
+          selectedDate={selectedDate}
+          onSelectDate={onSelectDate}
+        />
+      ) : (
+        <MonthGrid
+          days={monthDays}
+          selectedDate={selectedDate}
+          onSelectDate={onSelectDate}
+          taskDates={taskDates}
+        />
+      )}
     </header>
   );
 }
