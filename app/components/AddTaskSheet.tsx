@@ -3,6 +3,7 @@
 import {
   forwardRef,
   type ChangeEvent,
+  type PointerEvent as ReactPointerEvent,
   useCallback,
   useEffect,
   useImperativeHandle,
@@ -60,6 +61,9 @@ const AddTaskSheet = forwardRef<AddTaskSheetHandle, AddTaskSheetProps>(
   ) => {
     const scrollAreaRef = useRef<HTMLDivElement>(null);
     const titleInputRef = useRef<HTMLInputElement>(null);
+    const sliderInputRef = useRef<HTMLInputElement>(null);
+    const sliderTrackRef = useRef<HTMLDivElement>(null);
+    const activeSliderPointerIdRef = useRef<number | null>(null);
     const dialogRef = useRef<HTMLDivElement>(null);
     const baseViewportHeightRef = useRef(0);
     const dragControls = useDragControls();
@@ -221,6 +225,72 @@ const AddTaskSheet = forwardRef<AddTaskSheetHandle, AddTaskSheetProps>(
     const progress =
       ((safeDuration - DURATION_MIN) / (DURATION_MAX - DURATION_MIN)) * 100;
 
+    const updateDuration = useCallback(
+      (value: number) => {
+        if (value === duration) return;
+        if (value % DURATION_HAPTIC_STEP === 0) {
+          selection();
+        }
+        onDurationChange(value);
+      },
+      [duration, onDurationChange, selection],
+    );
+
+    const getDurationFromPointer = useCallback(
+      (clientX: number) => {
+        const track = sliderTrackRef.current;
+        if (!track) return safeDuration;
+
+        const rect = track.getBoundingClientRect();
+        if (!rect.width) return safeDuration;
+
+        const clampedX = Math.min(
+          Math.max(clientX - rect.left, 0),
+          rect.width,
+        );
+        const ratio = clampedX / rect.width;
+        const rawValue =
+          DURATION_MIN + ratio * (DURATION_MAX - DURATION_MIN);
+        const steppedValue =
+          Math.round(rawValue / DURATION_STEP) * DURATION_STEP;
+
+        return clampDuration(steppedValue);
+      },
+      [safeDuration],
+    );
+
+    const handleSliderPointerDown = useCallback(
+      (event: ReactPointerEvent<HTMLDivElement>) => {
+        if (event.button !== 0) return;
+        event.preventDefault();
+        sliderInputRef.current?.focus({ preventScroll: true });
+
+        const nextValue = getDurationFromPointer(event.clientX);
+        updateDuration(nextValue);
+
+        activeSliderPointerIdRef.current = event.pointerId;
+        event.currentTarget.setPointerCapture(event.pointerId);
+      },
+      [getDurationFromPointer, updateDuration],
+    );
+
+    const handleSliderPointerMove = useCallback(
+      (event: ReactPointerEvent<HTMLDivElement>) => {
+        if (activeSliderPointerIdRef.current !== event.pointerId) return;
+        updateDuration(getDurationFromPointer(event.clientX));
+      },
+      [getDurationFromPointer, updateDuration],
+    );
+
+    const handleSliderPointerUp = useCallback(
+      (event: ReactPointerEvent<HTMLDivElement>) => {
+        if (activeSliderPointerIdRef.current !== event.pointerId) return;
+        activeSliderPointerIdRef.current = null;
+        event.currentTarget.releasePointerCapture(event.pointerId);
+      },
+      [],
+    );
+
     const handleDragEnd = (
       _event: MouseEvent | TouchEvent | PointerEvent,
       info: PanInfo,
@@ -231,11 +301,7 @@ const AddTaskSheet = forwardRef<AddTaskSheetHandle, AddTaskSheetProps>(
     };
 
     const handleSliderChange = (event: ChangeEvent<HTMLInputElement>) => {
-      const value = Number(event.target.value);
-      if (value % DURATION_HAPTIC_STEP === 0 && value !== duration) {
-        selection();
-      }
-      onDurationChange(value);
+      updateDuration(Number(event.target.value));
     };
 
     return (
@@ -360,15 +426,23 @@ const AddTaskSheet = forwardRef<AddTaskSheetHandle, AddTaskSheetProps>(
                   </span>
                 </div>
 
-                <div className="relative flex h-8 items-center">
+                <div
+                  ref={sliderTrackRef}
+                  className="relative flex h-8 items-center cursor-pointer touch-none"
+                  onPointerDown={handleSliderPointerDown}
+                  onPointerMove={handleSliderPointerMove}
+                  onPointerUp={handleSliderPointerUp}
+                  onPointerCancel={handleSliderPointerUp}
+                >
                   <input
+                    ref={sliderInputRef}
                     type="range"
                     min={DURATION_MIN}
                     max={DURATION_MAX}
                     step={DURATION_STEP}
                     value={safeDuration}
                     onChange={handleSliderChange}
-                    className="absolute inset-0 z-20 h-full w-full cursor-pointer opacity-0"
+                    className="absolute inset-0 z-20 h-full w-full cursor-pointer opacity-0 pointer-events-none"
                     aria-label="Длительность задачи"
                   />
                   <div className="absolute left-0 right-0 top-1/2 h-2 -translate-y-1/2 rounded-full bg-[var(--surface-2)]">
