@@ -46,7 +46,7 @@ export default function PlannerHeader({
   ];
 
   return (
-    <header className="sticky top-0 z-10 border-b border-[var(--border)] bg-[var(--surface-glass)] px-4 pt-6 pb-4 shadow-[var(--shadow-soft)] backdrop-blur-[12px]">
+    <header className="sticky top-0 z-10 border-b border-[var(--border)] bg-[var(--surface-glass)] pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] pt-[calc(env(safe-area-inset-top)+1rem)] pb-4 shadow-[var(--shadow-soft)] backdrop-blur-[12px] will-change-transform">
       <div className="mb-4 flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-sm font-semibold uppercase tracking-wider text-[var(--muted)]">
@@ -75,14 +75,14 @@ export default function PlannerHeader({
             type="button"
             onClick={onPrev}
             aria-label={prevLabel}
-            className="flex h-10 w-10 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface)] text-[var(--muted)] transition-all hover:border-[var(--accent)] hover:bg-[var(--surface-2)] hover:text-[var(--accent-strong)] active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+            className="flex h-11 w-11 touch-manipulation items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface)] text-[var(--muted)] transition-all active:scale-95 active:bg-[var(--surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] [@media(hover:hover)]:hover:border-[var(--accent)] [@media(hover:hover)]:hover:bg-[var(--surface-2)] [@media(hover:hover)]:hover:text-[var(--accent-strong)]"
           >
             <ChevronLeft size={18} />
           </button>
           <button
             type="button"
             onClick={onToday}
-            className="rounded-full border border-[var(--border)] bg-[var(--surface-2)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--muted)] transition-all hover:border-[var(--accent)] hover:bg-[var(--surface)] hover:text-[var(--ink)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+            className="inline-flex h-11 touch-manipulation items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface-2)] px-4 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--muted)] transition-all active:scale-[0.98] active:bg-[var(--surface)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] [@media(hover:hover)]:hover:border-[var(--accent)] [@media(hover:hover)]:hover:bg-[var(--surface)] [@media(hover:hover)]:hover:text-[var(--ink)]"
           >
             Сегодня
           </button>
@@ -90,7 +90,7 @@ export default function PlannerHeader({
             type="button"
             onClick={onNext}
             aria-label={nextLabel}
-            className="flex h-10 w-10 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface)] text-[var(--muted)] transition-all hover:border-[var(--accent)] hover:bg-[var(--surface-2)] hover:text-[var(--accent-strong)] active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+            className="flex h-11 w-11 touch-manipulation items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface)] text-[var(--muted)] transition-all active:scale-95 active:bg-[var(--surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] [@media(hover:hover)]:hover:border-[var(--accent)] [@media(hover:hover)]:hover:bg-[var(--surface-2)] [@media(hover:hover)]:hover:text-[var(--accent-strong)]"
           >
             <ChevronRight size={18} />
           </button>
@@ -104,10 +104,10 @@ export default function PlannerHeader({
               onClick={() => onViewModeChange(option.id)}
               aria-pressed={viewMode === option.id}
               className={cn(
-                "rounded-full px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]",
+                "rounded-full px-3 py-2 text-xs font-semibold uppercase tracking-[0.2em] transition-all touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]",
                 viewMode === option.id
                   ? "bg-[var(--surface)] text-[var(--accent-strong)] shadow-[0_10px_20px_-16px_rgba(60,43,30,0.35)]"
-                  : "text-[var(--muted)] hover:text-[var(--ink)]",
+                  : "text-[var(--muted)] [@media(hover:hover)]:hover:text-[var(--ink)]",
               )}
             >
               {option.label}

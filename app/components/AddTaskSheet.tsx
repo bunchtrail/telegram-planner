@@ -160,10 +160,17 @@ const AddTaskSheet = forwardRef<AddTaskSheetHandle, AddTaskSheetProps>(
       let frameId: number | null = null;
 
       const updateKeyboardInset = () => {
-        const baseHeight = baseViewportHeightRef.current || window.innerHeight;
-        const visualHeight = viewport?.height ?? window.innerHeight;
+        const currentInnerHeight = window.innerHeight;
+        const baseHeight = baseViewportHeightRef.current || currentInnerHeight;
+        const visualHeight = viewport?.height ?? currentInnerHeight;
         const offsetTop = viewport?.offsetTop ?? 0;
         const nextInset = Math.max(0, baseHeight - visualHeight - offsetTop);
+
+        // Когда клавиатуры нет — обновляем базовую высоту (поворот/изменение UI-баров)
+        if (nextInset === 0 && Math.abs(currentInnerHeight - baseHeight) > 4) {
+          baseViewportHeightRef.current = currentInnerHeight;
+          setViewportHeight(currentInnerHeight);
+        }
 
         if (frameId !== null) {
           window.cancelAnimationFrame(frameId);
@@ -306,7 +313,7 @@ const AddTaskSheet = forwardRef<AddTaskSheetHandle, AddTaskSheetProps>(
 
     return (
       <div
-        className="fixed left-0 right-0 top-0 z-50 flex flex-col justify-end px-3 transition-[padding-bottom] duration-200 ease-out sm:items-center sm:justify-center sm:px-6"
+        className="fixed left-0 right-0 top-0 z-50 flex flex-col justify-end pl-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))] transition-[padding-bottom] duration-200 ease-out sm:items-center sm:justify-center sm:px-6"
         style={{
           height: viewportHeight ? `${viewportHeight}px` : "100%",
           paddingBottom: keyboardInset ? `${keyboardInset}px` : undefined,
@@ -330,7 +337,7 @@ const AddTaskSheet = forwardRef<AddTaskSheetHandle, AddTaskSheetProps>(
           className="relative z-10 w-full max-w-lg overflow-hidden rounded-t-[32px] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-pop)] sm:rounded-[32px]"
           style={{
             maxHeight: "92vh",
-            paddingBottom: "env(safe-area-inset-bottom)",
+            paddingBottom: keyboardInset ? "0px" : "env(safe-area-inset-bottom)",
           }}
           drag="y"
           dragListener={false}
@@ -366,7 +373,7 @@ const AddTaskSheet = forwardRef<AddTaskSheetHandle, AddTaskSheetProps>(
               type="button"
               onClick={handleClose}
               aria-label="Закрыть"
-              className="rounded-full p-2 text-[var(--muted)] transition-colors hover:bg-[var(--surface-2)] hover:text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+              className="rounded-full p-2 touch-manipulation text-[var(--muted)] transition-colors active:scale-95 active:bg-[var(--surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] [@media(hover:hover)]:hover:bg-[var(--surface-2)] [@media(hover:hover)]:hover:text-[var(--ink)]"
             >
               <X size={20} />
             </button>
@@ -428,7 +435,7 @@ const AddTaskSheet = forwardRef<AddTaskSheetHandle, AddTaskSheetProps>(
 
                 <div
                   ref={sliderTrackRef}
-                  className="relative flex h-9 items-center cursor-pointer touch-none"
+                  className="relative flex h-11 items-center cursor-pointer touch-none"
                   onPointerDown={handleSliderPointerDown}
                   onPointerMove={handleSliderPointerMove}
                   onPointerUp={handleSliderPointerUp}
@@ -452,7 +459,7 @@ const AddTaskSheet = forwardRef<AddTaskSheetHandle, AddTaskSheetProps>(
                     />
                   </div>
                   <div
-                    className="absolute top-1/2 h-7 w-7 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-[var(--surface)] bg-[var(--accent)] shadow-[0_12px_20px_-12px_rgba(176,106,63,0.5)] pointer-events-none transition-[left] duration-75"
+                    className="absolute top-1/2 h-8 w-8 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-[var(--surface)] bg-[var(--accent)] shadow-[0_12px_20px_-12px_rgba(176,106,63,0.5)] pointer-events-none transition-[left] duration-75"
                     style={{ left: `${progress}%` }}
                   />
                 </div>
@@ -468,10 +475,10 @@ const AddTaskSheet = forwardRef<AddTaskSheetHandle, AddTaskSheetProps>(
                       }}
                       aria-pressed={safeDuration === mins}
                       className={cn(
-                        "flex-shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition-all active:scale-95",
+                        "flex-shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition-all touch-manipulation active:scale-95",
                         safeDuration === mins
                           ? "bg-[var(--accent)] text-[var(--accent-ink)] shadow-[0_12px_24px_-18px_rgba(176,106,63,0.55)]"
-                          : "bg-[var(--surface-2)] text-[var(--muted)] hover:bg-[var(--border)] hover:text-[var(--ink)]",
+                          : "bg-[var(--surface-2)] text-[var(--muted)] [@media(hover:hover)]:hover:bg-[var(--border)] [@media(hover:hover)]:hover:text-[var(--ink)]",
                       )}
                     >
                       {mins} мин
@@ -481,7 +488,14 @@ const AddTaskSheet = forwardRef<AddTaskSheetHandle, AddTaskSheetProps>(
               </div>
             </div>
 
-            <div className="px-6 pb-[calc(16px+env(safe-area-inset-bottom))] pt-2">
+            <div
+              className="px-6 pt-2"
+              style={{
+                paddingBottom: keyboardInset
+                  ? "16px"
+                  : "calc(16px + env(safe-area-inset-bottom))",
+              }}
+            >
               <button
                 type="submit"
                 disabled={isAddDisabled}

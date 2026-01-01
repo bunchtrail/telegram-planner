@@ -55,7 +55,7 @@ export default function TaskItem({ task, onToggle, onDelete }: TaskItemProps) {
             "flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full border-2 transition-colors duration-300",
             task.completed
               ? "border-[var(--accent)] bg-[var(--accent)]"
-              : "border-[var(--border)] group-hover:border-[var(--accent)]",
+              : "border-[var(--border)] [@media(hover:hover)]:group-hover:border-[var(--accent)]",
           )}
         >
           <motion.div
@@ -99,7 +99,7 @@ export default function TaskItem({ task, onToggle, onDelete }: TaskItemProps) {
           onClick={handleDelete}
           type="button"
           aria-label={`Удалить задачу: ${task.title}`}
-          className="flex h-10 w-10 items-center justify-center rounded-xl text-[var(--muted)] transition-all hover:bg-[var(--surface-2)] hover:text-[var(--danger)] active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+          className="flex h-11 w-11 touch-manipulation items-center justify-center rounded-xl text-[var(--muted)] transition-all active:scale-95 active:bg-[var(--surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] [@media(hover:hover)]:hover:bg-[var(--surface-2)] [@media(hover:hover)]:hover:text-[var(--danger)]"
         >
           <Trash2 size={18} />
         </button>

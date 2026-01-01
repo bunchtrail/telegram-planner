@@ -58,10 +58,10 @@ export default function MonthGrid({
               aria-current={isSelected ? "date" : undefined}
               aria-label={format(day, "EEEE, d MMMM", { locale: ru })}
               className={cn(
-                "relative flex h-11 flex-col items-center justify-center rounded-2xl border text-sm font-semibold transition-all duration-200 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]",
+                "relative flex h-11 flex-col items-center justify-center rounded-2xl border text-sm font-semibold transition-all duration-200 touch-manipulation active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]",
                 isSelected
                   ? "border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-ink)] shadow-[var(--shadow-soft)]"
-                  : "border-transparent text-[var(--ink)] hover:border-[var(--accent)] hover:bg-[var(--surface-2)]",
+                  : "border-transparent text-[var(--ink)] [@media(hover:hover)]:hover:border-[var(--accent)] [@media(hover:hover)]:hover:bg-[var(--surface-2)]",
                 isOutside && !isSelected && "text-[var(--muted)] opacity-70",
                 isToday &&
                   !isSelected &&

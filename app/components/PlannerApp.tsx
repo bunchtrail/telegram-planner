@@ -143,7 +143,7 @@ export default function PlannerApp() {
   };
 
   return (
-    <div className="min-h-screen pb-[calc(6rem+env(safe-area-inset-bottom))] font-sans text-[var(--ink)] selection:bg-[var(--accent-soft)]">
+    <div className="min-h-screen min-h-[100dvh] pb-[calc(6rem+env(safe-area-inset-bottom))] font-sans text-[var(--ink)] selection:bg-[var(--accent-soft)]">
       <PlannerHeader
         selectedDate={selectedDate}
         weekDays={weekDays}
@@ -159,7 +159,7 @@ export default function PlannerApp() {
         onToday={goToToday}
       />
 
-      <main className="px-4 py-6">
+      <main className="py-6 pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))]">
         <TaskList
           tasks={currentTasks}
           isLoading={isLoading}
@@ -196,7 +196,8 @@ export default function PlannerApp() {
             exit={{ opacity: 0, y: 20, x: "-50%" }}
             className="fixed left-1/2 z-30 w-[min(92vw,420px)]"
             style={{
-              bottom: "calc(1.5rem + env(safe-area-inset-bottom))",
+              bottom:
+                "calc(1.5rem + env(safe-area-inset-bottom) + 4.25rem)",
             }}
             role="status"
             aria-live="polite"

@@ -43,7 +43,7 @@ export default function WeekStrip({
   return (
     <div
       ref={scrollContainerRef}
-      className="no-scrollbar flex gap-2.5 overflow-x-auto py-2.5 pr-4 pl-1"
+      className="no-scrollbar flex gap-2.5 overflow-x-auto py-2.5 pr-4 pl-1 snap-x snap-mandatory [-webkit-overflow-scrolling:touch] overscroll-x-contain"
     >
       {weekDays.map((day) => {
         const isSelected = isSameDay(day, selectedDate);
@@ -58,10 +58,10 @@ export default function WeekStrip({
             aria-current={isSelected ? "date" : undefined}
             aria-label={format(day, "EEEE, d MMMM", { locale: ru })}
             className={cn(
-              "flex h-[66px] min-w-[56px] shrink-0 flex-col items-center justify-center rounded-2xl border transition-all duration-300 active:scale-[0.98]",
+              "snap-center flex h-[66px] min-w-[56px] shrink-0 flex-col items-center justify-center rounded-2xl border transition-all duration-300 touch-manipulation active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]",
               isSelected
                 ? "scale-[1.02] transform border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-ink)] shadow-[var(--shadow-soft)]"
-                : "border-[var(--border)] bg-[var(--surface)] text-[var(--muted)] hover:border-[var(--accent)] hover:bg-[var(--surface-2)] hover:text-[var(--ink)]",
+                : "border-[var(--border)] bg-[var(--surface)] text-[var(--muted)] [@media(hover:hover)]:hover:border-[var(--accent)] [@media(hover:hover)]:hover:bg-[var(--surface-2)] [@media(hover:hover)]:hover:text-[var(--ink)]",
             )}
           >
             <span className="text-[11px] font-semibold uppercase tracking-[0.2em] opacity-70">
