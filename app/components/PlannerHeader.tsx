@@ -1,9 +1,11 @@
 import { format } from "date-fns";
 import { ru } from "date-fns/locale";
 import { ChevronLeft, ChevronRight, Clock } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
 import MonthGrid from "./MonthGrid";
 import WeekStrip from "./WeekStrip";
 import { cn } from "../lib/cn";
+import { useHaptic } from "../hooks/useHaptic";
 
 type PlannerViewMode = "week" | "month";
 
@@ -36,6 +38,7 @@ export default function PlannerHeader({
   onNext,
   onToday,
 }: PlannerHeaderProps) {
+  const { impact } = useHaptic();
   const prevLabel =
     viewMode === "month" ? "Предыдущий месяц" : "Предыдущая неделя";
   const nextLabel =
@@ -46,90 +49,126 @@ export default function PlannerHeader({
   ];
 
   return (
-    <header className="sticky top-0 z-10 border-b border-[var(--border)] bg-[var(--surface-glass)] pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] pt-[calc(env(safe-area-inset-top)+1rem)] pb-4 shadow-[var(--shadow-soft)] backdrop-blur-[12px] will-change-transform">
-      <div className="mb-4 flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="text-sm font-semibold uppercase tracking-wider text-[var(--muted)]">
-            {format(selectedDate, "MMMM yyyy", { locale: ru })}
-          </p>
-          <h1 className="text-2xl font-semibold capitalize text-[var(--ink)] font-[var(--font-display)]">
-            {format(selectedDate, "EEEE, d", { locale: ru })}
-          </h1>
+    <header className="relative z-30 flex flex-col border-b border-[var(--border)] bg-[var(--surface-glass)] backdrop-blur-xl backdrop-saturate-150 transition-all">
+      <div className="pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] pt-[calc(env(safe-area-inset-top)+0.5rem)] pb-2">
+        <div className="mb-4 flex items-end justify-between">
+          <div>
+            <p className="mb-0.5 text-[11px] font-bold uppercase tracking-widest text-[var(--muted)]">
+              {format(selectedDate, "MMMM yyyy", { locale: ru })}
+            </p>
+            <h1 className="text-3xl font-bold capitalize text-[var(--ink)] font-[var(--font-display)] leading-none">
+              {format(selectedDate, "EEEE, d", { locale: ru })}
+            </h1>
+          </div>
+          {(hours > 0 || minutes > 0) && (
+            <div className="flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--surface-glass)] px-3 py-1.5 backdrop-blur-md">
+              <Clock size={14} className="text-[var(--accent)]" />
+              <span className="text-xs font-bold tabular-nums text-[var(--ink)]">
+                {hours}ч {minutes}м
+              </span>
+            </div>
+          )}
         </div>
-        <div className="text-right">
-          <p className="text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">
-            Осталось
-          </p>
-          <div className="mt-1 flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--accent-soft)] px-3 py-1.5 text-[13px] font-semibold text-[var(--accent-strong)] shadow-[0_10px_20px_-16px_rgba(176,106,63,0.35)]">
-            <Clock size={14} />
-            <span>
-              {hours}ч {minutes}м
-            </span>
+
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex gap-1">
+            <button
+              type="button"
+              onClick={() => {
+                impact("light");
+                onPrev();
+              }}
+              aria-label={prevLabel}
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--surface-2)] active:opacity-60"
+            >
+              <ChevronLeft size={20} />
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                impact("light");
+                onToday();
+              }}
+              className="h-10 rounded-full bg-[var(--surface-2)] px-4 text-xs font-bold uppercase active:opacity-60"
+            >
+              Сегодня
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                impact("light");
+                onNext();
+              }}
+              aria-label={nextLabel}
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--surface-2)] active:opacity-60"
+            >
+              <ChevronRight size={20} />
+            </button>
+          </div>
+
+          <div className="relative flex rounded-lg bg-[var(--surface-2)] p-1">
+            {viewOptions.map((option) => (
+              <button
+                key={option.id}
+                type="button"
+                onClick={() => {
+                  impact("light");
+                  onViewModeChange(option.id);
+                }}
+                aria-pressed={viewMode === option.id}
+                className={cn(
+                  "relative z-10 px-3 py-1.5 text-[12px] font-bold transition-colors",
+                  viewMode === option.id
+                    ? "text-[var(--ink)]"
+                    : "text-[var(--muted)]",
+                )}
+              >
+                {viewMode === option.id && (
+                  <motion.div
+                    layoutId="tab"
+                    className="absolute inset-0 z-[-1] rounded-[6px] bg-[var(--surface)] shadow-sm"
+                  />
+                )}
+                {option.label}
+              </button>
+            ))}
           </div>
         </div>
+
       </div>
 
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={onPrev}
-            aria-label={prevLabel}
-            className="flex h-11 w-11 touch-manipulation items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface)] text-[var(--muted)] transition-all active:scale-95 active:bg-[var(--surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] [@media(hover:hover)]:hover:border-[var(--accent)] [@media(hover:hover)]:hover:bg-[var(--surface-2)] [@media(hover:hover)]:hover:text-[var(--accent-strong)]"
-          >
-            <ChevronLeft size={18} />
-          </button>
-          <button
-            type="button"
-            onClick={onToday}
-            className="inline-flex h-11 touch-manipulation items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface-2)] px-4 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--muted)] transition-all active:scale-[0.98] active:bg-[var(--surface)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] [@media(hover:hover)]:hover:border-[var(--accent)] [@media(hover:hover)]:hover:bg-[var(--surface)] [@media(hover:hover)]:hover:text-[var(--ink)]"
-          >
-            Сегодня
-          </button>
-          <button
-            type="button"
-            onClick={onNext}
-            aria-label={nextLabel}
-            className="flex h-11 w-11 touch-manipulation items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface)] text-[var(--muted)] transition-all active:scale-95 active:bg-[var(--surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] [@media(hover:hover)]:hover:border-[var(--accent)] [@media(hover:hover)]:hover:bg-[var(--surface-2)] [@media(hover:hover)]:hover:text-[var(--accent-strong)]"
-          >
-            <ChevronRight size={18} />
-          </button>
-        </div>
-
-        <div className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-2)] p-1 shadow-[0_10px_20px_-16px_rgba(60,43,30,0.3)]">
-          {viewOptions.map((option) => (
-            <button
-              key={option.id}
-              type="button"
-              onClick={() => onViewModeChange(option.id)}
-              aria-pressed={viewMode === option.id}
-              className={cn(
-                "rounded-full px-3 py-2 text-xs font-semibold uppercase tracking-[0.2em] transition-all touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]",
-                viewMode === option.id
-                  ? "bg-[var(--surface)] text-[var(--accent-strong)] shadow-[0_10px_20px_-16px_rgba(60,43,30,0.35)]"
-                  : "text-[var(--muted)] [@media(hover:hover)]:hover:text-[var(--ink)]",
-              )}
+      <motion.div
+        layout
+        className="overflow-hidden"
+        transition={{ type: "spring", stiffness: 500, damping: 40 }}
+      >
+        <div className="pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] pb-4">
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={viewMode}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.2 }}
             >
-              {option.label}
-            </button>
-          ))}
+              {viewMode === "week" ? (
+                <WeekStrip
+                  weekDays={weekDays}
+                  selectedDate={selectedDate}
+                  onSelectDate={onSelectDate}
+                />
+              ) : (
+                <MonthGrid
+                  days={monthDays}
+                  selectedDate={selectedDate}
+                  onSelectDate={onSelectDate}
+                  taskDates={taskDates}
+                />
+              )}
+            </motion.div>
+          </AnimatePresence>
         </div>
-      </div>
-
-      {viewMode === "week" ? (
-        <WeekStrip
-          weekDays={weekDays}
-          selectedDate={selectedDate}
-          onSelectDate={onSelectDate}
-        />
-      ) : (
-        <MonthGrid
-          days={monthDays}
-          selectedDate={selectedDate}
-          onSelectDate={onSelectDate}
-          taskDates={taskDates}
-        />
-      )}
+      </motion.div>
     </header>
   );
 }

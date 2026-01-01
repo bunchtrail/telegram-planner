@@ -8,10 +8,18 @@ create table if not exists public.tasks (
   duration integer not null,
   date date not null,
   completed boolean not null default false,
+  is_goal boolean not null default false,
+  goal_period text,
+  goal_slot smallint,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   constraint tasks_title_length check (char_length(title) > 0 and char_length(title) <= 160),
-  constraint tasks_duration_range check (duration > 0 and duration <= 24 * 60)
+  constraint tasks_duration_range check (duration > 0 and duration <= 24 * 60),
+  constraint tasks_goal_fields check (
+    (is_goal = false and goal_period is null and goal_slot is null)
+    or
+    (is_goal = true and goal_period in ('day','week','month','year') and goal_slot >= 1)
+  )
 );
 
 create index if not exists tasks_telegram_id_date_idx
@@ -19,6 +27,12 @@ create index if not exists tasks_telegram_id_date_idx
 
 create index if not exists tasks_telegram_id_created_at_idx
   on public.tasks (telegram_id, created_at);
+
+create index if not exists tasks_goals_period_idx
+  on public.tasks (telegram_id, goal_period);
+
+create index if not exists tasks_goals_slot_idx
+  on public.tasks (telegram_id, goal_period, goal_slot);
 
 create or replace function public.set_updated_at()
 returns trigger as $$

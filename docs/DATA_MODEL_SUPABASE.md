@@ -22,7 +22,7 @@
 - goal-поля:
   - `is_goal bool`
   - `goal_period text in ('day','week','month','year')`
-  - `goal_slot smallint between 1 and 3`
+  - `goal_slot smallint >= 1`
 
 ### Ограничения целостности (почему это важно)
 
@@ -32,7 +32,7 @@
 ### Индексы
 
 - `tasks_telegram_id_date_idx` — критичен для выборок по календарю
-- `tasks_goals_period_idx` + `tasks_goals_slot_idx (unique)` — для целей и правила “слот уникален”
+- `tasks_goals_period_idx` + `tasks_goals_slot_idx` — для целей и сортировки по слоту
 
 ## RLS политики
 

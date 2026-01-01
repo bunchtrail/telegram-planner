@@ -15,7 +15,6 @@ export default function WeekStrip({
   selectedDate,
   onSelectDate,
 }: WeekStripProps) {
-  const today = new Date();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const { selection } = useHaptic();
 
@@ -43,11 +42,10 @@ export default function WeekStrip({
   return (
     <div
       ref={scrollContainerRef}
-      className="no-scrollbar flex gap-2.5 overflow-x-auto py-2.5 pr-4 pl-1 snap-x snap-mandatory [-webkit-overflow-scrolling:touch] overscroll-x-contain"
+      className="no-scrollbar flex gap-2 overflow-x-auto px-1 pb-2 pt-2 snap-x snap-mandatory [-webkit-overflow-scrolling:touch] overscroll-x-contain"
     >
       {weekDays.map((day) => {
         const isSelected = isSameDay(day, selectedDate);
-        const isToday = isSameDay(day, today);
 
         return (
           <button
@@ -58,30 +56,21 @@ export default function WeekStrip({
             aria-current={isSelected ? "date" : undefined}
             aria-label={format(day, "EEEE, d MMMM", { locale: ru })}
             className={cn(
-              "snap-center flex h-[66px] min-w-[56px] shrink-0 flex-col items-center justify-center rounded-2xl border transition-all duration-300 touch-manipulation active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]",
+              "snap-center flex h-[72px] w-[60px] flex-shrink-0 flex-col items-center justify-center rounded-[18px] border transition-all duration-300 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]",
               isSelected
-                ? "scale-[1.02] transform border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-ink)] shadow-[var(--shadow-soft)]"
-                : "border-[var(--border)] bg-[var(--surface)] text-[var(--muted)] [@media(hover:hover)]:hover:border-[var(--accent)] [@media(hover:hover)]:hover:bg-[var(--surface-2)] [@media(hover:hover)]:hover:text-[var(--ink)]",
+                ? "scale-105 border-[var(--accent)] bg-[var(--accent)] text-white shadow-lg"
+                : "border-[var(--border)] bg-[var(--surface)] text-[var(--muted)]",
             )}
           >
-            <span className="text-[11px] font-semibold uppercase tracking-[0.2em] opacity-70">
-              {format(day, "EE", { locale: ru })}
-            </span>
             <span
               className={cn(
-                "text-lg font-semibold",
-                isSelected
-                  ? "text-[var(--accent-ink)]"
-                  : isToday
-                    ? "text-[var(--accent)]"
-                    : "text-[var(--ink)]",
+                "text-[10px] font-bold uppercase",
+                isSelected ? "opacity-100" : "opacity-60",
               )}
             >
-              {format(day, "d")}
+              {format(day, "EE", { locale: ru })}
             </span>
-            {isToday && !isSelected && (
-              <div className="mt-1 h-1.5 w-1.5 rounded-full bg-[var(--accent)]" />
-            )}
+            <span className="text-xl font-bold">{format(day, "d")}</span>
           </button>
         );
       })}

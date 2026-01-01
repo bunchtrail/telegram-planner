@@ -1,5 +1,6 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Fraunces, Manrope } from 'next/font/google';
+import Script from 'next/script';
 import './globals.css';
 
 const manrope = Manrope({ subsets: ['latin'], variable: '--font-body' });
@@ -18,6 +19,16 @@ export const metadata: Metadata = {
   description: appDescription,
 };
 
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: 'cover',
+  interactiveWidget: 'resizes-content',
+  themeColor: '#f2f2f7',
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -26,11 +37,7 @@ export default function RootLayout({
   return (
     <html lang={appLang}>
       <head>
-        <meta
-          name="viewport"
-          content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content"
-        />
-        <script src={telegramScriptSrc} async />
+        <Script src={telegramScriptSrc} strategy="beforeInteractive" />
       </head>
       <body className={`${manrope.variable} ${fraunces.variable} antialiased`}>
         {children}

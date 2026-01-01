@@ -50,11 +50,11 @@ export default function PlannerApp() {
 
   const triggerConfetti = () => {
     const end = Date.now() + 1000;
-    const colors = ["#1f7a6f", "#53c1ae", "#e2f2ee"];
+    const colors = ["#ff9500", "#ffb340", "#ffffff"];
 
     const frame = () => {
       confetti({
-        particleCount: 3,
+        particleCount: 2,
         angle: 60,
         spread: 55,
         origin: { x: 0 },
@@ -62,7 +62,7 @@ export default function PlannerApp() {
         zIndex: 9999,
       });
       confetti({
-        particleCount: 3,
+        particleCount: 2,
         angle: 120,
         spread: 55,
         origin: { x: 1 },
@@ -81,7 +81,9 @@ export default function PlannerApp() {
   useEffect(() => {
     if (prevIsAddOpenRef.current && !isAddOpen) {
       resetNewTask();
-      fabRef.current?.focus();
+      if (document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur();
+      }
     }
     prevIsAddOpenRef.current = isAddOpen;
   }, [isAddOpen, resetNewTask]);
@@ -130,7 +132,9 @@ export default function PlannerApp() {
   const handleOpenAdd = () => {
     impact("light");
     flushSync(() => setIsAddOpen(true));
-    sheetRef.current?.focusTitleInput();
+    window.setTimeout(() => {
+      sheetRef.current?.focusTitleInput();
+    }, 50);
   };
 
   const handleSmartAddTask = () => {
@@ -143,23 +147,25 @@ export default function PlannerApp() {
   };
 
   return (
-    <div className="min-h-screen min-h-[100dvh] pb-[calc(6rem+env(safe-area-inset-bottom))] font-sans text-[var(--ink)] selection:bg-[var(--accent-soft)]">
-      <PlannerHeader
-        selectedDate={selectedDate}
-        weekDays={weekDays}
-        monthDays={monthDays}
-        taskDates={taskDates}
-        viewMode={viewMode}
-        hours={hours}
-        minutes={minutes}
-        onSelectDate={setSelectedDate}
-        onViewModeChange={setViewMode}
-        onPrev={goToPreviousPeriod}
-        onNext={goToNextPeriod}
-        onToday={goToToday}
-      />
+    <div className="fixed inset-0 flex flex-col overflow-hidden bg-[var(--bg)] font-sans text-[var(--ink)]">
+      <div className="relative z-10 flex-none">
+        <PlannerHeader
+          selectedDate={selectedDate}
+          weekDays={weekDays}
+          monthDays={monthDays}
+          taskDates={taskDates}
+          viewMode={viewMode}
+          hours={hours}
+          minutes={minutes}
+          onSelectDate={setSelectedDate}
+          onViewModeChange={setViewMode}
+          onPrev={goToPreviousPeriod}
+          onNext={goToNextPeriod}
+          onToday={goToToday}
+        />
+      </div>
 
-      <main className="py-6 pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))]">
+      <main className="relative h-full w-full flex-1 overflow-hidden">
         <TaskList
           tasks={currentTasks}
           isLoading={isLoading}
@@ -167,9 +173,21 @@ export default function PlannerApp() {
           onDelete={handleDelete}
           onAdd={handleOpenAdd}
         />
+        <div className="pointer-events-none absolute bottom-0 left-0 right-0 z-20 h-16 bg-gradient-to-t from-[var(--bg)] to-transparent" />
       </main>
 
-      <FloatingActionButton ref={fabRef} onClick={handleOpenAdd} />
+      <AnimatePresence>
+        {!isAddOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            <FloatingActionButton ref={fabRef} onClick={handleOpenAdd} />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {isAddOpen && (
@@ -191,23 +209,19 @@ export default function PlannerApp() {
       <AnimatePresence>
         {undoTask && (
           <motion.div
-            initial={{ opacity: 0, y: 50, x: "-50%" }}
-            animate={{ opacity: 1, y: 0, x: "-50%" }}
-            exit={{ opacity: 0, y: 20, x: "-50%" }}
-            className="fixed left-1/2 z-30 w-[min(92vw,420px)]"
-            style={{
-              bottom:
-                "calc(1.5rem + env(safe-area-inset-bottom) + 4.25rem)",
-            }}
+            initial={{ opacity: 0, y: 50, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.9 }}
+            className="fixed bottom-[calc(6rem+env(safe-area-inset-bottom))] left-[max(1rem,env(safe-area-inset-left))] right-[max(1rem,env(safe-area-inset-right))] z-40 mx-auto max-w-sm"
             role="status"
             aria-live="polite"
           >
-            <div className="flex items-center justify-between gap-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-5 py-4 text-sm font-medium text-[var(--ink)] shadow-[var(--shadow-pop)] backdrop-blur-[10px]">
+            <div className="flex items-center justify-between gap-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-5 py-4 text-sm font-medium shadow-[var(--shadow-pop)] backdrop-blur-md">
               <span>Задача удалена</span>
               <button
                 type="button"
                 onClick={handleUndoDelete}
-                className="rounded-full bg-[var(--accent-soft)] px-3 py-1 font-semibold text-[var(--accent-strong)] transition-all hover:bg-[var(--accent)] hover:text-[var(--accent-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+                className="rounded-full bg-[var(--ink)] px-3 py-1.5 font-bold text-[var(--bg)] transition-transform active:scale-95"
               >
                 Отменить
               </button>

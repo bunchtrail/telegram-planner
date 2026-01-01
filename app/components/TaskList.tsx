@@ -1,5 +1,6 @@
-import { AnimatePresence, motion } from "framer-motion";
-import { Calendar as CalendarIcon, Loader2 } from "lucide-react";
+import { useEffect, useRef } from "react";
+import { AnimatePresence } from "framer-motion";
+import { Calendar, Loader2 } from "lucide-react";
 import type { Task } from "../types/task";
 import TaskItem from "./TaskItem";
 
@@ -18,51 +19,77 @@ export default function TaskList({
   onDelete,
   onAdd,
 }: TaskListProps) {
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const prevTaskIdsRef = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    const prevIds = prevTaskIdsRef.current;
+    const nextIds = new Set(tasks.map((task) => task.id));
+    let isIncremental = true;
+    for (const id of prevIds) {
+      if (!nextIds.has(id)) {
+        isIncremental = false;
+        break;
+      }
+    }
+
+    if (isIncremental && nextIds.size > prevIds.size) {
+      const prefersReducedMotion =
+        typeof window !== "undefined" &&
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      bottomRef.current?.scrollIntoView({
+        behavior: prefersReducedMotion ? "auto" : "smooth",
+        block: "start",
+      });
+    }
+
+    prevTaskIdsRef.current = nextIds;
+  }, [tasks]);
+
+  const scrollClasses =
+    "h-full w-full overflow-y-auto pb-32 pt-4 touch-pan-y overscroll-contain no-scrollbar pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] [-webkit-overflow-scrolling:touch]";
+
   if (isLoading) {
     return (
-      <div className="flex justify-center py-20 text-[var(--accent-strong)]">
-        <Loader2 size={32} className="animate-spin" />
+      <div className="flex h-full items-center justify-center">
+        <Loader2 className="animate-spin text-[var(--muted)]" />
       </div>
     );
   }
 
   if (tasks.length === 0) {
     return (
-      <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.4 }}
-        className="flex flex-col items-center justify-center py-20 text-center"
-      >
-        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-3xl bg-[var(--accent-soft)] text-[var(--accent)] shadow-[0_12px_20px_-16px_rgba(176,106,63,0.35)]">
-          <CalendarIcon size={32} />
+      <div className={`${scrollClasses} flex flex-col items-center justify-center opacity-60`}>
+        <div className="mb-4 rounded-3xl bg-[var(--surface-2)] p-6">
+          <Calendar size={40} className="text-[var(--muted)]" />
         </div>
-        <p className="text-base font-semibold text-[var(--ink)]">
-          Нет планов на этот день
-        </p>
+        <p className="text-lg font-medium text-[var(--muted)]">План пуст</p>
         <button
           type="button"
           onClick={onAdd}
-          className="mt-6 rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-semibold text-[var(--accent-ink)] shadow-[var(--shadow-soft)] transition-all hover:shadow-[var(--shadow-card)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+          className="mt-4 text-[var(--accent)] font-bold"
         >
-          Добавить задачу
+          Добавить
         </button>
-      </motion.div>
+      </div>
     );
   }
 
   return (
-    <ul className="space-y-3 pb-20" role="list">
-      <AnimatePresence initial={false} mode="popLayout">
-        {tasks.map((task) => (
-          <TaskItem
-            key={task.id}
-            task={task}
-            onToggle={onToggle}
-            onDelete={onDelete}
-          />
-        ))}
-      </AnimatePresence>
-    </ul>
+    <div className={scrollClasses}>
+      <ul className="space-y-3" role="list">
+        <AnimatePresence initial={false} mode="popLayout">
+          {tasks.map((task) => (
+            <TaskItem
+              key={task.id}
+              task={task}
+              onToggle={onToggle}
+              onDelete={onDelete}
+            />
+          ))}
+        </AnimatePresence>
+      </ul>
+      <div ref={bottomRef} className="h-1" />
+    </div>
   );
 }
