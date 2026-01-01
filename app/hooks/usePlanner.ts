@@ -404,22 +404,18 @@ export function usePlanner() {
   };
 
   const toggleTask = async (id: string) => {
+    const targetTask = tasks.find((task) => task.id === id);
+    if (!targetTask) return;
+
     const requestId = (toggleRequestRef.current.get(id) ?? 0) + 1;
     toggleRequestRef.current.set(id, requestId);
 
-    let newStatus: boolean | null = null;
+    const newStatus = !targetTask.completed;
     setTasks((prev) =>
-      prev.map((task) => {
-        if (task.id !== id) return task;
-        newStatus = !task.completed;
-        return { ...task, completed: newStatus };
-      }),
+      prev.map((task) =>
+        task.id === id ? { ...task, completed: newStatus } : task,
+      ),
     );
-
-    if (newStatus === null) {
-      toggleRequestRef.current.delete(id);
-      return;
-    }
 
     const { error } = await supabase
       .from("tasks")
