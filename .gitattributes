@@ -1,0 +1,4 @@
+/.githooks/prepare-commit-msg text eol=lf
+/.githooks/post-commit text eol=lf
+/.githooks/post-checkout text eol=lf
+/.githooks/post-merge text eol=lf
