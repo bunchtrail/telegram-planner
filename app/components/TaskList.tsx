@@ -36,7 +36,6 @@ export default function TaskList({
         break;
       }
     }
-
     if (isIncremental && nextIds.size > prevIds.size) {
       const prefersReducedMotion =
         typeof window !== "undefined" &&
@@ -46,7 +45,6 @@ export default function TaskList({
         block: "start",
       });
     }
-
     prevTaskIdsRef.current = nextIds;
   }, [tasks]);
 
@@ -56,24 +54,33 @@ export default function TaskList({
   if (isLoading) {
     return (
       <div className="flex h-full items-center justify-center">
-        <Loader2 className="animate-spin text-[var(--muted)]" />
+        <Loader2 className="animate-spin text-[var(--muted)] opacity-50" size={32} />
       </div>
     );
   }
 
   if (tasks.length === 0) {
     return (
-      <div className={`${scrollClasses} flex flex-col items-center justify-center opacity-60`}>
-        <div className="mb-4 rounded-3xl bg-[var(--surface-2)] p-6">
-          <Calendar size={40} className="text-[var(--muted)]" />
+      <div className={`${scrollClasses} flex flex-col items-center justify-center`}>
+        <div className="mb-6 rounded-[28px] bg-[var(--surface)] p-8 shadow-[var(--shadow-card)]">
+          <Calendar
+            size={48}
+            className="text-[var(--accent)] opacity-80"
+            strokeWidth={1.5}
+          />
         </div>
-        <p className="text-lg font-medium text-[var(--muted)]">План пуст</p>
+        <p className="text-xl font-bold text-[var(--ink)] font-[var(--font-display)]">
+          План пуст
+        </p>
+        <p className="text-sm text-[var(--muted)] mt-1 mb-6">
+          На этот день задач нет
+        </p>
         <button
           type="button"
           onClick={onAdd}
-          className="mt-4 text-[var(--accent)] font-bold"
+          className="rounded-xl bg-[var(--surface-2)] px-6 py-3 text-sm font-bold text-[var(--accent)] transition-colors active:scale-95"
         >
-          Добавить
+          Создать задачу
         </button>
       </div>
     );
@@ -87,7 +94,7 @@ export default function TaskList({
         onReorder={onReorder}
         as="ul"
         role="list"
-        className="overflow-hidden rounded-[14px] bg-[var(--surface)] shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
+        className="relative"
       >
         <AnimatePresence initial={false} mode="popLayout">
           {tasks.map((task) => (
@@ -101,7 +108,7 @@ export default function TaskList({
           ))}
         </AnimatePresence>
       </Reorder.Group>
-      <div ref={bottomRef} className="h-1" />
+      <div ref={bottomRef} className="h-4" />
     </motion.div>
   );
 }
