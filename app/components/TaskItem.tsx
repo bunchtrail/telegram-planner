@@ -1,22 +1,21 @@
 import {
   memo,
+  useRef,
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
 } from 'react';
-import { format } from 'date-fns';
+import { addDays, addWeeks, format } from 'date-fns';
+import { AnimatePresence, Reorder, motion, useDragControls } from 'framer-motion';
 import {
-  AnimatePresence,
-  Reorder,
-  motion,
-  useDragControls,
-} from 'framer-motion';
-import {
+  ArrowRight,
+  Calendar,
   Check,
+  ChevronDown,
+  Clock,
   GripVertical,
   Pencil,
+  Sunrise,
   Trash2,
-  Clock,
-  ChevronDown,
 } from 'lucide-react';
 import type { Task } from '../types/task';
 import { cn } from '../lib/cn';
@@ -40,17 +39,11 @@ const TaskItem = memo(function TaskItem({
   const { impact, selection } = useHaptic();
   const dragControls = useDragControls();
   const [isExpanded, setIsExpanded] = useState(false);
-  const [moveDate, setMoveDate] = useState<string | null>(null);
+  const dateInputRef = useRef<HTMLInputElement>(null);
 
   const toggleExpand = () => {
     selection();
-    setIsExpanded((prev) => {
-      const next = !prev;
-      if (next) {
-        setMoveDate(null);
-      }
-      return next;
-    });
+    setIsExpanded((prev) => !prev);
   };
 
   const handleKeyDown = (event: ReactKeyboardEvent) => {
@@ -60,13 +53,23 @@ const TaskItem = memo(function TaskItem({
     }
   };
 
-  const moveDateValue = moveDate ?? format(task.date, 'yyyy-MM-dd');
-
-  const handleMove = () => {
+  const handleMoveToDate = (dateStr: string) => {
     const currentKey = format(task.date, 'yyyy-MM-dd');
-    if (!moveDateValue || moveDateValue === currentKey) return;
-    impact('light');
-    onMove(task.id, moveDateValue);
+    if (!dateStr || dateStr === currentKey) return;
+    impact('medium');
+    onMove(task.id, dateStr);
+  };
+
+  const handleMoveTomorrow = (event: React.MouseEvent) => {
+    event.stopPropagation();
+    const tomorrow = addDays(new Date(), 1);
+    handleMoveToDate(format(tomorrow, 'yyyy-MM-dd'));
+  };
+
+  const handleMoveNextWeek = (event: React.MouseEvent) => {
+    event.stopPropagation();
+    const nextWeek = addWeeks(new Date(), 1);
+    handleMoveToDate(format(nextWeek, 'yyyy-MM-dd'));
   };
 
   return (
@@ -83,7 +86,7 @@ const TaskItem = memo(function TaskItem({
       className={cn(
         'relative mb-3 overflow-hidden rounded-[24px] bg-[var(--surface)] shadow-[var(--shadow-card)] transition-colors border border-transparent transform-gpu will-change-transform',
         isExpanded
-          ? 'ring-2 ring-[var(--surface-2)] shadow-none'
+          ? 'ring-2 ring-[var(--surface-2)] shadow-none z-10'
           : 'hover:border-[var(--border)]'
       )}
       style={{ transformOrigin: 'center' }}
@@ -194,28 +197,49 @@ const TaskItem = memo(function TaskItem({
                   {task.title}
                 </p>
 
-                <div className="mb-4 flex flex-wrap items-center gap-2">
+                <div className="mb-4 space-y-2">
                   <span className="text-[11px] font-bold uppercase tracking-widest text-[var(--muted)]">
-                    Перенести
+                    Перенести на
                   </span>
-                  <input
-                    type="date"
-                    value={moveDateValue}
-                    onChange={(event) => setMoveDate(event.target.value)}
-                    className="h-10 rounded-xl bg-[var(--surface)] px-3 text-[13px] font-semibold text-[var(--ink)] border border-[var(--border)]"
-                    aria-label="Новая дата"
-                  />
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={handleMoveTomorrow}
+                      className="flex items-center justify-center gap-2 h-10 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-[13px] font-semibold text-[var(--ink)] hover:bg-[var(--surface-2)] active:scale-[0.98] transition-all"
+                    >
+                      <Sunrise size={16} className="text-[var(--accent)]" />
+                      Завтра
+                    </button>
+
+                    <div className="relative h-10 w-full">
+                      <input
+                        ref={dateInputRef}
+                        type="date"
+                        onChange={(event) =>
+                          handleMoveToDate(event.target.value)
+                        }
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                        aria-label="Выбрать дату"
+                      />
+                      <div className="absolute inset-0 flex items-center justify-center gap-2 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-[13px] font-semibold text-[var(--ink)] pointer-events-none">
+                        <Calendar size={16} className="text-[var(--muted)]" />
+                        Выбрать дату
+                      </div>
+                    </div>
+                  </div>
+
                   <button
                     type="button"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      handleMove();
-                    }}
-                    className="h-10 rounded-xl bg-[var(--ink)] px-4 text-[13px] font-bold text-[var(--bg)] active:scale-[0.98] transition-transform"
+                    onClick={handleMoveNextWeek}
+                    className="flex w-full items-center justify-center gap-2 h-9 rounded-xl bg-transparent text-[12px] font-medium text-[var(--muted)] hover:bg-[var(--surface-2)]/50 active:scale-[0.98] transition-all"
                   >
-                    Перенести
+                    <ArrowRight size={14} />
+                    На следующую неделю
                   </button>
                 </div>
+
+                <div className="h-[1px] bg-[var(--border)] mb-4 opacity-50" />
 
                 <div className="flex gap-3">
                   <motion.button
@@ -254,4 +278,3 @@ const TaskItem = memo(function TaskItem({
 });
 
 export default TaskItem;
-
