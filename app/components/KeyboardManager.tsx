@@ -4,24 +4,26 @@ import { useEffect } from "react";
 
 export default function KeyboardManager() {
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    if (typeof window === "undefined" || !window.visualViewport) return;
 
     const root = document.documentElement;
     const viewport = window.visualViewport;
+    let baseVisible = viewport.height + viewport.offsetTop;
 
     const update = () => {
-      const vvh = viewport?.height ?? window.innerHeight;
-      const vvt = viewport?.offsetTop ?? 0;
-      const kb = Math.max(0, window.innerHeight - vvh - vvt);
+      const visibleNow = viewport.height + viewport.offsetTop;
+      const kb = Math.max(0, baseVisible - visibleNow);
 
-      root.style.setProperty("--vvh", `${vvh}px`);
-      root.style.setProperty("--vvt", `${vvt}px`);
+      if (kb < 50) {
+        baseVisible = visibleNow;
+      }
+
+      root.style.setProperty("--vvh", `${viewport.height}px`);
+      root.style.setProperty("--vvt", `${viewport.offsetTop}px`);
       root.style.setProperty("--kb", `${kb}px`);
     };
 
     update();
-
-    if (!viewport) return;
 
     viewport.addEventListener("resize", update, { passive: true });
     viewport.addEventListener("scroll", update, { passive: true });

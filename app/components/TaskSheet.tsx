@@ -169,8 +169,8 @@ export default function TaskSheet({
     <div
       className="fixed left-0 z-50 w-full pointer-events-none"
       style={{
-        top: "var(--vvt, 0px)",
-        height: "var(--vvh, 100%)",
+        top: "var(--tg-viewport-top, 0px)",
+        height: "var(--tg-viewport-stable-height, 100dvh)",
       }}
     >
       <motion.div
@@ -184,8 +184,8 @@ export default function TaskSheet({
       />
 
       <div
-        className="pointer-events-auto absolute bottom-0 flex w-full flex-col justify-end"
-        style={{ transform: "translate3d(0, calc(-1 * var(--kb, 0px)), 0)" }}
+        className="pointer-events-auto absolute left-0 right-0 flex w-full flex-col justify-end"
+        style={{ bottom: "var(--kb, 0px)" }}
       >
         <motion.div
           ref={dialogRef}
