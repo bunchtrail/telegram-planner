@@ -50,7 +50,7 @@ export default function PlannerHeader({
 
   return (
     <header className="relative z-30 flex flex-col glass rounded-b-[36px] shadow-sm transition-all">
-      <div className="pl-[max(1.25rem,env(safe-area-inset-left),var(--tg-content-safe-left,0px))] pr-[max(1.25rem,env(safe-area-inset-right),var(--tg-content-safe-right,0px))] pt-[calc(max(env(safe-area-inset-top),var(--tg-content-safe-top,0px))+1rem)] pb-2">
+      <div className="pl-[max(1.25rem,env(safe-area-inset-left),var(--tg-content-safe-left,0px))] pr-[max(1.25rem,env(safe-area-inset-right),var(--tg-content-safe-right,0px))] pt-[calc(max(env(safe-area-inset-top),var(--tg-safe-top,0px),var(--tg-content-safe-top,0px))+1rem)] pb-2">
         <div className="mb-5 flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
           <div className="flex-1 min-w-0">
             <p className="mb-0.5 text-[11px] font-bold uppercase tracking-[0.15em] text-[var(--accent)] opacity-90">

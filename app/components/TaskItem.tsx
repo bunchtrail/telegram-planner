@@ -1,8 +1,7 @@
 import { memo, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
-import { addDays, addWeeks, format } from 'date-fns';
+import { addDays, format } from 'date-fns';
 import { AnimatePresence, Reorder, motion, useDragControls } from 'framer-motion';
 import {
-  ArrowRight,
   Calendar,
   Check,
   ChevronDown,
@@ -68,11 +67,6 @@ const TaskItem = memo(function TaskItem({
     handleMoveToDate(format(tomorrow, 'yyyy-MM-dd'));
   };
 
-  const handleMoveNextWeek = () => {
-    const nextWeek = addWeeks(task.date, 1);
-    handleMoveToDate(format(nextWeek, 'yyyy-MM-dd'));
-  };
-
   const effectivePickerValue = pendingDate ?? currentKey;
   const hasPendingChange = pendingDate != null && pendingDate !== currentKey;
 
@@ -83,7 +77,7 @@ const TaskItem = memo(function TaskItem({
       dragListener={false}
       dragControls={dragControls}
       layout="position"
-      initial={{ opacity: 0, y: 10 }}
+      initial={false}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95 }}
       transition={{ type: 'spring', stiffness: 400, damping: 30 }}
@@ -266,18 +260,6 @@ const TaskItem = memo(function TaskItem({
                     </div>
                   )}
 
-                  <button
-                    type="button"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      setPendingDate(null);
-                      handleMoveNextWeek();
-                    }}
-                    className="flex w-full items-center justify-center gap-2 h-9 rounded-xl bg-transparent text-[12px] font-medium text-[var(--muted)] hover:bg-[var(--surface-2)]/50 active:scale-[0.98] transition-all"
-                  >
-                    <ArrowRight size={14} />
-                    На следующую неделю
-                  </button>
                 </div>
 
                 <div className="h-[1px] bg-[var(--border)] mb-4 opacity-50" />
