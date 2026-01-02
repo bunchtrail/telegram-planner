@@ -148,9 +148,10 @@ export default function PlannerApp() {
     title: string,
     duration: number,
     repeat: TaskRepeat,
+    repeatCount: number,
   ) => {
     if (sheetMode === "create") {
-      addTask(title, duration, repeat);
+      addTask(title, duration, repeat, repeatCount);
     } else if (editingTask) {
       updateTask(editingTask.id, { title, duration });
     }
@@ -212,6 +213,7 @@ export default function PlannerApp() {
             initialTitle={sheetMode === "edit" ? editingTask?.title : ""}
             initialDuration={sheetMode === "edit" ? editingTask?.duration : 30}
             initialRepeat="none"
+            initialRepeatCount={7}
             onSubmit={handleSheetSubmit}
           />
         )}

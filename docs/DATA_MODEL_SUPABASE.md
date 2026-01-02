@@ -53,7 +53,7 @@
 - `repeat text in ('daily','weekly')`
 - `weekday smallint` — для weekly (0..6)
 - `start_date date not null`
-- `end_date date` (nullable)
+- `end_date date` — конец серии (по выбору «на сколько дней/недель»)
 
 ### Индексы
 

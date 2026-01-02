@@ -619,6 +619,7 @@ export function usePlanner() {
     title: string,
     duration = DEFAULT_DURATION,
     repeat: TaskRepeat = "none",
+    repeatCount = 1,
   ) => {
     const trimmedTitle = title.trim();
     if (!trimmedTitle) {
@@ -685,6 +686,13 @@ export function usePlanner() {
       return;
     }
 
+    const normalizedRepeatCount = Math.max(1, Math.floor(repeatCount || 1));
+    const endDate =
+      repeat === "weekly"
+        ? addWeeks(selectedDate, normalizedRepeatCount - 1)
+        : addDays(selectedDate, normalizedRepeatCount - 1);
+    const endDateKey = formatDateOnly(endDate);
+
     const { data: seriesData, error: seriesError } = await supabase
       .from("task_series")
       .insert({
@@ -694,6 +702,7 @@ export function usePlanner() {
         repeat: repeat === "daily" ? "daily" : "weekly",
         weekday: repeat === "weekly" ? getDay(selectedDate) : null,
         start_date: selectedDateKey,
+        end_date: endDateKey,
       })
       .select()
       .single();
