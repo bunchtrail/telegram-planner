@@ -53,7 +53,7 @@ const TaskItem = memo(function TaskItem({
       exit={{ opacity: 0, scale: 0.95 }}
       transition={{ type: "spring", stiffness: 400, damping: 30 }}
       className={cn(
-        "relative mb-3 overflow-hidden rounded-[24px] bg-[var(--surface)] shadow-[var(--shadow-card)] transition-all border border-transparent transform-gpu will-change-transform",
+        "relative mb-3 overflow-hidden rounded-[24px] bg-[var(--surface)] shadow-[var(--shadow-card)] transition-colors border border-transparent transform-gpu will-change-transform",
         isExpanded
           ? "ring-2 ring-[var(--surface-2)] shadow-none"
           : "hover:border-[var(--border)]",
@@ -85,7 +85,7 @@ const TaskItem = memo(function TaskItem({
                 : "Отметить как выполненную"
             }
             className={cn(
-              "mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-[2px] transition-all",
+              "mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-[2px] transition-colors",
               task.completed
                 ? "border-[var(--accent)] bg-[var(--accent)]"
                 : "border-[var(--muted)]/30 hover:border-[var(--accent)]",
@@ -110,7 +110,7 @@ const TaskItem = memo(function TaskItem({
           >
             <p
               className={cn(
-                "text-[17px] font-medium leading-snug transition-all",
+                "text-[17px] font-medium leading-snug transition-colors",
                 task.completed
                   ? "text-[var(--muted)] line-through"
                   : "text-[var(--ink)]",
