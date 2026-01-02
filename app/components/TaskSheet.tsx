@@ -12,6 +12,12 @@ const DURATION_MIN = 5;
 const DURATION_MAX = 180;
 const DURATION_STEP = 5;
 const DURATION_HAPTIC_STEP = 15;
+const SHEET_TRANSITION = {
+  type: "spring",
+  damping: 32,
+  stiffness: 350,
+  mass: 1,
+};
 
 type TaskSheetProps = {
   isOpen: boolean;
@@ -38,7 +44,7 @@ export default function TaskSheet({
   const shouldAutoFocusRef = useRef(false);
   const dragControls = useDragControls();
   const { selection, impact, notification } = useHaptic();
-  const kb = useKeyboardInset();
+  useKeyboardInset();
 
   const handleClose = useCallback(() => {
     setShowTitleError(false);
@@ -98,7 +104,7 @@ export default function TaskSheet({
     _event: MouseEvent | TouchEvent | PointerEvent,
     info: PanInfo,
   ) => {
-    if (info.offset.y > 100) {
+    if (info.offset.y > 100 || info.velocity.y > 500) {
       handleClose();
     }
   };
@@ -129,28 +135,30 @@ export default function TaskSheet({
   return (
     <div className="fixed inset-0 z-50 flex flex-col justify-end pointer-events-none">
       <motion.div
-        className="pointer-events-auto absolute inset-0 bg-black/40 backdrop-blur-sm"
+        className="pointer-events-auto absolute inset-0 bg-black/40"
         onClick={handleClose}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
+        transition={{ duration: 0.2 }}
+        style={{ willChange: "opacity" }}
       />
 
       <div
-        className="pointer-events-auto relative z-10 flex w-full flex-col"
-        style={{ transform: `translateY(-${kb}px)` }}
+        className="pointer-events-auto relative z-10 flex w-full flex-col transition-transform duration-100 ease-linear will-change-transform"
+        style={{ transform: "translateY(calc(-1 * var(--kb, 0px)))" }}
       >
         <motion.div
           ref={dialogRef}
           role="dialog"
           aria-modal="true"
           aria-labelledby="task-sheet-title"
-          className="pointer-events-auto relative flex w-full flex-col overflow-hidden rounded-t-[24px] bg-[var(--surface)] shadow-2xl"
-          style={{ maxHeight: "90%" }}
+          className="pointer-events-auto relative flex w-full flex-col overflow-hidden rounded-t-[24px] bg-[var(--surface)] shadow-2xl will-change-transform"
+          style={{ maxHeight: "90vh" }}
           initial={{ y: "100%" }}
           animate={{ y: 0 }}
           exit={{ y: "100%" }}
-          transition={{ type: "spring", damping: 28, stiffness: 320 }}
+          transition={SHEET_TRANSITION}
           drag="y"
           dragListener={false}
           dragControls={dragControls}
@@ -160,11 +168,13 @@ export default function TaskSheet({
           onAnimationComplete={() => {
             if (!shouldAutoFocusRef.current) return;
             shouldAutoFocusRef.current = false;
-            inputRef.current?.focus({ preventScroll: true });
+            requestAnimationFrame(() => {
+              inputRef.current?.focus({ preventScroll: true });
+            });
           }}
         >
           <div
-            className="flex w-full cursor-grab justify-center pt-3 pb-2 touch-none"
+            className="flex w-full cursor-grab justify-center pt-3 pb-2 touch-none active:cursor-grabbing"
             onPointerDown={(event) => dragControls.start(event)}
           >
             <div className="h-1.5 w-10 rounded-full bg-[var(--muted)] opacity-20" />
@@ -183,7 +193,7 @@ export default function TaskSheet({
                   type="button"
                   onClick={handleClose}
                   aria-label="Закрыть"
-                  className="p-2 -mr-2 text-[var(--muted)]"
+                  className="p-2 -mr-2 text-[var(--muted)] active:opacity-50 transition-opacity"
                 >
                   <X size={24} />
                 </button>
@@ -229,9 +239,9 @@ export default function TaskSheet({
                   onChange={(event) =>
                     handleDurationChange(Number(event.target.value))
                   }
-                  className="mb-4 h-2 w-full touch-none rounded-full bg-[var(--bg)] accent-[var(--accent)]"
+                  className="mb-4 h-2 w-full touch-none rounded-full bg-[var(--bg)] accent-[var(--accent)] cursor-pointer"
                 />
-                <div className="no-scrollbar -mx-6 flex gap-2 overflow-x-auto px-6 touch-pan-x">
+                <div className="no-scrollbar -mx-6 flex gap-2 overflow-x-auto px-6 touch-pan-x py-1">
                   {DURATION_PRESETS.map((value) => (
                     <button
                       key={value}
@@ -241,9 +251,9 @@ export default function TaskSheet({
                         setDuration(value);
                       }}
                       className={cn(
-                        "rounded-full px-4 py-2 text-sm font-bold transition-colors",
+                        "flex-shrink-0 rounded-full px-4 py-2 text-sm font-bold transition-transform active:scale-95",
                         duration === value
-                          ? "bg-[var(--accent)] text-[var(--accent-ink)]"
+                          ? "bg-[var(--accent)] text-[var(--accent-ink)] shadow-md"
                           : "bg-[var(--bg)] text-[var(--muted)]",
                       )}
                     >
@@ -254,10 +264,10 @@ export default function TaskSheet({
               </div>
             </div>
 
-            <div className="px-6 pb-[calc(1rem+max(env(safe-area-inset-bottom),var(--tg-content-safe-bottom,0px)))] pt-2">
+            <div className="px-6 pb-[calc(1rem+max(env(safe-area-inset-bottom),var(--tg-content-safe-bottom,0px)))] pt-2 bg-[var(--surface)]">
               <button
                 type="submit"
-                className="mb-4 w-full rounded-[18px] bg-[var(--accent)] py-4 text-lg font-bold text-[var(--accent-ink)] transition-transform active:scale-[0.98]"
+                className="mb-4 w-full rounded-[18px] bg-[var(--accent)] py-4 text-lg font-bold text-[var(--accent-ink)] transition-transform active:scale-[0.98] shadow-[0_12px_24px_var(--accent-soft)]"
               >
                 {mode === "create" ? "Создать" : "Сохранить"}
               </button>

@@ -10,6 +10,8 @@ body {
   -webkit-touch-callout: none;
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 :root {
@@ -79,6 +81,12 @@ body {
 
 .no-scrollbar::-webkit-scrollbar {
   display: none;
+}
+
+.will-change-transform {
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
 }
 
 @media (prefers-reduced-motion: reduce) {
