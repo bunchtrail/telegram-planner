@@ -16,6 +16,8 @@ body {
 
 :root {
   color-scheme: light dark;
+  --tg-viewport-height: 100dvh;
+  --tg-viewport-top: 0px;
   --tg-content-safe-top: 0px;
   --tg-content-safe-right: 0px;
   --tg-content-safe-bottom: 0px;

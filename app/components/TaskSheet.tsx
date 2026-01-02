@@ -10,7 +10,6 @@ import {
 } from "framer-motion";
 import { cn } from "../lib/cn";
 import { useHaptic } from "../hooks/useHaptic";
-import { useKeyboardInset } from "../hooks/useKeyboardInset";
 import type { TaskRepeat } from "../types/task";
 
 const DURATION_PRESETS = [15, 30, 45, 60, 90, 120];
@@ -65,7 +64,6 @@ export default function TaskSheet({
   const shouldAutoFocusRef = useRef(false);
   const dragControls = useDragControls();
   const { selection, impact, notification } = useHaptic();
-  useKeyboardInset();
 
   const handleClose = useCallback(() => {
     setShowTitleError(false);
@@ -162,7 +160,13 @@ export default function TaskSheet({
   const repeatCountUnit = repeat === "weekly" ? "нед." : "дн.";
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col justify-end pointer-events-none">
+    <div
+      className="fixed left-0 z-50 w-full pointer-events-none"
+      style={{
+        top: "var(--tg-viewport-top, 0px)",
+        height: "var(--tg-viewport-height, 100%)",
+      }}
+    >
       <motion.div
         className="pointer-events-auto absolute inset-0 bg-black/40"
         onClick={handleClose}
@@ -173,17 +177,14 @@ export default function TaskSheet({
         style={{ willChange: "opacity" }}
       />
 
-      <div
-        className="pointer-events-auto relative z-10 flex w-full flex-col transition-transform duration-100 ease-linear will-change-transform"
-        style={{ transform: "translateY(calc(-1 * var(--kb, 0px)))" }}
-      >
+      <div className="pointer-events-auto absolute bottom-0 flex w-full flex-col justify-end">
         <motion.div
           ref={dialogRef}
           role="dialog"
           aria-modal="true"
           aria-labelledby="task-sheet-title"
-          className="pointer-events-auto relative flex w-full flex-col overflow-hidden rounded-t-[24px] bg-[var(--surface)] shadow-2xl will-change-transform"
-          style={{ maxHeight: "90vh" }}
+          className="relative flex w-full flex-col overflow-hidden rounded-t-[24px] bg-[var(--surface)] shadow-2xl will-change-transform"
+          style={{ maxHeight: "100%" }}
           initial={{ y: "100%" }}
           animate={{ y: 0 }}
           exit={{ y: "100%" }}
@@ -197,9 +198,9 @@ export default function TaskSheet({
           onAnimationComplete={() => {
             if (!shouldAutoFocusRef.current) return;
             shouldAutoFocusRef.current = false;
-            requestAnimationFrame(() => {
+            setTimeout(() => {
               inputRef.current?.focus({ preventScroll: true });
-            });
+            }, 50);
           }}
         >
           <div
