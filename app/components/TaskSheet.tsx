@@ -25,7 +25,6 @@ const DEFAULT_REPEAT_COUNT_DAILY = 7;
 const DEFAULT_REPEAT_COUNT_WEEKLY = 4;
 
 type TaskSheetProps = {
-  isOpen: boolean;
   onClose: () => void;
   mode: "create" | "edit";
   initialTitle?: string;
@@ -41,7 +40,6 @@ type TaskSheetProps = {
 };
 
 export default function TaskSheet({
-  isOpen,
   onClose,
   mode,
   initialTitle = "",
@@ -54,18 +52,20 @@ export default function TaskSheet({
   const [duration, setDuration] = useState(initialDuration);
   const [repeat, setRepeat] = useState<TaskRepeat>(initialRepeat);
   const [repeatCount, setRepeatCount] = useState(initialRepeatCount);
-  const [showRepeatOptions, setShowRepeatOptions] = useState(false);
+  const [showRepeatOptions, setShowRepeatOptions] = useState(
+    mode === "edit" || initialRepeat !== "none",
+  );
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const dragControls = useDragControls();
   const { impact, notification } = useHaptic();
 
-  const adjustTextareaHeight = () => {
+  const adjustTextareaHeight = useCallback(() => {
     const el = inputRef.current;
     if (!el) return;
     el.style.height = "auto";
     el.style.height = `${Math.min(el.scrollHeight, 150)}px`;
-  };
+  }, []);
 
   const handleClose = useCallback(() => {
     if (document.activeElement instanceof HTMLElement) {
@@ -105,14 +105,6 @@ export default function TaskSheet({
   const repeatCountUnit = repeat === "weekly" ? "нед." : "дн.";
 
   useEffect(() => {
-    if (!isOpen) return;
-
-    setTitle(initialTitle);
-    setDuration(initialDuration);
-    setRepeat(initialRepeat);
-    setRepeatCount(initialRepeatCount);
-    setShowRepeatOptions(mode === "edit" || initialRepeat !== "none");
-
     setTimeout(adjustTextareaHeight, 0);
 
     if (mode === "create") {
@@ -120,7 +112,7 @@ export default function TaskSheet({
         inputRef.current?.focus({ preventScroll: true });
       }, 150);
     }
-  }, [initialDuration, initialRepeat, initialRepeatCount, initialTitle, isOpen, mode]);
+  }, [adjustTextareaHeight, mode]);
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col justify-end pointer-events-none">

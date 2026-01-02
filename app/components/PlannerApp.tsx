@@ -1,15 +1,15 @@
-"use client";
+'use client';
 
-import { useEffect, useRef, useState } from "react";
-import confetti from "canvas-confetti";
-import { AnimatePresence, motion } from "framer-motion";
-import TaskSheet from "./TaskSheet";
-import FloatingActionButton from "./FloatingActionButton";
-import PlannerHeader from "./PlannerHeader";
-import TaskList from "./TaskList";
-import { usePlanner } from "../hooks/usePlanner";
-import { useHaptic } from "../hooks/useHaptic";
-import type { Task, TaskRepeat } from "../types/task";
+import { useEffect, useRef, useState } from 'react';
+import confetti from 'canvas-confetti';
+import { AnimatePresence, motion } from 'framer-motion';
+import TaskSheet from './TaskSheet';
+import FloatingActionButton from './FloatingActionButton';
+import PlannerHeader from './PlannerHeader';
+import TaskList from './TaskList';
+import { usePlanner } from '../hooks/usePlanner';
+import { useHaptic } from '../hooks/useHaptic';
+import type { Task, TaskRepeat } from '../types/task';
 
 export default function PlannerApp() {
   const {
@@ -41,13 +41,13 @@ export default function PlannerApp() {
   const [undoTask, setUndoTask] = useState<Task | null>(null);
   const undoTimeoutRef = useRef<number | null>(null);
   const prevIsAddOpenRef = useRef(isAddOpen);
-  const [sheetMode, setSheetMode] = useState<"create" | "edit">("create");
+  const [sheetMode, setSheetMode] = useState<'create' | 'edit'>('create');
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const { impact, notification } = useHaptic();
 
   const triggerConfetti = () => {
     const end = Date.now() + 1000;
-    const colors = ["#ff9500", "#ffb340", "#ffffff"];
+    const colors = ['#ff9500', '#ffb340', '#ffffff'];
 
     const frame = () => {
       confetti({
@@ -116,7 +116,7 @@ export default function PlannerApp() {
 
   const handleUndoDelete = () => {
     if (!undoTask) return;
-    notification("success");
+    notification('success');
     restoreTask(undoTask);
     setUndoTask(null);
     if (undoTimeoutRef.current) {
@@ -126,15 +126,15 @@ export default function PlannerApp() {
   };
 
   const handleOpenCreate = () => {
-    impact("light");
-    setSheetMode("create");
+    impact('light');
+    setSheetMode('create');
     setEditingTask(null);
     setIsAddOpen(true);
   };
 
   const handleOpenEdit = (task: Task) => {
-    impact("light");
-    setSheetMode("edit");
+    impact('light');
+    setSheetMode('edit');
     setEditingTask(task);
     setIsAddOpen(true);
   };
@@ -146,16 +146,16 @@ export default function PlannerApp() {
   const handleCloseSheet = () => {
     setIsAddOpen(false);
     setEditingTask(null);
-    setSheetMode("create");
+    setSheetMode('create');
   };
 
   const handleSheetSubmit = (
     title: string,
     duration: number,
     repeat: TaskRepeat,
-    repeatCount: number,
+    repeatCount: number
   ) => {
-    if (sheetMode === "create") {
+    if (sheetMode === 'create') {
       addTask(title, duration, repeat, repeatCount);
     } else if (editingTask) {
       updateTask(editingTask.id, { title, duration });
@@ -214,11 +214,12 @@ export default function PlannerApp() {
           {isAddOpen && (
             <TaskSheet
               key="task-sheet"
-              isOpen={isAddOpen}
               onClose={handleCloseSheet}
               mode={sheetMode}
-              initialTitle={sheetMode === "edit" ? editingTask?.title : ""}
-              initialDuration={sheetMode === "edit" ? editingTask?.duration : 30}
+              initialTitle={sheetMode === 'edit' ? editingTask?.title : ''}
+              initialDuration={
+                sheetMode === 'edit' ? editingTask?.duration : 30
+              }
               initialRepeat="none"
               initialRepeatCount={7}
               onSubmit={handleSheetSubmit}

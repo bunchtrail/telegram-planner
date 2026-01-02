@@ -1,11 +1,11 @@
+import { memo, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
+import { format } from 'date-fns';
 import {
-  memo,
-  useEffect,
-  useState,
-  type KeyboardEvent as ReactKeyboardEvent,
-} from "react";
-import { format } from "date-fns";
-import { AnimatePresence, Reorder, motion, useDragControls } from "framer-motion";
+  AnimatePresence,
+  Reorder,
+  motion,
+  useDragControls,
+} from 'framer-motion';
 import {
   Check,
   GripVertical,
@@ -13,10 +13,10 @@ import {
   Trash2,
   Clock,
   ChevronDown,
-} from "lucide-react";
-import type { Task } from "../types/task";
-import { cn } from "../lib/cn";
-import { useHaptic } from "../hooks/useHaptic";
+} from 'lucide-react';
+import type { Task } from '../types/task';
+import { cn } from '../lib/cn';
+import { useHaptic } from '../hooks/useHaptic';
 
 type TaskItemProps = {
   task: Task;
@@ -36,33 +36,33 @@ const TaskItem = memo(function TaskItem({
   const { impact, selection } = useHaptic();
   const dragControls = useDragControls();
   const [isExpanded, setIsExpanded] = useState(false);
-  const [moveDate, setMoveDate] = useState(() =>
-    format(task.date, "yyyy-MM-dd"),
-  );
+  const [moveDate, setMoveDate] = useState<string | null>(null);
 
   const toggleExpand = () => {
     selection();
-    setIsExpanded((prev) => !prev);
+    setIsExpanded((prev) => {
+      const next = !prev;
+      if (next) {
+        setMoveDate(null);
+      }
+      return next;
+    });
   };
 
   const handleKeyDown = (event: ReactKeyboardEvent) => {
-    if (event.key === "Enter" || event.key === " ") {
+    if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault();
       toggleExpand();
     }
   };
 
-  useEffect(() => {
-    if (isExpanded) {
-      setMoveDate(format(task.date, "yyyy-MM-dd"));
-    }
-  }, [isExpanded, task.date]);
+  const moveDateValue = moveDate ?? format(task.date, 'yyyy-MM-dd');
 
   const handleMove = () => {
-    const currentKey = format(task.date, "yyyy-MM-dd");
-    if (!moveDate || moveDate === currentKey) return;
-    impact("light");
-    onMove(task.id, moveDate);
+    const currentKey = format(task.date, 'yyyy-MM-dd');
+    if (!moveDateValue || moveDateValue === currentKey) return;
+    impact('light');
+    onMove(task.id, moveDateValue);
   };
 
   return (
@@ -75,21 +75,21 @@ const TaskItem = memo(function TaskItem({
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95 }}
-      transition={{ type: "spring", stiffness: 400, damping: 30 }}
+      transition={{ type: 'spring', stiffness: 400, damping: 30 }}
       className={cn(
-        "relative mb-3 overflow-hidden rounded-[24px] bg-[var(--surface)] shadow-[var(--shadow-card)] transition-colors border border-transparent transform-gpu will-change-transform",
+        'relative mb-3 overflow-hidden rounded-[24px] bg-[var(--surface)] shadow-[var(--shadow-card)] transition-colors border border-transparent transform-gpu will-change-transform',
         isExpanded
-          ? "ring-2 ring-[var(--surface-2)] shadow-none"
-          : "hover:border-[var(--border)]",
+          ? 'ring-2 ring-[var(--surface-2)] shadow-none'
+          : 'hover:border-[var(--border)]'
       )}
-      style={{ transformOrigin: "center" }}
+      style={{ transformOrigin: 'center' }}
       as="li"
     >
       <motion.div
         layout="position"
         className={cn(
-          "flex flex-col relative",
-          isExpanded && "bg-[var(--surface-2)]/30",
+          'flex flex-col relative',
+          isExpanded && 'bg-[var(--surface-2)]/30'
         )}
       >
         <div className="flex items-start gap-3.5 p-4">
@@ -99,20 +99,20 @@ const TaskItem = memo(function TaskItem({
             onPointerDown={(event) => event.stopPropagation()}
             onClick={(event) => {
               event.stopPropagation();
-              impact("medium");
+              impact('medium');
               onToggle(task.id);
             }}
             aria-pressed={task.completed}
             aria-label={
               task.completed
-                ? "Отметить как невыполненную"
-                : "Отметить как выполненную"
+                ? 'Отметить как невыполненную'
+                : 'Отметить как выполненную'
             }
             className={cn(
-              "mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-[2px] transition-colors",
+              'mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-[2px] transition-colors',
               task.completed
-                ? "border-[var(--accent)] bg-[var(--accent)]"
-                : "border-[var(--muted)]/30 hover:border-[var(--accent)]",
+                ? 'border-[var(--accent)] bg-[var(--accent)]'
+                : 'border-[var(--muted)]/30 hover:border-[var(--accent)]'
             )}
           >
             {task.completed && (
@@ -134,11 +134,11 @@ const TaskItem = memo(function TaskItem({
           >
             <p
               className={cn(
-                "text-[17px] font-medium leading-snug transition-colors",
+                'text-[17px] font-medium leading-snug transition-colors',
                 task.completed
-                  ? "text-[var(--muted)] line-through"
-                  : "text-[var(--ink)]",
-                !isExpanded && "truncate",
+                  ? 'text-[var(--muted)] line-through'
+                  : 'text-[var(--ink)]',
+                !isExpanded && 'truncate'
               )}
             >
               {task.title}
@@ -169,7 +169,7 @@ const TaskItem = memo(function TaskItem({
             onPointerDown={(event) => {
               event.preventDefault();
               event.stopPropagation();
-              impact("light");
+              impact('light');
               dragControls.start(event);
             }}
           >
@@ -181,7 +181,7 @@ const TaskItem = memo(function TaskItem({
           {isExpanded && (
             <motion.div
               initial={{ height: 0, opacity: 0 }}
-              animate={{ height: "auto", opacity: 1 }}
+              animate={{ height: 'auto', opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
               className="overflow-hidden"
             >
@@ -196,7 +196,7 @@ const TaskItem = memo(function TaskItem({
                   </span>
                   <input
                     type="date"
-                    value={moveDate}
+                    value={moveDateValue}
                     onChange={(event) => setMoveDate(event.target.value)}
                     className="h-10 rounded-xl bg-[var(--surface)] px-3 text-[13px] font-semibold text-[var(--ink)] border border-[var(--border)]"
                     aria-label="Новая дата"

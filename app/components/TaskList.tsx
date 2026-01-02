@@ -1,8 +1,8 @@
-import { useEffect, useRef } from "react";
-import { AnimatePresence, Reorder, motion } from "framer-motion";
-import { Calendar, Loader2 } from "lucide-react";
-import type { Task } from "../types/task";
-import TaskItem from "./TaskItem";
+import { useEffect, useRef } from 'react';
+import { AnimatePresence, Reorder, motion } from 'framer-motion';
+import { Calendar, Loader2 } from 'lucide-react';
+import type { Task } from '../types/task';
+import TaskItem from './TaskItem';
 
 type TaskListProps = {
   tasks: Task[];
@@ -40,30 +40,35 @@ export default function TaskList({
     }
     if (isIncremental && nextIds.size > prevIds.size) {
       const prefersReducedMotion =
-        typeof window !== "undefined" &&
-        window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        typeof window !== 'undefined' &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       bottomRef.current?.scrollIntoView({
-        behavior: prefersReducedMotion ? "auto" : "smooth",
-        block: "start",
+        behavior: prefersReducedMotion ? 'auto' : 'smooth',
+        block: 'start',
       });
     }
     prevTaskIdsRef.current = nextIds;
   }, [tasks]);
 
   const scrollClasses =
-    "h-full w-full overflow-y-auto pb-32 pt-2 touch-pan-y overscroll-contain no-scrollbar pl-[max(1rem,env(safe-area-inset-left),var(--tg-content-safe-left,0px))] pr-[max(1rem,env(safe-area-inset-right),var(--tg-content-safe-right,0px))] [-webkit-overflow-scrolling:touch]";
+    'h-full w-full overflow-y-auto pb-32 pt-2 touch-pan-y overscroll-contain no-scrollbar pl-[max(1rem,env(safe-area-inset-left),var(--tg-content-safe-left,0px))] pr-[max(1rem,env(safe-area-inset-right),var(--tg-content-safe-right,0px))] [-webkit-overflow-scrolling:touch]';
 
   if (isLoading) {
     return (
       <div className="flex h-full items-center justify-center">
-        <Loader2 className="animate-spin text-[var(--muted)] opacity-50" size={32} />
+        <Loader2
+          className="animate-spin text-[var(--muted)] opacity-50"
+          size={32}
+        />
       </div>
     );
   }
 
   if (tasks.length === 0) {
     return (
-      <div className={`${scrollClasses} flex flex-col items-center justify-center`}>
+      <div
+        className={`${scrollClasses} flex flex-col items-center justify-center`}
+      >
         <div className="mb-6 rounded-[28px] bg-[var(--surface)] p-8 shadow-[var(--shadow-card)]">
           <Calendar
             size={48}
@@ -115,3 +120,4 @@ export default function TaskList({
     </motion.div>
   );
 }
+
