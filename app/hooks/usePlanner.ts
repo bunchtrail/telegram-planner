@@ -55,6 +55,7 @@ type TelegramWebApp = {
   requestFullscreen?: () => void;
   exitFullscreen?: () => void;
   isFullscreen?: boolean;
+  platform?: string;
   isVerticalSwipesEnabled?: boolean;
   disableVerticalSwipes?: () => void;
   enableVerticalSwipes?: () => void;
@@ -311,17 +312,33 @@ export function usePlanner() {
       }
     };
 
+    const applyTelegramControlsOffsets = () => {
+      const root = document.documentElement.style;
+      const isFullscreen = Boolean(webApp.isFullscreen);
+      const platform = webApp.platform;
+      const top = !isFullscreen ? 0 : platform === 'ios' ? 44 : 48;
+      const side = !isFullscreen ? 0 : platform === 'ios' ? 44 : 40;
+      root.setProperty('--tma-tg-controls-top', `${top}px`);
+      root.setProperty('--tma-tg-controls-side', `${side}px`);
+    };
+
+    let onAny: (() => void) | null = null;
     if (webApp.isVersionAtLeast?.('8.0')) {
-      applyInsets();
-      webApp.onEvent?.('safeAreaChanged', applyInsets);
-      webApp.onEvent?.('contentSafeAreaChanged', applyInsets);
-      webApp.onEvent?.('fullscreenChanged', applyInsets);
+      onAny = () => {
+        applyInsets();
+        applyTelegramControlsOffsets();
+      };
+      onAny();
+      webApp.onEvent?.('safeAreaChanged', onAny);
+      webApp.onEvent?.('contentSafeAreaChanged', onAny);
+      webApp.onEvent?.('fullscreenChanged', onAny);
     }
 
     return () => {
-      webApp.offEvent?.('safeAreaChanged', applyInsets);
-      webApp.offEvent?.('contentSafeAreaChanged', applyInsets);
-      webApp.offEvent?.('fullscreenChanged', applyInsets);
+      if (!onAny) return;
+      webApp.offEvent?.('safeAreaChanged', onAny);
+      webApp.offEvent?.('contentSafeAreaChanged', onAny);
+      webApp.offEvent?.('fullscreenChanged', onAny);
     };
   }, []);
 

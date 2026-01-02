@@ -191,10 +191,6 @@ const TaskItem = memo(function TaskItem({
               className="overflow-hidden"
             >
               <div className="px-4 pb-4 pt-0 pl-[3.5rem]">
-                <p className="text-[15px] text-[var(--ink)] whitespace-pre-wrap leading-relaxed mb-4 opacity-80">
-                  {task.title}
-                </p>
-
                 {!task.completed && (
                   <>
                     <div className="mb-4 space-y-2">
