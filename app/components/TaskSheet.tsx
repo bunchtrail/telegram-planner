@@ -16,8 +16,8 @@ import type { TaskRepeat } from "../types/task";
 const DURATION_PRESETS = [15, 30, 45, 60, 90, 120];
 const SHEET_TRANSITION: Transition = {
   type: "spring",
-  damping: 28,
-  stiffness: 350,
+  damping: 32,
+  stiffness: 400,
 };
 const REPEAT_COUNT_MIN = 1;
 const REPEAT_COUNT_MAX = 365;
@@ -128,7 +128,7 @@ export default function TaskSheet({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="absolute inset-0 bg-black/20 backdrop-blur-sm pointer-events-auto transition-colors"
+        className="absolute inset-0 bg-black/30 backdrop-blur-[2px] pointer-events-auto transition-colors"
         onClick={handleClose}
       />
 
@@ -143,28 +143,28 @@ export default function TaskSheet({
         dragConstraints={{ top: 0 }}
         dragElastic={0.05}
         onDragEnd={handleDragEnd}
-        className="pointer-events-auto relative w-full bg-[var(--surface)] rounded-t-[32px] shadow-[0_-10px_40px_rgba(0,0,0,0.1)] flex flex-col max-h-[92dvh]"
+        className="pointer-events-auto relative w-full bg-[var(--surface)] rounded-t-[36px] shadow-[var(--shadow-pop)] flex flex-col max-h-[92dvh]"
         style={{
           paddingBottom:
-            "max(env(safe-area-inset-bottom), var(--tg-content-safe-bottom, 0px))",
+            "max(env(safe-area-inset-bottom), var(--tg-content-safe-bottom, 0px), 20px)",
         }}
       >
         <div
           className="flex justify-center pt-4 pb-2 w-full touch-none cursor-grab active:cursor-grabbing"
           onPointerDown={(event) => dragControls.start(event)}
         >
-          <div className="w-12 h-1.5 bg-[var(--border)] rounded-full opacity-50" />
+          <div className="w-12 h-1.5 bg-[var(--border)] rounded-full opacity-60" />
         </div>
 
-        <div className="px-6 pb-2 flex items-center justify-between shrink-0">
-          <h2 className="text-[15px] font-bold text-[var(--ink)]">
+        <div className="px-6 flex items-center justify-between shrink-0 mb-2">
+          <h2 className="text-[15px] font-bold text-[var(--muted)] uppercase tracking-wider">
             {mode === "create" ? "Новая задача" : "Редактирование"}
           </h2>
           <button
             type="button"
             onClick={handleClose}
             aria-label="Закрыть"
-            className="p-2 -mr-2 bg-[var(--surface-2)] rounded-full text-[var(--muted)] hover:text-[var(--ink)] transition-colors"
+            className="p-2 -mr-2 bg-[var(--surface-2)] rounded-full text-[var(--muted)] hover:text-[var(--ink)] transition-colors active:scale-95"
           >
             <X size={20} />
           </button>
@@ -175,7 +175,7 @@ export default function TaskSheet({
           onSubmit={handleSubmit}
           className="flex flex-col min-h-0 overflow-y-auto overscroll-contain px-6"
         >
-          <div className="py-4">
+          <div className="py-5">
             <textarea
               ref={inputRef}
               rows={1}
@@ -196,21 +196,22 @@ export default function TaskSheet({
                   }
                 }
               }}
-              placeholder="Что планируете сделать?"
-              className="w-full bg-transparent text-[22px] font-bold text-[var(--ink)] placeholder:text-[var(--muted)]/40 resize-none outline-none leading-tight"
+              placeholder="Что нужно сделать?"
+              className="w-full bg-transparent text-[24px] font-bold text-[var(--ink)] placeholder:text-[var(--muted)]/40 resize-none outline-none leading-tight"
               style={{ minHeight: "44px" }}
             />
           </div>
 
-          <div className="space-y-6 mb-6">
-            <div>
-              <div className="flex items-center gap-2 mb-3 text-[var(--muted)]">
+          <div className="space-y-6 mb-8">
+            <div className="mt-2">
+              <div className="flex items-center gap-2 mb-4 text-[var(--muted)]">
                 <Clock size={16} />
                 <span className="text-xs font-bold uppercase tracking-widest">
                   Длительность
                 </span>
               </div>
-              <div className="flex gap-2.5 overflow-x-auto no-scrollbar -mx-6 px-6 pb-2">
+
+              <div className="flex gap-3 overflow-x-auto no-scrollbar -mx-6 px-6 pb-2">
                 {DURATION_PRESETS.map((value) => (
                   <button
                     key={value}
@@ -220,10 +221,10 @@ export default function TaskSheet({
                       setDuration(value);
                     }}
                     className={cn(
-                      "flex-none h-10 px-5 rounded-2xl text-[14px] font-bold transition-all active:scale-95 shadow-sm ring-1",
+                      "flex-none h-11 px-5 rounded-[18px] text-[15px] font-bold transition-all active:scale-95 border",
                       duration === value
-                        ? "bg-[var(--ink)] text-[var(--bg)] ring-[var(--ink)] shadow-lg"
-                        : "bg-[var(--surface)] ring-[var(--border)] text-[var(--ink)] hover:bg-[var(--surface-2)]",
+                        ? "bg-[var(--accent)] text-[var(--accent-ink)] border-[var(--accent)] shadow-[var(--shadow-soft)]"
+                        : "bg-[var(--surface)] border-[var(--border)] text-[var(--ink)] hover:bg-[var(--surface-2)]",
                     )}
                   >
                     {value} мин
@@ -232,20 +233,22 @@ export default function TaskSheet({
               </div>
             </div>
 
-            <div className="rounded-3xl bg-[var(--surface-2)] p-1.5">
+            <div className="rounded-[24px] bg-[var(--surface-2)] p-2">
               <button
                 type="button"
                 onClick={() => setShowRepeatOptions(!showRepeatOptions)}
                 className="flex w-full items-center justify-between p-3 rounded-2xl hover:bg-[var(--surface)] transition-colors"
               >
-                <div className="flex items-center gap-3">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--accent)]/10 text-[var(--accent)]">
-                    <Repeat size={16} />
+                <div className="flex items-center gap-3.5">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--accent)] text-[var(--accent-ink)] shadow-sm">
+                    <Repeat size={18} strokeWidth={2.5} />
                   </div>
-                  <span className="text-[15px] font-semibold">Повтор</span>
+                  <span className="text-[16px] font-semibold text-[var(--ink)]">
+                    Повтор
+                  </span>
                 </div>
                 <div className="flex items-center gap-2 text-[var(--muted)]">
-                  <span className="text-sm">
+                  <span className="text-[15px] font-medium">
                     {repeat === "none"
                       ? "Нет"
                       : repeat === "daily"
@@ -253,9 +256,9 @@ export default function TaskSheet({
                         : "Еженедельно"}
                   </span>
                   <ChevronRight
-                    size={16}
+                    size={18}
                     className={cn(
-                      "transition-transform",
+                      "transition-transform duration-300",
                       showRepeatOptions && "rotate-90",
                     )}
                   />
@@ -270,7 +273,8 @@ export default function TaskSheet({
                     exit={{ height: 0, opacity: 0 }}
                     className="overflow-hidden"
                   >
-                    <div className="p-3 pt-1 space-y-1">
+                    <div className="p-2 pt-0 space-y-1">
+                      <div className="h-px bg-[var(--border)] mx-3 my-2 opacity-50" />
                       {[
                         { id: "none", label: "Не повторять" },
                         { id: "daily", label: "Каждый день" },
@@ -291,10 +295,10 @@ export default function TaskSheet({
                             }
                           }}
                           className={cn(
-                            "w-full text-left px-4 py-3 rounded-xl text-[14px] font-medium transition-colors",
+                            "w-full text-left px-4 py-3 rounded-xl text-[14px] font-medium transition-all",
                             repeat === opt.id
-                              ? "bg-[var(--surface)] text-[var(--ink)] shadow-sm"
-                              : "text-[var(--muted)] hover:bg-[var(--surface)]/50",
+                              ? "bg-[var(--surface)] text-[var(--ink)] shadow-sm font-bold"
+                              : "text-[var(--muted)] hover:text-[var(--ink)]",
                           )}
                         >
                           {opt.label}
@@ -356,7 +360,7 @@ export default function TaskSheet({
                 );
               }
             }}
-            className="w-full h-14 rounded-2xl bg-[var(--ink)] text-[var(--bg)] text-[17px] font-bold shadow-xl shadow-[var(--ink)]/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+            className="w-full h-14 rounded-[20px] bg-[var(--ink)] text-[var(--bg)] text-[17px] font-bold shadow-xl shadow-[var(--ink)]/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
           >
             {mode === "create" ? "Создать задачу" : "Сохранить"}
           </button>

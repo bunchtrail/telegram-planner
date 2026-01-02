@@ -41,7 +41,7 @@ export default function WeekStrip({
   return (
     <div
       ref={scrollContainerRef}
-      className="no-scrollbar flex gap-2.5 overflow-x-auto px-1 pb-2 pt-2 snap-x snap-mandatory [-webkit-overflow-scrolling:touch] overscroll-x-contain"
+      className="no-scrollbar flex gap-2 overflow-x-auto px-1 pb-3 pt-2 snap-x snap-mandatory overscroll-x-contain [-webkit-overflow-scrolling:touch]"
     >
       {weekDays.map((day) => {
         const isSelected = isSameDay(day, selectedDate);
@@ -56,34 +56,34 @@ export default function WeekStrip({
             aria-current={isSelected ? "date" : undefined}
             aria-label={format(day, "EEEE, d MMMM", { locale: ru })}
             className={cn(
-              "snap-center flex h-[76px] w-[62px] flex-shrink-0 flex-col items-center justify-center rounded-[24px] transition-all duration-300 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]",
+              "snap-center relative flex h-[76px] w-[60px] flex-shrink-0 flex-col items-center justify-center rounded-[20px] transition-all duration-300 outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]",
               isSelected
-                ? "bg-[var(--accent)] text-[var(--accent-ink)] shadow-[var(--shadow-glow)] scale-105 z-10"
-                : "bg-[var(--surface)] text-[var(--muted)] shadow-[var(--shadow-soft)] border border-transparent hover:border-[var(--border)]",
+                ? "bg-[var(--accent)] text-[var(--accent-ink)] shadow-[var(--shadow-glow)] z-10"
+                : "bg-[var(--surface)] text-[var(--muted)] hover:bg-[var(--surface-2)] shadow-[var(--shadow-soft)]",
               !isSelected &&
                 isToday &&
-                "bg-[var(--surface-2)] text-[var(--accent)] font-semibold",
+                "ring-2 ring-inset ring-[var(--accent)]/40 text-[var(--accent)] bg-[var(--surface)]",
             )}
           >
             <span
               className={cn(
                 "text-[10px] font-bold uppercase tracking-wider mb-0.5",
-                isSelected ? "opacity-90" : "opacity-60",
+                isSelected ? "opacity-100" : "opacity-60",
               )}
             >
               {format(day, "EE", { locale: ru })}
             </span>
             <span
               className={cn(
-                "text-2xl font-bold font-[var(--font-display)]",
-                isSelected ? "font-bold" : "font-medium",
+                "text-[24px] font-[var(--font-display)] leading-none",
+                isSelected ? "font-bold" : "font-semibold",
               )}
             >
               {format(day, "d")}
             </span>
 
-            {!isSelected && isToday && (
-              <div className="mt-1 h-1 w-1 rounded-full bg-[var(--accent)]" />
+            {isSelected && isToday && (
+              <div className="absolute bottom-1.5 h-1 w-1 rounded-full bg-white/60" />
             )}
           </button>
         );

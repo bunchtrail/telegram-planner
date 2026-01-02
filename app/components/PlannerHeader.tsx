@@ -49,28 +49,30 @@ export default function PlannerHeader({
   ];
 
   return (
-    <header className="relative z-30 flex flex-col glass transition-all shadow-sm ring-1 ring-black/5 rounded-b-[32px]">
-      <div className="pl-[max(1rem,env(safe-area-inset-left),var(--tg-content-safe-left,0px))] pr-[max(1rem,env(safe-area-inset-right),var(--tg-content-safe-right,0px))] pt-[calc(max(env(safe-area-inset-top),var(--tg-content-safe-top,0px))+0.75rem)] pb-3">
-        <div className="mb-5 flex items-end justify-between">
-          <div>
-            <p className="mb-1 text-[11px] font-bold uppercase tracking-[0.15em] text-[var(--accent)] opacity-80">
-              {format(selectedDate, "MMMM yyyy", { locale: ru })}
+    <header className="relative z-30 flex flex-col glass rounded-b-[36px] shadow-sm transition-all">
+      <div className="pl-[max(1.25rem,env(safe-area-inset-left),var(--tg-content-safe-left,0px))] pr-[max(1.25rem,env(safe-area-inset-right),var(--tg-content-safe-right,0px))] pt-[calc(max(env(safe-area-inset-top),var(--tg-content-safe-top,0px))+1rem)] pb-2">
+        <div className="mb-5 flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
+          <div className="flex-1 min-w-0">
+            <p className="mb-0.5 text-[11px] font-bold uppercase tracking-[0.15em] text-[var(--accent)] opacity-90">
+              {format(selectedDate, "LLLL yyyy", { locale: ru })}
             </p>
-            <h1 className="text-[32px] font-bold capitalize text-[var(--ink)] font-[var(--font-display)] leading-[0.95] tracking-tight">
+            <h1 className="text-[32px] font-bold capitalize text-[var(--ink)] font-[var(--font-display)] leading-[1] tracking-tight truncate">
               {format(selectedDate, "EEEE, d", { locale: ru })}
             </h1>
           </div>
+
           {(hours > 0 || minutes > 0) && (
-            <div className="flex items-center gap-1.5 rounded-full bg-[var(--surface-2)] px-3 py-1.5 shadow-inner border border-[var(--border)]">
+            <div className="flex-none flex items-center gap-1.5 rounded-full bg-[var(--surface-2)] pl-2 pr-3 py-1.5 border border-[var(--border)]">
               <Clock size={14} className="text-[var(--accent)]" strokeWidth={2.5} />
-              <span className="text-xs font-bold tabular-nums text-[var(--ink)] opacity-90">
-                {hours}ч {minutes}м
+              <span className="text-[13px] font-bold tabular-nums text-[var(--ink)]">
+                {hours > 0 && `${hours}ч `}
+                {minutes}м
               </span>
             </div>
           )}
         </div>
 
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center justify-between gap-3 mb-2">
           <div className="flex gap-2">
             <button
               type="button"
@@ -79,9 +81,9 @@ export default function PlannerHeader({
                 onPrev();
               }}
               aria-label={prevLabel}
-              className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--surface-2)] text-[var(--ink)] hover:bg-[var(--border)] transition-colors active:scale-95"
+              className="flex h-10 w-10 items-center justify-center rounded-[14px] bg-[var(--surface-2)] text-[var(--ink)] hover:bg-[var(--border)] transition-colors active:scale-95"
             >
-              <ChevronLeft size={20} className="opacity-70" />
+              <ChevronLeft size={20} className="opacity-60" />
             </button>
             <button
               type="button"
@@ -89,7 +91,7 @@ export default function PlannerHeader({
                 impact("light");
                 onToday();
               }}
-              className="h-10 rounded-2xl bg-[var(--surface-2)] px-5 text-xs font-bold uppercase tracking-wide text-[var(--ink)] hover:bg-[var(--border)] transition-colors active:scale-95"
+              className="h-10 rounded-[14px] bg-[var(--surface-2)] px-4 text-[11px] font-bold uppercase tracking-wide text-[var(--ink)] hover:bg-[var(--border)] transition-colors active:scale-95"
             >
               Сегодня
             </button>
@@ -100,13 +102,13 @@ export default function PlannerHeader({
                 onNext();
               }}
               aria-label={nextLabel}
-              className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--surface-2)] text-[var(--ink)] hover:bg-[var(--border)] transition-colors active:scale-95"
+              className="flex h-10 w-10 items-center justify-center rounded-[14px] bg-[var(--surface-2)] text-[var(--ink)] hover:bg-[var(--border)] transition-colors active:scale-95"
             >
-              <ChevronRight size={20} className="opacity-70" />
+              <ChevronRight size={20} className="opacity-60" />
             </button>
           </div>
 
-          <div className="relative flex rounded-2xl bg-[var(--surface-2)] p-1 shadow-inner">
+          <div className="relative flex rounded-[14px] bg-[var(--surface-2)] p-1">
             {viewOptions.map((option) => (
               <button
                 key={option.id}
@@ -117,17 +119,17 @@ export default function PlannerHeader({
                 }}
                 aria-pressed={viewMode === option.id}
                 className={cn(
-                  "relative z-10 px-4 py-2 text-[12px] font-bold transition-colors duration-200",
+                  "relative z-10 px-3.5 py-1.5 text-[12px] font-bold transition-colors duration-200",
                   viewMode === option.id
                     ? "text-[var(--ink)]"
-                    : "text-[var(--muted)] hover:text-[var(--ink)]/70",
+                    : "text-[var(--muted)] hover:text-[var(--ink)]",
                 )}
               >
                 {viewMode === option.id && (
                   <motion.div
                     layoutId="tab"
-                    className="absolute inset-0 z-[-1] rounded-[10px] bg-[var(--surface)] shadow-[0_2px_8px_rgba(0,0,0,0.08)]"
-                    transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                    className="absolute inset-0 z-[-1] rounded-[10px] bg-[var(--surface)] shadow-sm"
+                    transition={{ type: "spring", bounce: 0.2, duration: 0.5 }}
                   />
                 )}
                 {option.label}
@@ -146,10 +148,10 @@ export default function PlannerHeader({
           <AnimatePresence mode="wait" initial={false}>
             <motion.div
               key={viewMode}
-              initial={{ opacity: 0, y: 10, scale: 0.98 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -10, scale: 0.98 }}
-              transition={{ duration: 0.25, ease: "easeOut" }}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
             >
               {viewMode === "week" ? (
                 <WeekStrip

@@ -24,22 +24,20 @@ body {
   --tg-safe-right: 0px;
   --tg-safe-bottom: 0px;
   --tg-safe-left: 0px;
-  --bg: var(--tg-theme-secondary-bg-color, #f4f4f5);
-  --surface: var(--tg-theme-bg-color, #ffffff);
-  --surface-2: var(--tg-theme-section-bg-color, #f8f8f9);
-  --surface-glass: var(--tg-theme-bg-color, rgba(255, 255, 255, 0.75));
-  --ink: var(--tg-theme-text-color, #1a1a1a);
-  --muted: var(--tg-theme-hint-color, #8e8e93);
-  --border: var(--tg-theme-section-separator-color, rgba(0, 0, 0, 0.05));
+  --bg: #f2f2f7;
+  --surface: #ffffff;
+  --surface-2: #eef1f4;
+  --surface-glass: rgba(255, 255, 255, 0.9);
+  --ink: #000000;
+  --muted: #8e8e93;
+  --border: rgba(0, 0, 0, 0.08);
   --accent: var(--tg-theme-button-color, #ff9f0a);
-  --accent-strong: #ffb340;
-  --accent-soft: rgba(255, 159, 10, 0.12);
   --accent-ink: var(--tg-theme-button-text-color, #ffffff);
-  --danger: var(--tg-theme-destructive-text-color, #ff453a);
+  --danger: var(--tg-theme-destructive-text-color, #ff3b30);
   --shadow-soft: 0 2px 8px -2px rgba(0, 0, 0, 0.05);
-  --shadow-card: 0 4px 12px rgba(0, 0, 0, 0.03), 0 1px 2px rgba(0, 0, 0, 0.02);
-  --shadow-pop: 0 10px 40px -10px rgba(0, 0, 0, 0.2);
-  --shadow-glow: 0 0 20px rgba(255, 149, 0, 0.3);
+  --shadow-card: 0 4px 16px -4px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-pop: 0 12px 32px -8px rgba(0, 0, 0, 0.15);
+  --shadow-glow: 0 8px 24px -6px rgba(0, 0, 0, 0.12);
 }
 
 button,
@@ -89,6 +87,7 @@ body {
   background: var(--surface-glass);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .will-change-transform {

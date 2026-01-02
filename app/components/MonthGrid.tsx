@@ -21,9 +21,6 @@ export default function MonthGrid({
   const today = new Date();
   const { selection } = useHaptic();
   const weekStart = startOfWeek(today, { weekStartsOn: 1 });
-  const weekDayLabels = Array.from({ length: 7 }, (_, i) =>
-    addDays(weekStart, i),
-  );
 
   const handleDateClick = (day: Date) => {
     if (!isSameDay(day, selectedDate)) {
@@ -34,12 +31,15 @@ export default function MonthGrid({
 
   return (
     <div className="p-1">
-      <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--muted)] mb-3">
-        {weekDayLabels.map((day) => (
-          <span key={format(day, "EEE", { locale: ru })}>
-            {format(day, "EE", { locale: ru })}
-          </span>
-        ))}
+      <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold uppercase tracking-[0.15em] text-[var(--muted)] mb-3 opacity-70">
+        {Array.from({ length: 7 }).map((_, i) => {
+          const day = addDays(weekStart, i);
+          return (
+            <span key={format(day, "EEE", { locale: ru })}>
+              {format(day, "EE", { locale: ru })}
+            </span>
+          );
+        })}
       </div>
 
       <div className="grid grid-cols-7 gap-y-2 gap-x-1">
@@ -58,24 +58,23 @@ export default function MonthGrid({
               aria-current={isSelected ? "date" : undefined}
               aria-label={format(day, "EEEE, d MMMM", { locale: ru })}
               className={cn(
-                "relative flex h-10 w-full flex-col items-center justify-center rounded-xl text-sm font-semibold transition-all duration-200 touch-manipulation active:scale-[0.9]",
+                "relative flex h-10 w-full flex-col items-center justify-center rounded-[12px] text-[14px] transition-all duration-200 active:scale-95 touch-manipulation",
                 isSelected
-                  ? "bg-[var(--accent)] text-[var(--accent-ink)] shadow-[var(--shadow-glow)] z-10"
-                  : "text-[var(--ink)] hover:bg-[var(--surface-2)]",
-                isOutside && !isSelected && "text-[var(--muted)] opacity-50",
-                isToday &&
-                  !isSelected &&
-                  "bg-[var(--accent-soft)] text-[var(--accent-strong)]",
+                  ? "bg-[var(--accent)] text-[var(--accent-ink)] shadow-[var(--shadow-glow)] font-bold z-10"
+                  : "text-[var(--ink)] hover:bg-[var(--surface-2)] font-medium",
+                isOutside && !isSelected && "text-[var(--muted)] opacity-30",
+                !isSelected &&
+                  isToday &&
+                  "text-[var(--accent)] ring-2 ring-inset ring-[var(--accent)]/30 bg-[var(--surface)]",
               )}
             >
-              <span className={cn(isSelected && "font-bold")}>
-                {format(day, "d")}
-              </span>
+              <span>{format(day, "d")}</span>
+
               {hasTasks && !isSelected && (
                 <span
                   className={cn(
                     "absolute bottom-1 h-1 w-1 rounded-full",
-                    isOutside ? "bg-[var(--border)]" : "bg-[var(--accent)]/60",
+                    isOutside ? "bg-[var(--muted)]" : "bg-[var(--accent)]",
                   )}
                 />
               )}

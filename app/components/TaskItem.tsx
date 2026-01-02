@@ -5,8 +5,8 @@ import {
   GripVertical,
   Pencil,
   Trash2,
-  ChevronDown,
   Clock,
+  ChevronDown,
 } from "lucide-react";
 import type { Task } from "../types/task";
 import { cn } from "../lib/cn";
@@ -48,25 +48,30 @@ const TaskItem = memo(function TaskItem({
       dragListener={false}
       dragControls={dragControls}
       layout="position"
-      initial={{ opacity: 0, y: 10, scale: 0.98 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.2 } }}
-      transition={{ type: "spring", stiffness: 500, damping: 35 }}
-      className="relative mb-2.5 overflow-hidden rounded-[20px] bg-[var(--surface)] shadow-[var(--shadow-card)] border border-[var(--surface)] hover:border-[var(--border)] transition-colors transform-gpu will-change-transform"
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      transition={{ type: "spring", stiffness: 400, damping: 30 }}
+      className={cn(
+        "relative mb-3 overflow-hidden rounded-[24px] bg-[var(--surface)] shadow-[var(--shadow-card)] transition-all border border-transparent transform-gpu will-change-transform",
+        isExpanded
+          ? "ring-2 ring-[var(--surface-2)] shadow-none"
+          : "hover:border-[var(--border)]",
+      )}
       style={{ transformOrigin: "center" }}
       as="li"
     >
       <motion.div
         layout="position"
         className={cn(
-          "flex flex-col relative transition-colors duration-200",
-          isExpanded ? "bg-[var(--surface-2)]/50" : "",
+          "flex flex-col relative",
+          isExpanded && "bg-[var(--surface-2)]/30",
         )}
       >
-        <div className="flex items-center gap-3.5 p-3.5 pl-4">
+        <div className="flex items-start gap-3.5 p-4">
           <motion.button
             type="button"
-            whileTap={{ scale: 0.85 }}
+            whileTap={{ scale: 0.8 }}
             onPointerDown={(event) => event.stopPropagation()}
             onClick={(event) => {
               event.stopPropagation();
@@ -80,75 +85,63 @@ const TaskItem = memo(function TaskItem({
                 : "Отметить как выполненную"
             }
             className={cn(
-              "flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-[1.5px] transition-all duration-300",
+              "mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-[2px] transition-all",
               task.completed
                 ? "border-[var(--accent)] bg-[var(--accent)]"
-                : "border-[var(--muted)]/40 bg-transparent hover:border-[var(--accent)]",
+                : "border-[var(--muted)]/30 hover:border-[var(--accent)]",
             )}
           >
-            <motion.span
-              initial={false}
-              animate={{
-                scale: task.completed ? 1 : 0,
-                opacity: task.completed ? 1 : 0,
-              }}
-              transition={{ type: "spring", stiffness: 500, damping: 30 }}
-            >
-              {task.completed && (
-                <Check
-                  size={14}
-                  strokeWidth={3.5}
-                  className="text-[var(--accent-ink)]"
-                />
-              )}
-            </motion.span>
+            {task.completed && (
+              <Check
+                size={14}
+                strokeWidth={3.5}
+                className="text-[var(--accent-ink)]"
+              />
+            )}
           </motion.button>
 
           <div
-            className="min-w-0 flex-1 py-1 cursor-pointer select-none touch-manipulation"
+            className="flex-1 min-w-0 cursor-pointer pt-0.5 select-none touch-manipulation"
             role="button"
             tabIndex={0}
             aria-expanded={isExpanded}
             onClick={toggleExpand}
             onKeyDown={handleKeyDown}
           >
-            <div className="flex items-center gap-1.5">
-              <p
-                className={cn(
-                  "text-[17px] font-medium leading-snug transition-all duration-300",
-                  task.completed
-                    ? "text-[var(--muted)] line-through decoration-2 decoration-[var(--border)]"
-                    : "text-[var(--ink)]",
-                  !isExpanded && "truncate",
+            <p
+              className={cn(
+                "text-[17px] font-medium leading-snug transition-all",
+                task.completed
+                  ? "text-[var(--muted)] line-through"
+                  : "text-[var(--ink)]",
+                !isExpanded && "truncate",
+              )}
+            >
+              {task.title}
+            </p>
+            {!task.completed && (
+              <div className="flex items-center gap-2 mt-1.5">
+                <div className="inline-flex items-center gap-1 rounded-md bg-[var(--surface-2)] px-1.5 py-0.5 text-[11px] font-bold text-[var(--muted)] border border-[var(--border)]">
+                  <Clock size={10} strokeWidth={2.5} /> {task.duration} мин
+                </div>
+                {isExpanded && (
+                  <motion.span
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="text-[11px] font-semibold text-[var(--accent)] flex items-center"
+                  >
+                    Опции
+                    <ChevronDown size={10} className="rotate-180 ml-0.5" />
+                  </motion.span>
                 )}
-              >
-                {task.title}
-              </p>
-            </div>
-            {!task.completed && !isExpanded && (
-              <div className="mt-1 inline-flex items-center gap-1 rounded-md bg-[var(--surface-2)] px-1.5 py-0.5 text-[11px] font-bold text-[var(--muted)]">
-                <Clock size={10} strokeWidth={2.5} />
-                {task.duration} мин
               </div>
             )}
-
-            <AnimatePresence>
-              {isExpanded && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="mt-1 text-xs text-[var(--accent)] font-medium flex items-center gap-1"
-                >
-                  Подробнее <ChevronDown size={12} className="rotate-180" />
-                </motion.div>
-              )}
-            </AnimatePresence>
           </div>
 
           <button
             type="button"
             aria-label="Перетащить"
-            className="touch-none p-2 text-[var(--muted)] opacity-20 hover:opacity-100 active:opacity-60 cursor-grab active:cursor-grabbing transition-opacity"
+            className="p-2 -m-2 text-[var(--muted)] opacity-30 active:opacity-100 cursor-grab active:cursor-grabbing touch-none"
             onPointerDown={(event) => {
               event.preventDefault();
               event.stopPropagation();
@@ -163,27 +156,25 @@ const TaskItem = memo(function TaskItem({
         <AnimatePresence initial={false}>
           {isExpanded && (
             <motion.div
-              key="expanded"
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: "auto", opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
-              transition={{ type: "spring", stiffness: 400, damping: 30 }}
               className="overflow-hidden"
             >
-              <div className="px-4 pb-4 pt-1 pl-[3.5rem]">
-                <p className="text-[15px] text-[var(--ink)] whitespace-pre-wrap leading-relaxed mb-5 opacity-80">
+              <div className="px-4 pb-4 pt-0 pl-[3.5rem]">
+                <p className="text-[15px] text-[var(--ink)] whitespace-pre-wrap leading-relaxed mb-4 opacity-80">
                   {task.title}
                 </p>
 
                 <div className="flex gap-3">
                   <motion.button
                     type="button"
-                    whileTap={{ scale: 0.97 }}
+                    whileTap={{ scale: 0.96 }}
                     onClick={(event) => {
                       event.stopPropagation();
                       onEdit(task);
                     }}
-                    className="flex-1 rounded-xl bg-[var(--bg)] py-3 text-[14px] font-bold text-[var(--ink)] shadow-sm border border-[var(--border)]"
+                    className="flex-1 rounded-xl bg-[var(--surface)] py-3 text-[14px] font-bold text-[var(--ink)] shadow-sm border border-[var(--border)] hover:bg-[var(--surface-2)]"
                   >
                     <div className="flex items-center justify-center gap-2">
                       <Pencil size={16} /> Изменить
@@ -191,13 +182,13 @@ const TaskItem = memo(function TaskItem({
                   </motion.button>
                   <motion.button
                     type="button"
-                    whileTap={{ scale: 0.97 }}
+                    whileTap={{ scale: 0.96 }}
                     onClick={(event) => {
                       event.stopPropagation();
                       onDelete(task.id);
                     }}
                     aria-label="Удалить"
-                    className="flex-none px-4 rounded-xl bg-[var(--bg)] text-[var(--danger)] shadow-sm border border-[var(--border)]"
+                    className="px-5 rounded-xl bg-[var(--surface)] text-[var(--danger)] shadow-sm border border-[var(--border)] hover:bg-[var(--danger)]/5"
                   >
                     <Trash2 size={18} />
                   </motion.button>
