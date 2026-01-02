@@ -1,4 +1,8 @@
-import { memo, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
+import {
+  memo,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+} from 'react';
 import { format } from 'date-fns';
 import {
   AnimatePresence,
@@ -250,3 +254,4 @@ const TaskItem = memo(function TaskItem({
 });
 
 export default TaskItem;
+

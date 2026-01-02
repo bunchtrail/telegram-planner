@@ -239,12 +239,10 @@ export function usePlanner() {
       }
 
       if (rows.length > 0) {
-        const { error } = await supabase
-          .from('tasks')
-          .upsert(rows, {
-            onConflict: 'series_id,date',
-            ignoreDuplicates: true,
-          });
+        const { error } = await supabase.from('tasks').upsert(rows, {
+          onConflict: 'series_id,date',
+          ignoreDuplicates: true,
+        });
         if (error) {
           console.error('Series instance upsert failed', error);
         }
@@ -1082,3 +1080,4 @@ export function usePlanner() {
     isLoading,
   };
 }
+
