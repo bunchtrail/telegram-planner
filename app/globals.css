@@ -16,8 +16,6 @@ body {
 
 :root {
   color-scheme: light dark;
-  --vvh: 100dvh;
-  --vvt: 0px;
   --tg-content-safe-top: 0px;
   --tg-content-safe-right: 0px;
   --tg-content-safe-bottom: 0px;
@@ -26,7 +24,6 @@ body {
   --tg-safe-right: 0px;
   --tg-safe-bottom: 0px;
   --tg-safe-left: 0px;
-  --kb: 0px;
   --bg: var(--tg-theme-secondary-bg-color, #f2f2f7);
   --surface: var(--tg-theme-bg-color, #ffffff);
   --surface-2: var(--tg-theme-section-bg-color, #ffffff);

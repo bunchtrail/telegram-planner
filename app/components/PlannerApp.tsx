@@ -7,7 +7,6 @@ import TaskSheet from "./TaskSheet";
 import FloatingActionButton from "./FloatingActionButton";
 import PlannerHeader from "./PlannerHeader";
 import TaskList from "./TaskList";
-import KeyboardManager from "./KeyboardManager";
 import { usePlanner } from "../hooks/usePlanner";
 import { useHaptic } from "../hooks/useHaptic";
 import type { Task, TaskRepeat } from "../types/task";
@@ -161,7 +160,6 @@ export default function PlannerApp() {
 
   return (
     <>
-      <KeyboardManager />
       <div className="fixed inset-0 flex flex-col overflow-hidden bg-[var(--bg)] font-sans text-[var(--ink)]">
         <div className="relative z-10 flex-none">
           <PlannerHeader

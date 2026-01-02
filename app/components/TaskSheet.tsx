@@ -1,11 +1,11 @@
 "use client";
 
 import { type FormEvent, useCallback, useEffect, useRef, useState } from "react";
-import { X } from "lucide-react";
+import { ChevronRight, Clock, Repeat, X } from "lucide-react";
 import {
+  AnimatePresence,
   motion,
   type PanInfo,
-  type Transition,
   useDragControls,
 } from "framer-motion";
 import { cn } from "../lib/cn";
@@ -13,20 +13,7 @@ import { useHaptic } from "../hooks/useHaptic";
 import type { TaskRepeat } from "../types/task";
 
 const DURATION_PRESETS = [15, 30, 45, 60, 90, 120];
-const DURATION_MIN = 5;
-const DURATION_MAX = 180;
-const DURATION_STEP = 5;
-const DURATION_HAPTIC_STEP = 15;
-const REPEAT_COUNT_MIN = 1;
-const REPEAT_COUNT_MAX = 365;
-const DEFAULT_REPEAT_COUNT_DAILY = 7;
-const DEFAULT_REPEAT_COUNT_WEEKLY = 4;
-const SHEET_TRANSITION: Transition = {
-  type: "spring",
-  damping: 32,
-  stiffness: 350,
-  mass: 1,
-};
+const SHEET_TRANSITION = { type: "spring", damping: 25, stiffness: 300 };
 
 type TaskSheetProps = {
   isOpen: boolean;
@@ -51,25 +38,38 @@ export default function TaskSheet({
   initialTitle = "",
   initialDuration = 30,
   initialRepeat = "none",
-  initialRepeatCount = DEFAULT_REPEAT_COUNT_DAILY,
+  initialRepeatCount = 7,
   onSubmit,
 }: TaskSheetProps) {
   const [title, setTitle] = useState(initialTitle);
   const [duration, setDuration] = useState(initialDuration);
   const [repeat, setRepeat] = useState<TaskRepeat>(initialRepeat);
   const [repeatCount, setRepeatCount] = useState(initialRepeatCount);
-  const [showTitleError, setShowTitleError] = useState(false);
+  const [showRepeatOptions, setShowRepeatOptions] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const dialogRef = useRef<HTMLDivElement>(null);
-  const shouldAutoFocusRef = useRef(false);
+  const formRef = useRef<HTMLFormElement>(null);
   const dragControls = useDragControls();
-  const { selection, impact, notification } = useHaptic();
+  const { impact, notification } = useHaptic();
 
-  const handleClose = useCallback(() => {
-    setShowTitleError(false);
-    shouldAutoFocusRef.current = false;
-    onClose();
-  }, [onClose]);
+  const adjustTextareaHeight = () => {
+    const el = inputRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
+  };
+
+  const requestSubmit = () => {
+    const form = formRef.current;
+    if (!form) return;
+
+    if (typeof form.requestSubmit === "function") {
+      form.requestSubmit();
+      return;
+    }
+
+    const event = new Event("submit", { bubbles: true, cancelable: true });
+    form.dispatchEvent(event);
+  };
 
   useEffect(() => {
     if (!isOpen) return;
@@ -78,48 +78,30 @@ export default function TaskSheet({
     setDuration(initialDuration);
     setRepeat(initialRepeat);
     setRepeatCount(initialRepeatCount);
-    setShowTitleError(false);
+    setShowRepeatOptions(mode === "edit" || initialRepeat !== "none");
 
-    shouldAutoFocusRef.current = mode === "create";
-  }, [initialDuration, initialTitle, isOpen, mode]);
+    setTimeout(adjustTextareaHeight, 0);
 
-  useEffect(() => {
-    if (!isOpen) return;
+    if (mode === "create") {
+      setTimeout(() => {
+        inputRef.current?.focus({ preventScroll: true });
+      }, 150);
+    }
+  }, [
+    initialDuration,
+    initialRepeat,
+    initialRepeatCount,
+    initialTitle,
+    isOpen,
+    mode,
+  ]);
 
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        handleClose();
-        return;
-      }
-
-      if (event.key !== "Tab") return;
-
-      const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(
-        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
-      );
-      if (!focusable || focusable.length === 0) return;
-
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      const active = document.activeElement as HTMLElement | null;
-
-      if (event.shiftKey) {
-        if (!active || active === first) {
-          event.preventDefault();
-          last.focus();
-        }
-        return;
-      }
-
-      if (active === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    };
-
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [handleClose, isOpen]);
+  const handleClose = useCallback(() => {
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+    onClose();
+  }, [onClose]);
 
   const handleDragEnd = (
     _event: MouseEvent | TouchEvent | PointerEvent,
@@ -130,194 +112,163 @@ export default function TaskSheet({
     }
   };
 
-  const handleDurationChange = (value: number) => {
-    const nextValue = Math.min(Math.max(value, DURATION_MIN), DURATION_MAX);
-    if (nextValue !== duration && nextValue % DURATION_HAPTIC_STEP === 0) {
-      selection();
-    }
-    setDuration(nextValue);
-  };
-
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const trimmedTitle = title.trim();
+    const trimmed = title.trim();
 
-    if (!trimmedTitle) {
-      setShowTitleError(true);
+    if (!trimmed) {
       notification("error");
       inputRef.current?.focus({ preventScroll: true });
       return;
     }
 
     notification("success");
-    onSubmit(trimmedTitle, duration, repeat, repeatCount);
-  };
-
-  const clampRepeatCount = (value: number) =>
-    Math.min(Math.max(Math.floor(value), REPEAT_COUNT_MIN), REPEAT_COUNT_MAX);
-
-  const repeatCountLabel = repeat === "weekly" ? "На сколько недель" : "На сколько дней";
-  const repeatCountUnit = repeat === "weekly" ? "нед." : "дн.";
-  const blurTitleIfFocused = () => {
-    const el = inputRef.current;
-    if (el && document.activeElement === el) {
-      el.blur();
-    }
+    onSubmit(trimmed, duration, repeat, repeatCount);
   };
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col justify-end pointer-events-none">
       <motion.div
-        className="pointer-events-auto absolute inset-0 bg-black/40"
-        onClick={handleClose}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        transition={{ duration: 0.2 }}
-        style={{ willChange: "opacity" }}
+        className="absolute inset-0 bg-black/40 backdrop-blur-sm pointer-events-auto"
+        onClick={handleClose}
       />
 
-      <div className="pointer-events-auto relative w-full">
-        <motion.div
-          ref={dialogRef}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="task-sheet-title"
-          className="relative flex w-full flex-col overflow-hidden rounded-t-[24px] bg-[var(--surface)] shadow-2xl will-change-transform"
-          style={{ maxHeight: "85vh" }}
-          initial={{ y: "100%" }}
-          animate={{ y: 0 }}
-          exit={{ y: "100%" }}
-          transition={SHEET_TRANSITION}
-          drag="y"
-          dragListener={false}
-          dragControls={dragControls}
-          dragConstraints={{ top: 0 }}
-          dragElastic={0.05}
-          onDragEnd={handleDragEnd}
-          onAnimationComplete={() => {
-            if (!shouldAutoFocusRef.current) return;
-            shouldAutoFocusRef.current = false;
-            setTimeout(() => {
-              inputRef.current?.focus({ preventScroll: true });
-            }, 100);
-          }}
+      <motion.div
+        initial={{ y: "100%" }}
+        animate={{ y: 0 }}
+        exit={{ y: "100%" }}
+        transition={SHEET_TRANSITION}
+        drag="y"
+        dragControls={dragControls}
+        dragListener={false}
+        dragConstraints={{ top: 0 }}
+        dragElastic={0.05}
+        onDragEnd={handleDragEnd}
+        className="pointer-events-auto relative w-full bg-[var(--surface)] rounded-t-[28px] shadow-2xl flex flex-col max-h-[90dvh]"
+        style={{
+          paddingBottom:
+            "max(env(safe-area-inset-bottom), var(--tg-content-safe-bottom, 0px))",
+        }}
+      >
+        <div
+          className="flex justify-center pt-3 pb-1 w-full touch-none cursor-grab active:cursor-grabbing"
+          onPointerDown={(event) => dragControls.start(event)}
         >
-          <div
-            className="flex w-full cursor-grab justify-center pt-3 pb-2 touch-none active:cursor-grabbing"
-            onPointerDown={(event) => dragControls.start(event)}
+          <div className="w-10 h-1 bg-[var(--border)] rounded-full opacity-60" />
+        </div>
+
+        <div className="px-5 py-2 flex items-center justify-between shrink-0">
+          <h2 className="text-[13px] font-bold uppercase tracking-wider text-[var(--muted)]">
+            {mode === "create" ? "Новая задача" : "Редактирование"}
+          </h2>
+          <button
+            type="button"
+            onClick={handleClose}
+            className="p-2 -mr-2 text-[var(--muted)] active:opacity-50 transition-opacity"
+            aria-label="Закрыть"
           >
-            <div className="h-1.5 w-10 rounded-full bg-[var(--muted)] opacity-20" />
+            <X size={22} />
+          </button>
+        </div>
+
+        <form
+          ref={formRef}
+          onSubmit={handleSubmit}
+          className="flex flex-col min-h-0 overflow-y-auto overscroll-contain px-5"
+        >
+          <div className="py-2">
+            <textarea
+              ref={inputRef}
+              rows={1}
+              value={title}
+              onChange={(event) => {
+                setTitle(event.target.value);
+                adjustTextareaHeight();
+              }}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" && !event.shiftKey) {
+                  event.preventDefault();
+                  requestSubmit();
+                }
+              }}
+              placeholder="Что нужно сделать?"
+              className="w-full bg-transparent text-2xl font-bold text-[var(--ink)] placeholder:text-[var(--muted)]/50 resize-none outline-none leading-tight"
+              style={{ minHeight: "44px" }}
+            />
           </div>
 
-          <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
-            <div className="px-6 pb-3 pt-1">
-              <div className="mb-4 flex items-center justify-between">
-                <h2
-                  id="task-sheet-title"
-                  className="text-sm font-bold uppercase tracking-widest text-[var(--muted)]"
-                >
-                  {mode === "create" ? "Новое событие" : "Редактирование"}
-                </h2>
-                <button
-                  type="button"
-                  onClick={handleClose}
-                  aria-label="Закрыть"
-                  className="p-2 -mr-2 text-[var(--muted)] active:opacity-50 transition-opacity"
-                >
-                  <X size={24} />
-                </button>
-              </div>
-
-              <textarea
-                ref={inputRef}
-                value={title}
-                onChange={(event) => {
-                  if (showTitleError && event.target.value.trim()) {
-                    setShowTitleError(false);
-                  }
-                  setTitle(event.target.value);
-                }}
-                placeholder="Что нужно сделать?"
-                rows={3}
-                aria-invalid={showTitleError}
-                aria-describedby={showTitleError ? "task-title-error" : undefined}
-                className="mb-2 w-full resize-none bg-transparent text-[22px] font-bold leading-tight text-[var(--ink)] placeholder:text-[var(--muted)] outline-none"
-              />
-              {showTitleError && (
-                <p
-                  id="task-title-error"
-                  className="mt-2 text-xs font-semibold text-[var(--danger)]"
-                >
-                  Введите название задачи
-                </p>
-              )}
+          <div className="mt-4 mb-2">
+            <div className="flex items-center gap-2 mb-3 text-[var(--accent)]">
+              <Clock size={16} strokeWidth={2.5} />
+              <span className="text-sm font-bold uppercase tracking-wide opacity-90">
+                Время
+              </span>
             </div>
 
-            <div
-              className="no-scrollbar flex-1 touch-pan-y overflow-y-auto px-6 pb-2 overscroll-contain [-webkit-overflow-scrolling:touch]"
-              onPointerDown={blurTitleIfFocused}
-            >
-              <div className="mb-8 mt-4">
-                <div className="mb-3 flex items-baseline justify-between">
-                  <span className="font-semibold text-[var(--ink)]">Время</span>
-                  <span className="text-xl font-bold text-[var(--accent)]">
-                    {duration} мин
-                  </span>
-                </div>
-                <input
-                  type="range"
-                  min={DURATION_MIN}
-                  max={DURATION_MAX}
-                  step={DURATION_STEP}
-                  value={duration}
-                  onChange={(event) =>
-                    handleDurationChange(Number(event.target.value))
-                  }
-                  onPointerDown={blurTitleIfFocused}
-                  className="mb-4 h-2 w-full touch-none rounded-full bg-[var(--bg)] accent-[var(--accent)] cursor-pointer"
-                />
-                <div
-                  className="no-scrollbar -mx-6 flex gap-2 overflow-x-auto px-6 touch-pan-x py-1"
-                  onPointerDown={blurTitleIfFocused}
+            <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-5 px-5 pb-1">
+              {DURATION_PRESETS.map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => {
+                    if (duration !== value) {
+                      impact("light");
+                    }
+                    setDuration(value);
+                  }}
+                  className={cn(
+                    "flex-none h-9 px-4 rounded-xl text-[13px] font-bold transition-all active:scale-95 border",
+                    duration === value
+                      ? "bg-[var(--accent)] border-[var(--accent)] text-[var(--accent-ink)] shadow-md"
+                      : "bg-[var(--surface-2)] border-transparent text-[var(--muted)] hover:bg-[var(--border)]",
+                  )}
                 >
-                  {DURATION_PRESETS.map((value) => (
-                    <button
-                      key={value}
-                      type="button"
-                      onClick={() => {
-                        impact("light");
-                        setDuration(value);
-                      }}
-                      className={cn(
-                        "flex-shrink-0 rounded-full px-4 py-2 text-sm font-bold transition-transform active:scale-95",
-                        duration === value
-                          ? "bg-[var(--accent)] text-[var(--accent-ink)] shadow-md"
-                          : "bg-[var(--bg)] text-[var(--muted)]",
-                      )}
-                    >
-                      {value}
-                    </button>
-                  ))}
-                </div>
-              </div>
+                  {value} мин
+                </button>
+              ))}
+            </div>
+          </div>
 
-              {mode === "create" && (
-                <div className="mb-8">
-                  <div className="mb-3 flex items-baseline justify-between">
-                    <span className="font-semibold text-[var(--ink)]">
-                      Повтор
-                    </span>
-                  </div>
-                  <div
-                    className="flex flex-wrap gap-2"
-                    onPointerDown={blurTitleIfFocused}
-                  >
+          <div className="mt-4 mb-6">
+            <button
+              type="button"
+              onClick={() => setShowRepeatOptions((open) => !open)}
+              className="flex items-center gap-2 text-sm font-medium text-[var(--muted)] hover:text-[var(--ink)] transition-colors"
+            >
+              <Repeat size={16} />
+              <span>
+                {repeat === "none"
+                  ? "Без повтора"
+                  : repeat === "daily"
+                    ? "Каждый день"
+                    : "Раз в неделю"}
+              </span>
+              <ChevronRight
+                size={14}
+                className={cn(
+                  "transition-transform",
+                  showRepeatOptions && "rotate-90",
+                )}
+              />
+            </button>
+
+            <AnimatePresence>
+              {showRepeatOptions && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  className="overflow-hidden"
+                >
+                  <div className="flex flex-col gap-2 pt-3 pb-1">
                     {(
                       [
-                        { id: "none", label: "Без повтора" },
-                        { id: "daily", label: "Ежедневно" },
-                        { id: "weekly", label: "Еженедельно" },
+                        { id: "none", label: "Не повторять" },
+                        { id: "daily", label: "Каждый день" },
+                        { id: "weekly", label: "Раз в неделю" },
                       ] as Array<{ id: TaskRepeat; label: string }>
                     ).map((option) => (
                       <button
@@ -325,96 +276,37 @@ export default function TaskSheet({
                         type="button"
                         onClick={() => {
                           impact("light");
-                          if (option.id !== "none") {
-                            const fallback =
-                              option.id === "weekly"
-                                ? DEFAULT_REPEAT_COUNT_WEEKLY
-                                : DEFAULT_REPEAT_COUNT_DAILY;
-                            setRepeatCount((current) =>
-                              current < REPEAT_COUNT_MIN ? fallback : current,
-                            );
-                          }
                           setRepeat(option.id);
                         }}
                         className={cn(
-                          "rounded-full px-4 py-2 text-sm font-bold transition-transform active:scale-95",
+                          "text-left px-4 py-3 rounded-xl text-[15px] font-medium transition-colors",
                           repeat === option.id
-                            ? "bg-[var(--accent)] text-[var(--accent-ink)] shadow-md"
-                            : "bg-[var(--bg)] text-[var(--muted)]",
+                            ? "bg-[var(--surface-2)] text-[var(--ink)]"
+                            : "text-[var(--muted)] hover:bg-[var(--surface-2)]/50",
                         )}
                       >
                         {option.label}
                       </button>
                     ))}
                   </div>
-
-                  {repeat !== "none" && (
-                    <div
-                      className="mt-4 flex items-center justify-between gap-3 rounded-2xl bg-[var(--bg)] px-4 py-3"
-                      onPointerDown={blurTitleIfFocused}
-                    >
-                      <span className="text-sm font-semibold text-[var(--ink)]">
-                        {repeatCountLabel}
-                      </span>
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setRepeatCount((value) =>
-                              clampRepeatCount(value - 1),
-                            )
-                          }
-                          className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--surface)] text-[var(--muted)] active:scale-95"
-                          aria-label="Уменьшить"
-                        >
-                          -
-                        </button>
-                        <input
-                          type="number"
-                          min={REPEAT_COUNT_MIN}
-                          max={REPEAT_COUNT_MAX}
-                          value={repeatCount}
-                          onChange={(event) =>
-                            setRepeatCount(
-                              clampRepeatCount(Number(event.target.value || 0)),
-                            )
-                          }
-                          inputMode="numeric"
-                          className="h-8 w-14 rounded-full bg-[var(--surface)] text-center text-sm font-semibold text-[var(--ink)]"
-                        />
-                        <span className="text-xs font-semibold text-[var(--muted)]">
-                          {repeatCountUnit}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setRepeatCount((value) =>
-                              clampRepeatCount(value + 1),
-                            )
-                          }
-                          className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--surface)] text-[var(--muted)] active:scale-95"
-                          aria-label="Увеличить"
-                        >
-                          +
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
+                </motion.div>
               )}
-            </div>
+            </AnimatePresence>
+          </div>
 
-            <div className="px-6 pb-[calc(1rem+max(env(safe-area-inset-bottom),var(--tg-content-safe-bottom,0px)))] pt-2 bg-[var(--surface)]">
-              <button
-                type="submit"
-                className="mb-4 w-full rounded-[18px] bg-[var(--accent)] py-4 text-lg font-bold text-[var(--accent-ink)] transition-transform active:scale-[0.98] shadow-[0_12px_24px_var(--accent-soft)]"
-              >
-                {mode === "create" ? "Создать" : "Сохранить"}
-              </button>
-            </div>
-          </form>
-        </motion.div>
-      </div>
+          <div className="h-2 shrink-0" />
+        </form>
+
+        <div className="p-5 pt-3 mt-auto bg-[var(--surface)] border-t border-[var(--border)]/30">
+          <button
+            type="button"
+            onClick={requestSubmit}
+            className="w-full h-12 rounded-xl bg-[var(--ink)] text-[var(--bg)] text-[16px] font-bold shadow-lg active:scale-[0.98] transition-transform flex items-center justify-center gap-2"
+          >
+            {mode === "create" ? "Создать" : "Сохранить"}
+          </button>
+        </div>
+      </motion.div>
     </div>
   );
 }
