@@ -211,7 +211,7 @@ export default function TaskSheet({
           </div>
 
           <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
-            <div className="no-scrollbar flex-1 touch-pan-y overflow-y-auto px-6 pb-2 overscroll-contain [-webkit-overflow-scrolling:touch]">
+            <div className="px-6 pb-3 pt-1">
               <div className="mb-4 flex items-center justify-between">
                 <h2
                   id="task-sheet-title"
@@ -252,8 +252,10 @@ export default function TaskSheet({
                   Введите название задачи
                 </p>
               )}
+            </div>
 
-              <div className="mb-8 mt-6">
+            <div className="no-scrollbar flex-1 touch-pan-y overflow-y-auto px-6 pb-2 overscroll-contain [-webkit-overflow-scrolling:touch]">
+              <div className="mb-8 mt-4">
                 <div className="mb-3 flex items-baseline justify-between">
                   <span className="font-semibold text-[var(--ink)]">Время</span>
                   <span className="text-xl font-bold text-[var(--accent)]">
