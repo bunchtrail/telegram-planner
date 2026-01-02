@@ -31,6 +31,10 @@ type TelegramWebApp = {
   initData?: string;
   ready?: () => void;
   expand?: () => void;
+  isVersionAtLeast?: (version: string) => boolean;
+  requestFullscreen?: () => void;
+  exitFullscreen?: () => void;
+  isFullscreen?: boolean;
   setHeaderColor?: (color: string) => void;
   setBackgroundColor?: (color: string) => void;
   setBottomBarColor?: (color: string) => void;
@@ -153,6 +157,19 @@ export function usePlanner() {
     webApp?.setHeaderColor?.(headerColor);
     webApp?.setBackgroundColor?.(headerColor);
     webApp?.setBottomBarColor?.(headerColor);
+  }, []);
+
+  useEffect(() => {
+    const handlePointerDown = () => {
+      const webApp = getTelegramWebApp();
+      if (!webApp?.isVersionAtLeast?.("8.0")) return;
+      webApp.requestFullscreen?.();
+    };
+
+    window.addEventListener("pointerdown", handlePointerDown, { once: true });
+    return () => {
+      window.removeEventListener("pointerdown", handlePointerDown);
+    };
   }, []);
 
   useEffect(() => {
