@@ -14,6 +14,10 @@ import type { TaskRepeat } from "../types/task";
 
 const DURATION_PRESETS = [15, 30, 45, 60, 90, 120];
 const SHEET_TRANSITION = { type: "spring", damping: 25, stiffness: 300 };
+const REPEAT_COUNT_MIN = 1;
+const REPEAT_COUNT_MAX = 365;
+const DEFAULT_REPEAT_COUNT_DAILY = 7;
+const DEFAULT_REPEAT_COUNT_WEEKLY = 4;
 
 type TaskSheetProps = {
   isOpen: boolean;
@@ -125,6 +129,13 @@ export default function TaskSheet({
     notification("success");
     onSubmit(trimmed, duration, repeat, repeatCount);
   };
+
+  const clampRepeatCount = (value: number) =>
+    Math.min(Math.max(Math.floor(value), REPEAT_COUNT_MIN), REPEAT_COUNT_MAX);
+
+  const repeatCountLabel =
+    repeat === "weekly" ? "На сколько недель" : "На сколько дней";
+  const repeatCountUnit = repeat === "weekly" ? "нед." : "дн.";
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col justify-end pointer-events-none">
@@ -277,6 +288,13 @@ export default function TaskSheet({
                         onClick={() => {
                           impact("light");
                           setRepeat(option.id);
+                          if (option.id !== "none" && repeatCount < 1) {
+                            setRepeatCount(
+                              option.id === "weekly"
+                                ? DEFAULT_REPEAT_COUNT_WEEKLY
+                                : DEFAULT_REPEAT_COUNT_DAILY,
+                            );
+                          }
                         }}
                         className={cn(
                           "text-left px-4 py-3 rounded-xl text-[15px] font-medium transition-colors",
@@ -292,6 +310,52 @@ export default function TaskSheet({
                 </motion.div>
               )}
             </AnimatePresence>
+
+            {repeat !== "none" && (
+              <div className="mt-3 flex items-center justify-between gap-3 rounded-2xl bg-[var(--surface-2)] px-4 py-3">
+                <span className="text-sm font-semibold text-[var(--ink)]">
+                  {repeatCountLabel}
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setRepeatCount((value) => clampRepeatCount(value - 1))
+                    }
+                    className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--surface)] text-[var(--muted)] active:scale-95"
+                    aria-label="Уменьшить"
+                  >
+                    -
+                  </button>
+                  <input
+                    type="number"
+                    min={REPEAT_COUNT_MIN}
+                    max={REPEAT_COUNT_MAX}
+                    value={repeatCount}
+                    onChange={(event) =>
+                      setRepeatCount(
+                        clampRepeatCount(Number(event.target.value || 0)),
+                      )
+                    }
+                    inputMode="numeric"
+                    className="h-8 w-14 rounded-full bg-[var(--surface)] text-center text-sm font-semibold text-[var(--ink)]"
+                  />
+                  <span className="text-xs font-semibold text-[var(--muted)]">
+                    {repeatCountUnit}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setRepeatCount((value) => clampRepeatCount(value + 1))
+                    }
+                    className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--surface)] text-[var(--muted)] active:scale-95"
+                    aria-label="Увеличить"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="h-2 shrink-0" />
