@@ -75,6 +75,13 @@ export default function TaskSheet({
     form.dispatchEvent(event);
   };
 
+  const scrollFieldIntoView = (element: HTMLElement | null) => {
+    if (!element) return;
+    window.setTimeout(() => {
+      element.scrollIntoView({ block: "center", inline: "nearest" });
+    }, 100);
+  };
+
   useEffect(() => {
     if (!isOpen) return;
 
@@ -336,6 +343,9 @@ export default function TaskSheet({
                       setRepeatCount(
                         clampRepeatCount(Number(event.target.value || 0)),
                       )
+                    }
+                    onFocus={(event) =>
+                      scrollFieldIntoView(event.currentTarget)
                     }
                     inputMode="numeric"
                     className="h-8 w-14 rounded-full bg-[var(--surface)] text-center text-sm font-semibold text-[var(--ink)]"
