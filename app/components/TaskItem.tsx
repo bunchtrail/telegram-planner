@@ -1,5 +1,5 @@
 import { useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
-import { Reorder, useDragControls, AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, Reorder, motion, useDragControls } from "framer-motion";
 import { Check, Trash2, GripVertical, Pencil, ChevronDown } from "lucide-react";
 import type { Task } from "../types/task";
 import { cn } from "../lib/cn";
@@ -41,14 +41,17 @@ export default function TaskItem({
       dragListener={false}
       dragControls={dragControls}
       layout
-      initial={{ opacity: 0, y: 0 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, height: 0 }}
-      transition={{ duration: 0.2, ease: "easeOut" }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0, scale: 0.98 }}
+      transition={{ type: "spring", stiffness: 520, damping: 42 }}
       className="relative bg-[var(--surface)] first:rounded-t-[14px] last:rounded-b-[14px] [&:not(:last-child)]:border-b border-[var(--border)]"
       as="li"
     >
-      <div className="flex flex-col relative active:bg-[var(--surface-2)] transition-colors">
+      <motion.div
+        layout
+        className="flex flex-col relative active:bg-[var(--surface-2)] transition-colors"
+      >
         <div className="flex items-center gap-3 p-3 pl-3.5">
           <button
             type="button"
@@ -65,7 +68,7 @@ export default function TaskItem({
                 : "Отметить как выполненную"
             }
             className={cn(
-              "flex h-6 w-6 shrink-0 items-center justify-center rounded-full border transition-all",
+              "flex h-6 w-6 shrink-0 items-center justify-center rounded-full border transition-colors",
               task.completed
                 ? "border-[var(--accent)] bg-[var(--accent)]"
                 : "border-[var(--border)]",
@@ -91,7 +94,7 @@ export default function TaskItem({
             <div className="flex items-center gap-1">
               <p
                 className={cn(
-                  "text-[17px] leading-snug transition-all",
+                  "text-[17px] leading-snug transition-colors",
                   task.completed
                     ? "text-[var(--muted)] line-through"
                     : "text-[var(--ink)]",
@@ -129,13 +132,15 @@ export default function TaskItem({
           </button>
         </div>
 
-        <AnimatePresence>
+        <AnimatePresence initial={false}>
           {isExpanded && (
             <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: "auto", opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              className="overflow-hidden"
+              key="expanded"
+              layout
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
             >
               <div className="px-4 pb-4 pt-0 pl-[3.25rem]">
                 <p className="text-[16px] text-[var(--ink)] whitespace-pre-wrap leading-relaxed mb-4 opacity-90">
@@ -171,7 +176,7 @@ export default function TaskItem({
             </motion.div>
           )}
         </AnimatePresence>
-      </div>
+      </motion.div>
     </Reorder.Item>
   );
 }

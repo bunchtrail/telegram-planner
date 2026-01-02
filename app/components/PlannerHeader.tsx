@@ -49,7 +49,7 @@ export default function PlannerHeader({
   ];
 
   return (
-    <header className="relative z-30 flex flex-col border-b border-[var(--border)] bg-[var(--surface-glass)] backdrop-blur-xl backdrop-saturate-150 transition-all">
+    <header className="relative z-30 flex flex-col border-b border-[var(--border)] bg-[var(--surface-glass)] backdrop-blur-xl backdrop-saturate-150 transition-colors">
       <div className="pl-[max(1rem,env(safe-area-inset-left),var(--tg-content-safe-left,0px))] pr-[max(1rem,env(safe-area-inset-right),var(--tg-content-safe-right,0px))] pt-[calc(max(env(safe-area-inset-top),var(--tg-content-safe-top,0px))+0.5rem)] pb-2">
         <div className="mb-4 flex items-end justify-between">
           <div>

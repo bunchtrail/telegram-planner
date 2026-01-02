@@ -56,7 +56,7 @@ export default function WeekStrip({
             aria-current={isSelected ? "date" : undefined}
             aria-label={format(day, "EEEE, d MMMM", { locale: ru })}
             className={cn(
-              "snap-center flex h-[72px] w-[60px] flex-shrink-0 flex-col items-center justify-center rounded-[18px] border transition-all duration-300 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]",
+              "snap-center flex h-[72px] w-[60px] flex-shrink-0 flex-col items-center justify-center rounded-[18px] border transition-colors transition-transform duration-300 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]",
               isSelected
                 ? "scale-105 border-[var(--accent)] bg-[var(--accent)] text-white shadow-lg"
                 : "border-[var(--border)] bg-[var(--surface)] text-[var(--muted)]",

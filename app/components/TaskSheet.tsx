@@ -5,6 +5,7 @@ import { X } from "lucide-react";
 import { motion, type PanInfo, useDragControls } from "framer-motion";
 import { cn } from "../lib/cn";
 import { useHaptic } from "../hooks/useHaptic";
+import { useKeyboardInset } from "../hooks/useKeyboardInset";
 
 const DURATION_PRESETS = [15, 30, 45, 60, 90, 120];
 const DURATION_MIN = 5;
@@ -34,11 +35,14 @@ export default function TaskSheet({
   const [showTitleError, setShowTitleError] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
+  const shouldAutoFocusRef = useRef(false);
   const dragControls = useDragControls();
   const { selection, impact, notification } = useHaptic();
+  const kb = useKeyboardInset();
 
   const handleClose = useCallback(() => {
     setShowTitleError(false);
+    shouldAutoFocusRef.current = false;
     onClose();
   }, [onClose]);
 
@@ -49,11 +53,7 @@ export default function TaskSheet({
     setDuration(initialDuration);
     setShowTitleError(false);
 
-    if (mode === "create") {
-      window.setTimeout(() => {
-        inputRef.current?.focus({ preventScroll: true });
-      }, 150);
-    }
+    shouldAutoFocusRef.current = mode === "create";
   }, [initialDuration, initialTitle, isOpen, mode]);
 
   useEffect(() => {
@@ -136,122 +136,135 @@ export default function TaskSheet({
         exit={{ opacity: 0 }}
       />
 
-      <motion.div
-        ref={dialogRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="task-sheet-title"
-        className="pointer-events-auto relative z-10 flex w-full flex-col overflow-hidden rounded-t-[24px] bg-[var(--surface)] shadow-2xl"
-        style={{ maxHeight: "90%" }}
-        initial={{ y: "100%" }}
-        animate={{ y: 0 }}
-        exit={{ y: "100%" }}
-        transition={{ type: "spring", damping: 25, stiffness: 300 }}
-        drag="y"
-        dragListener={false}
-        dragControls={dragControls}
-        dragConstraints={{ top: 0 }}
-        dragElastic={0.05}
-        onDragEnd={handleDragEnd}
+      <div
+        className="pointer-events-auto relative z-10 flex w-full flex-col"
+        style={{ transform: `translateY(-${kb}px)` }}
       >
-        <div
-          className="flex w-full cursor-grab justify-center pt-3 pb-2 touch-none"
-          onPointerDown={(event) => dragControls.start(event)}
+        <motion.div
+          ref={dialogRef}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="task-sheet-title"
+          className="pointer-events-auto relative flex w-full flex-col overflow-hidden rounded-t-[24px] bg-[var(--surface)] shadow-2xl"
+          style={{ maxHeight: "90%" }}
+          initial={{ y: "100%" }}
+          animate={{ y: 0 }}
+          exit={{ y: "100%" }}
+          transition={{ type: "spring", damping: 28, stiffness: 320 }}
+          drag="y"
+          dragListener={false}
+          dragControls={dragControls}
+          dragConstraints={{ top: 0 }}
+          dragElastic={0.05}
+          onDragEnd={handleDragEnd}
+          onAnimationComplete={() => {
+            if (!shouldAutoFocusRef.current) return;
+            shouldAutoFocusRef.current = false;
+            inputRef.current?.focus({ preventScroll: true });
+          }}
         >
-          <div className="h-1.5 w-10 rounded-full bg-[var(--muted)] opacity-20" />
-        </div>
+          <div
+            className="flex w-full cursor-grab justify-center pt-3 pb-2 touch-none"
+            onPointerDown={(event) => dragControls.start(event)}
+          >
+            <div className="h-1.5 w-10 rounded-full bg-[var(--muted)] opacity-20" />
+          </div>
 
-        <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
-          <div className="no-scrollbar flex-1 touch-pan-y overflow-y-auto px-6 pb-2 overscroll-contain [-webkit-overflow-scrolling:touch]">
-            <div className="mb-4 flex items-center justify-between">
-              <h2
-                id="task-sheet-title"
-                className="text-sm font-bold uppercase tracking-widest text-[var(--muted)]"
-              >
-                {mode === "create" ? "Новое событие" : "Редактирование"}
-              </h2>
+          <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+            <div className="no-scrollbar flex-1 touch-pan-y overflow-y-auto px-6 pb-2 overscroll-contain [-webkit-overflow-scrolling:touch]">
+              <div className="mb-4 flex items-center justify-between">
+                <h2
+                  id="task-sheet-title"
+                  className="text-sm font-bold uppercase tracking-widest text-[var(--muted)]"
+                >
+                  {mode === "create" ? "Новое событие" : "Редактирование"}
+                </h2>
+                <button
+                  type="button"
+                  onClick={handleClose}
+                  aria-label="Закрыть"
+                  className="p-2 -mr-2 text-[var(--muted)]"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+
+              <textarea
+                ref={inputRef}
+                value={title}
+                onChange={(event) => {
+                  if (showTitleError && event.target.value.trim()) {
+                    setShowTitleError(false);
+                  }
+                  setTitle(event.target.value);
+                }}
+                placeholder="Что нужно сделать?"
+                rows={3}
+                aria-invalid={showTitleError}
+                aria-describedby={showTitleError ? "task-title-error" : undefined}
+                className="mb-2 w-full resize-none bg-transparent text-[22px] font-bold leading-tight text-[var(--ink)] placeholder:text-[var(--muted)] outline-none"
+              />
+              {showTitleError && (
+                <p
+                  id="task-title-error"
+                  className="mt-2 text-xs font-semibold text-[var(--danger)]"
+                >
+                  Введите название задачи
+                </p>
+              )}
+
+              <div className="mb-8 mt-6">
+                <div className="mb-3 flex items-baseline justify-between">
+                  <span className="font-semibold text-[var(--ink)]">Время</span>
+                  <span className="text-xl font-bold text-[var(--accent)]">
+                    {duration} мин
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min={DURATION_MIN}
+                  max={DURATION_MAX}
+                  step={DURATION_STEP}
+                  value={duration}
+                  onChange={(event) =>
+                    handleDurationChange(Number(event.target.value))
+                  }
+                  className="mb-4 h-2 w-full touch-none rounded-full bg-[var(--bg)] accent-[var(--accent)]"
+                />
+                <div className="no-scrollbar -mx-6 flex gap-2 overflow-x-auto px-6 touch-pan-x">
+                  {DURATION_PRESETS.map((value) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => {
+                        impact("light");
+                        setDuration(value);
+                      }}
+                      className={cn(
+                        "rounded-full px-4 py-2 text-sm font-bold transition-colors",
+                        duration === value
+                          ? "bg-[var(--accent)] text-[var(--accent-ink)]"
+                          : "bg-[var(--bg)] text-[var(--muted)]",
+                      )}
+                    >
+                      {value}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="px-6 pb-[calc(1rem+max(env(safe-area-inset-bottom),var(--tg-content-safe-bottom,0px)))] pt-2">
               <button
-                type="button"
-                onClick={handleClose}
-                aria-label="Закрыть"
-                className="p-2 -mr-2 text-[var(--muted)]"
+                type="submit"
+                className="mb-4 w-full rounded-[18px] bg-[var(--accent)] py-4 text-lg font-bold text-[var(--accent-ink)] transition-transform active:scale-[0.98]"
               >
-                <X size={24} />
+                {mode === "create" ? "Создать" : "Сохранить"}
               </button>
             </div>
-
-            <textarea
-              ref={inputRef}
-              value={title}
-              onChange={(event) => {
-                if (showTitleError && event.target.value.trim()) {
-                  setShowTitleError(false);
-                }
-                setTitle(event.target.value);
-              }}
-              placeholder="Что нужно сделать?"
-              rows={3}
-              aria-invalid={showTitleError}
-              aria-describedby={showTitleError ? "task-title-error" : undefined}
-              className="mb-2 w-full resize-none bg-transparent text-[22px] font-bold leading-tight text-[var(--ink)] placeholder:text-[var(--muted)] outline-none"
-            />
-            {showTitleError && (
-              <p id="task-title-error" className="mt-2 text-xs font-semibold text-[var(--danger)]">
-                Введите название задачи
-              </p>
-            )}
-
-            <div className="mb-8 mt-6">
-              <div className="mb-3 flex items-baseline justify-between">
-                <span className="font-semibold text-[var(--ink)]">Время</span>
-                <span className="text-xl font-bold text-[var(--accent)]">
-                  {duration} мин
-                </span>
-              </div>
-              <input
-                type="range"
-                min={DURATION_MIN}
-                max={DURATION_MAX}
-                step={DURATION_STEP}
-                value={duration}
-                onChange={(event) =>
-                  handleDurationChange(Number(event.target.value))
-                }
-                className="mb-4 h-2 w-full touch-none rounded-full bg-[var(--bg)] accent-[var(--accent)]"
-              />
-              <div className="no-scrollbar -mx-6 flex gap-2 overflow-x-auto px-6 touch-pan-x">
-                {DURATION_PRESETS.map((value) => (
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() => {
-                      impact("light");
-                      setDuration(value);
-                    }}
-                    className={cn(
-                      "rounded-full px-4 py-2 text-sm font-bold transition-colors",
-                      duration === value
-                        ? "bg-[var(--accent)] text-[var(--accent-ink)]"
-                        : "bg-[var(--bg)] text-[var(--muted)]",
-                    )}
-                  >
-                    {value}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div className="px-6 pb-[calc(1rem+max(env(safe-area-inset-bottom),var(--tg-content-safe-bottom,0px)))] pt-2">
-            <button
-              type="submit"
-              className="mb-4 w-full rounded-[18px] bg-[var(--accent)] py-4 text-lg font-bold text-[var(--accent-ink)] transition-transform active:scale-[0.98]"
-            >
-              {mode === "create" ? "Создать" : "Сохранить"}
-            </button>
-          </div>
-        </form>
-      </motion.div>
+          </form>
+        </motion.div>
+      </div>
     </div>
   );
 }

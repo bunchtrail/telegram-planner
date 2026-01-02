@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { AnimatePresence, Reorder } from "framer-motion";
+import { AnimatePresence, Reorder, motion } from "framer-motion";
 import { Calendar, Loader2 } from "lucide-react";
 import type { Task } from "../types/task";
 import TaskItem from "./TaskItem";
@@ -80,7 +80,7 @@ export default function TaskList({
   }
 
   return (
-    <div className={scrollClasses}>
+    <motion.div className={scrollClasses} layoutScroll>
       <Reorder.Group
         axis="y"
         values={tasks}
@@ -102,6 +102,6 @@ export default function TaskList({
         </AnimatePresence>
       </Reorder.Group>
       <div ref={bottomRef} className="h-1" />
-    </div>
+    </motion.div>
   );
 }
