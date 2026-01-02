@@ -54,10 +54,13 @@ textarea {
 
 body {
   min-height: 100%;
+  position: fixed;
+  inset: 0;
   background: var(--bg);
   color: var(--ink);
   font-family: var(--font-body), -apple-system, BlinkMacSystemFont, sans-serif;
   overscroll-behavior: none;
+  overflow: hidden;
 }
 
 .no-scrollbar {

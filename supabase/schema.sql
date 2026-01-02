@@ -8,6 +8,7 @@ create table if not exists public.tasks (
   duration integer not null,
   date date not null,
   completed boolean not null default false,
+  position bigint not null default 0,
   is_goal boolean not null default false,
   goal_period text,
   goal_slot smallint,
@@ -27,6 +28,9 @@ create index if not exists tasks_telegram_id_date_idx
 
 create index if not exists tasks_telegram_id_created_at_idx
   on public.tasks (telegram_id, created_at);
+
+create index if not exists tasks_position_idx
+  on public.tasks (position);
 
 create index if not exists tasks_goals_period_idx
   on public.tasks (telegram_id, goal_period);

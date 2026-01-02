@@ -24,6 +24,7 @@ type TaskRow = {
   duration: number;
   date: string;
   completed: boolean;
+  position?: number | string | null;
 };
 
 type TelegramWebApp = {
@@ -32,6 +33,7 @@ type TelegramWebApp = {
   expand?: () => void;
   setHeaderColor?: (color: string) => void;
   setBackgroundColor?: (color: string) => void;
+  setBottomBarColor?: (color: string) => void;
   themeParams?: {
     secondary_bg_color?: string;
   };
@@ -76,6 +78,7 @@ const mapTaskRow = (row: TaskRow): Task => ({
   duration: row.duration,
   date: parseDateOnly(row.date),
   completed: row.completed,
+  position: Number(row.position ?? 0),
 });
 
 export function usePlanner() {
@@ -149,6 +152,7 @@ export function usePlanner() {
     const headerColor = webApp?.themeParams?.secondary_bg_color ?? "#f2f2f7";
     webApp?.setHeaderColor?.(headerColor);
     webApp?.setBackgroundColor?.(headerColor);
+    webApp?.setBottomBarColor?.(headerColor);
   }, []);
 
   useEffect(() => {
@@ -220,6 +224,7 @@ export function usePlanner() {
           if (payload.eventType === "INSERT") {
             const row = payload.new as TaskRow;
             if (!row?.id || !isDateInActiveMonth(row.date)) return;
+            const rowPosition = Number(row.position ?? 0);
 
             setTasks((prev) => {
               if (prev.some((task) => task.id === row.id)) {
@@ -232,7 +237,8 @@ export function usePlanner() {
                   pending.title === row.title &&
                   pending.duration === row.duration &&
                   pending.date === row.date &&
-                  pending.completed === row.completed
+                  pending.completed === row.completed &&
+                  (pending.position ?? 0) === rowPosition
                 ) {
                   pendingMatchId = tempId;
                   break;
@@ -301,6 +307,7 @@ export function usePlanner() {
         .gte("date", monthStartKey)
         .lte("date", monthEndKey)
         .order("date", { ascending: true })
+        .order("position", { ascending: true })
         .order("created_at", { ascending: true });
 
       if (!isCancelled) {
@@ -349,6 +356,55 @@ export function usePlanner() {
     );
   }, [viewMode]);
 
+  const handleReorder = async (nextOrder: Task[]) => {
+    const selectedDateKey = formatDateOnly(selectedDate);
+    const reordered = nextOrder.map((task, index) => ({
+      ...task,
+      position: index,
+    }));
+
+    setTasks((prev) => {
+      let inserted = false;
+      const next: Task[] = [];
+      for (const task of prev) {
+        if (formatDateOnly(task.date) === selectedDateKey) {
+          if (!inserted) {
+            next.push(...reordered);
+            inserted = true;
+          }
+          continue;
+        }
+        next.push(task);
+      }
+      if (!inserted) {
+        next.push(...reordered);
+      }
+      return next;
+    });
+
+    if (!userId || reordered.length === 0) {
+      return;
+    }
+
+    const updates = reordered.map((task) => ({
+      id: task.id,
+      title: task.title,
+      duration: task.duration,
+      date: formatDateOnly(task.date),
+      completed: task.completed,
+      telegram_id: userId,
+      position: task.position ?? 0,
+    }));
+
+    const { error } = await supabase
+      .from("tasks")
+      .upsert(updates, { onConflict: "id" });
+
+    if (error) {
+      console.error("Reorder failed", error);
+    }
+  };
+
   const addTask = async (title: string, duration = DEFAULT_DURATION) => {
     const trimmedTitle = title.trim();
     if (!trimmedTitle) {
@@ -358,6 +414,10 @@ export function usePlanner() {
       return;
     }
 
+    const nextPosition =
+      tasks
+        .filter((task) => isSameDay(task.date, selectedDate))
+        .reduce((max, task) => Math.max(max, task.position ?? 0), -1) + 1;
     const tempId = Math.random().toString(36).substring(2, 9);
     const pendingRow: TaskRow = {
       id: tempId,
@@ -365,6 +425,7 @@ export function usePlanner() {
       duration,
       date: formatDateOnly(selectedDate),
       completed: false,
+      position: nextPosition,
     };
     pendingInsertRef.current.set(tempId, pendingRow);
 
@@ -374,6 +435,7 @@ export function usePlanner() {
       duration,
       date: selectedDate,
       completed: false,
+      position: nextPosition,
     };
 
     setTasks((prev) => [...prev, newTask]);
@@ -386,6 +448,7 @@ export function usePlanner() {
         date: formatDateOnly(newTask.date),
         completed: false,
         telegram_id: userId,
+        position: newTask.position,
       })
       .select()
       .single();
@@ -498,6 +561,7 @@ export function usePlanner() {
         date: formatDateOnly(task.date),
         completed: task.completed,
         telegram_id: userId,
+        position: task.position ?? 0,
       })
       .select()
       .single();
@@ -528,6 +592,7 @@ export function usePlanner() {
     goToToday,
     goToPreviousPeriod,
     goToNextPeriod,
+    handleReorder,
     addTask,
     toggleTask,
     deleteTask,

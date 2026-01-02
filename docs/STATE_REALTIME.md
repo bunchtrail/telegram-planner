@@ -28,7 +28,7 @@
 В коде есть `pendingTaskInsertRef` / `pendingGoalInsertRef` (Map tempId → row поля).
 Когда приходит INSERT:
 
-- ищем совпадение по ключевым полям (title, duration, date, completed, для goal ещё period/slot)
+- ищем совпадение по ключевым полям (title, duration, date, completed, position, для goal ещё period/slot)
 - если нашли: заменяем запись tempId на реальную и удаляем pending
 - если не нашли: добавляем как новую (например добавлено с другого устройства)
 

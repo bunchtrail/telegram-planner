@@ -28,6 +28,7 @@ export default function PlannerApp() {
     goToToday,
     goToPreviousPeriod,
     goToNextPeriod,
+    handleReorder,
     addTask,
     toggleTask,
     deleteTask,
@@ -179,6 +180,7 @@ export default function PlannerApp() {
           onDelete={handleDelete}
           onEdit={handleOpenEdit}
           onAdd={handleOpenCreate}
+          onReorder={handleReorder}
         />
         <div className="pointer-events-none absolute bottom-0 left-0 right-0 z-20 h-16 bg-gradient-to-t from-[var(--bg)] to-transparent" />
       </main>

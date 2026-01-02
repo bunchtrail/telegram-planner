@@ -19,6 +19,7 @@
 - `duration int not null` (1..1440)
 - `date date not null` — логическая дата (без времени)
 - `completed bool`
+- `position bigint not null default 0` — порядок задач внутри дня
 - goal-поля:
   - `is_goal bool`
   - `goal_period text in ('day','week','month','year')`
@@ -33,6 +34,7 @@
 
 - `tasks_telegram_id_date_idx` — критичен для выборок по календарю
 - `tasks_goals_period_idx` + `tasks_goals_slot_idx` — для целей и сортировки по слоту
+- `tasks_position_idx` — упрощает сортировку задач по ручному порядку
 
 ## RLS политики
 

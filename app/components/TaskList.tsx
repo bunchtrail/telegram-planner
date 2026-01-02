@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { AnimatePresence } from "framer-motion";
+import { AnimatePresence, Reorder } from "framer-motion";
 import { Calendar, Loader2 } from "lucide-react";
 import type { Task } from "../types/task";
 import TaskItem from "./TaskItem";
@@ -11,6 +11,7 @@ type TaskListProps = {
   onDelete: (id: string) => void;
   onEdit: (task: Task) => void;
   onAdd: () => void;
+  onReorder: (tasks: Task[]) => void;
 };
 
 export default function TaskList({
@@ -20,6 +21,7 @@ export default function TaskList({
   onDelete,
   onEdit,
   onAdd,
+  onReorder,
 }: TaskListProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const prevTaskIdsRef = useRef<Set<string>>(new Set());
@@ -49,7 +51,7 @@ export default function TaskList({
   }, [tasks]);
 
   const scrollClasses =
-    "h-full w-full overflow-y-auto pb-32 pt-4 touch-pan-y overscroll-contain no-scrollbar pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] [-webkit-overflow-scrolling:touch]";
+    "h-full w-full overflow-y-auto pb-32 pt-2 touch-pan-y overscroll-contain no-scrollbar pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] [-webkit-overflow-scrolling:touch]";
 
   if (isLoading) {
     return (
@@ -79,7 +81,14 @@ export default function TaskList({
 
   return (
     <div className={scrollClasses}>
-      <ul className="space-y-3" role="list">
+      <Reorder.Group
+        axis="y"
+        values={tasks}
+        onReorder={onReorder}
+        as="ul"
+        role="list"
+        className="overflow-hidden rounded-[14px] bg-[var(--surface)] shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
+      >
         <AnimatePresence initial={false} mode="popLayout">
           {tasks.map((task) => (
             <TaskItem
@@ -91,7 +100,7 @@ export default function TaskList({
             />
           ))}
         </AnimatePresence>
-      </ul>
+      </Reorder.Group>
       <div ref={bottomRef} className="h-1" />
     </div>
   );

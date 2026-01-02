@@ -4,4 +4,5 @@ export type Task = {
   duration: number;
   date: Date;
   completed: boolean;
+  position: number;
 };
