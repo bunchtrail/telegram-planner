@@ -2,7 +2,12 @@
 
 import { type FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
-import { motion, type PanInfo, useDragControls } from "framer-motion";
+import {
+  motion,
+  type PanInfo,
+  type Transition,
+  useDragControls,
+} from "framer-motion";
 import { cn } from "../lib/cn";
 import { useHaptic } from "../hooks/useHaptic";
 import { useKeyboardInset } from "../hooks/useKeyboardInset";
@@ -12,7 +17,7 @@ const DURATION_MIN = 5;
 const DURATION_MAX = 180;
 const DURATION_STEP = 5;
 const DURATION_HAPTIC_STEP = 15;
-const SHEET_TRANSITION = {
+const SHEET_TRANSITION: Transition = {
   type: "spring",
   damping: 32,
   stiffness: 350,
