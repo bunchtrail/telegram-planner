@@ -20,6 +20,7 @@
 - `date date not null` — логическая дата (без времени)
 - `completed bool`
 - `position bigint not null default 0` — порядок задач внутри дня
+- `series_id uuid` — связь с серией повтора (если `null` — обычная задача)
 - goal-поля:
   - `is_goal bool`
   - `goal_period text in ('day','week','month','year')`
@@ -35,6 +36,45 @@
 - `tasks_telegram_id_date_idx` — критичен для выборок по календарю
 - `tasks_goals_period_idx` + `tasks_goals_slot_idx` — для целей и сортировки по слоту
 - `tasks_position_idx` — упрощает сортировку задач по ручному порядку
+- `tasks_series_date_unique` — защита от дублей инстанса серии на одну дату
+
+## Таблица `public.task_series`
+
+### Назначение
+
+Хранит правила повтора (серии) для задач.
+
+### Основные поля
+
+- `id uuid PK`
+- `telegram_id text not null default (auth.jwt()->>'telegram_id')`
+- `title text not null` (1..160)
+- `duration int not null` (1..1440)
+- `repeat text in ('daily','weekly')`
+- `weekday smallint` — для weekly (0..6)
+- `start_date date not null`
+- `end_date date` (nullable)
+
+### Индексы
+
+- `task_series_telegram_id_start_date_idx`
+- `task_series_telegram_id_end_date_idx`
+
+## Таблица `public.task_series_skips`
+
+### Назначение
+
+Хранит “пропуски” серий (чтобы удалённый инстанс не появлялся снова).
+
+### Основные поля
+
+- `series_id uuid FK -> task_series.id`
+- `telegram_id text not null default (auth.jwt()->>'telegram_id')`
+- `date date not null`
+
+### Индексы
+
+- `task_series_skips_telegram_id_date_idx`
 
 ## RLS политики
 
@@ -46,6 +86,8 @@ RLS включен, политики работают через claim:
 
 - клиент НЕ должен отправлять telegram_id (по умолчанию он берётся из JWT).
 - любые попытки доступа к чужим данным будут блокироваться на уровне Postgres.
+
+RLS применяется ко всем таблицам: `tasks`, `task_series`, `task_series_skips`.
 
 ## Best practices для изменений схемы
 
@@ -88,10 +130,11 @@ RLS включен, политики работают через claim:
 
 ### Повторяющиеся задачи
 
-Не пытайтесь хранить “repeat rule” в текущей строке без модели:
+Повторы реализованы через “серии” + инстансы:
 
-- либо отдельная таблица `recurrences`,
-- либо `repeat_rule` + генерация инстансов “на лету” (но тогда подумать про realtime).
+- `task_series` — правило повтора,
+- `tasks` — конкретные инстансы по датам,
+- `task_series_skips` — исключения (удалённые инстансы).
 
 ### Приватность
 

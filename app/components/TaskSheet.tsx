@@ -11,6 +11,7 @@ import {
 import { cn } from "../lib/cn";
 import { useHaptic } from "../hooks/useHaptic";
 import { useKeyboardInset } from "../hooks/useKeyboardInset";
+import type { TaskRepeat } from "../types/task";
 
 const DURATION_PRESETS = [15, 30, 45, 60, 90, 120];
 const DURATION_MIN = 5;
@@ -30,7 +31,8 @@ type TaskSheetProps = {
   mode: "create" | "edit";
   initialTitle?: string;
   initialDuration?: number;
-  onSubmit: (title: string, duration: number) => void;
+  initialRepeat?: TaskRepeat;
+  onSubmit: (title: string, duration: number, repeat: TaskRepeat) => void;
 };
 
 export default function TaskSheet({
@@ -39,10 +41,12 @@ export default function TaskSheet({
   mode,
   initialTitle = "",
   initialDuration = 30,
+  initialRepeat = "none",
   onSubmit,
 }: TaskSheetProps) {
   const [title, setTitle] = useState(initialTitle);
   const [duration, setDuration] = useState(initialDuration);
+  const [repeat, setRepeat] = useState<TaskRepeat>(initialRepeat);
   const [showTitleError, setShowTitleError] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -62,6 +66,7 @@ export default function TaskSheet({
 
     setTitle(initialTitle);
     setDuration(initialDuration);
+    setRepeat(initialRepeat);
     setShowTitleError(false);
 
     shouldAutoFocusRef.current = mode === "create";
@@ -134,7 +139,7 @@ export default function TaskSheet({
     }
 
     notification("success");
-    onSubmit(trimmedTitle, duration);
+    onSubmit(trimmedTitle, duration, repeat);
   };
 
   return (
@@ -267,6 +272,42 @@ export default function TaskSheet({
                   ))}
                 </div>
               </div>
+
+              {mode === "create" && (
+                <div className="mb-8">
+                  <div className="mb-3 flex items-baseline justify-between">
+                    <span className="font-semibold text-[var(--ink)]">
+                      Повтор
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {(
+                      [
+                        { id: "none", label: "Без повтора" },
+                        { id: "daily", label: "Ежедневно" },
+                        { id: "weekly", label: "Еженедельно" },
+                      ] as Array<{ id: TaskRepeat; label: string }>
+                    ).map((option) => (
+                      <button
+                        key={option.id}
+                        type="button"
+                        onClick={() => {
+                          impact("light");
+                          setRepeat(option.id);
+                        }}
+                        className={cn(
+                          "rounded-full px-4 py-2 text-sm font-bold transition-transform active:scale-95",
+                          repeat === option.id
+                            ? "bg-[var(--accent)] text-[var(--accent-ink)] shadow-md"
+                            : "bg-[var(--bg)] text-[var(--muted)]",
+                        )}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="px-6 pb-[calc(1rem+max(env(safe-area-inset-bottom),var(--tg-content-safe-bottom,0px)))] pt-2 bg-[var(--surface)]">

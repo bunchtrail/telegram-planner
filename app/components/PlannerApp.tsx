@@ -9,7 +9,7 @@ import PlannerHeader from "./PlannerHeader";
 import TaskList from "./TaskList";
 import { usePlanner } from "../hooks/usePlanner";
 import { useHaptic } from "../hooks/useHaptic";
-import type { Task } from "../types/task";
+import type { Task, TaskRepeat } from "../types/task";
 
 export default function PlannerApp() {
   const {
@@ -144,9 +144,13 @@ export default function PlannerApp() {
     setSheetMode("create");
   };
 
-  const handleSheetSubmit = (title: string, duration: number) => {
+  const handleSheetSubmit = (
+    title: string,
+    duration: number,
+    repeat: TaskRepeat,
+  ) => {
     if (sheetMode === "create") {
-      addTask(title, duration);
+      addTask(title, duration, repeat);
     } else if (editingTask) {
       updateTask(editingTask.id, { title, duration });
     }
@@ -207,6 +211,7 @@ export default function PlannerApp() {
             mode={sheetMode}
             initialTitle={sheetMode === "edit" ? editingTask?.title : ""}
             initialDuration={sheetMode === "edit" ? editingTask?.duration : 30}
+            initialRepeat="none"
             onSubmit={handleSheetSubmit}
           />
         )}

@@ -1,3 +1,5 @@
+export type TaskRepeat = "none" | "daily" | "weekly";
+
 export type Task = {
   id: string;
   title: string;
@@ -5,4 +7,5 @@ export type Task = {
   date: Date;
   completed: boolean;
   position: number;
+  seriesId?: string | null;
 };

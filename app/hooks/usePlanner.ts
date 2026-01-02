@@ -6,6 +6,7 @@ import {
   endOfMonth,
   endOfWeek,
   format,
+  getDay,
   isSameDay,
   startOfMonth,
   startOfWeek,
@@ -13,7 +14,7 @@ import {
   subWeeks,
 } from "date-fns";
 import { setSupabaseAccessToken, supabase } from "../lib/supabase";
-import type { Task } from "../types/task";
+import type { Task, TaskRepeat } from "../types/task";
 
 const DEFAULT_DURATION = 30;
 type PlannerViewMode = "week" | "month";
@@ -25,6 +26,22 @@ type TaskRow = {
   date: string;
   completed: boolean;
   position?: number | string | null;
+  series_id?: string | null;
+};
+
+type TaskSeriesRow = {
+  id: string;
+  title: string;
+  duration: number;
+  repeat: "daily" | "weekly";
+  weekday: number | null;
+  start_date: string;
+  end_date: string | null;
+};
+
+type TaskSeriesSkipRow = {
+  series_id: string;
+  date: string;
 };
 
 type Insets = { top: number; right: number; bottom: number; left: number };
@@ -93,6 +110,7 @@ const mapTaskRow = (row: TaskRow): Task => ({
   date: parseDateOnly(row.date),
   completed: row.completed,
   position: Number(row.position ?? 0),
+  seriesId: row.series_id ?? null,
 });
 
 export function usePlanner() {
@@ -157,6 +175,70 @@ export function usePlanner() {
       return format(value, "yyyy-MM") === activeMonthKey;
     },
     [activeMonthKey],
+  );
+
+  const ensureSeriesInstancesForMonth = useCallback(
+    async (
+      series: TaskSeriesRow,
+      monthStartKeyValue: string,
+      monthEndKeyValue: string,
+      existingKeys: Set<string>,
+      skipKeys: Set<string>,
+      positionByDate: Map<string, number>,
+    ) => {
+      if (!userId) return;
+
+      const seriesStart = parseDateOnly(series.start_date);
+      const monthStartDate = parseDateOnly(monthStartKeyValue);
+      const monthEndDate = parseDateOnly(monthEndKeyValue);
+      const seriesEndDate = series.end_date
+        ? parseDateOnly(series.end_date)
+        : null;
+
+      const rangeStart = seriesStart > monthStartDate ? seriesStart : monthStartDate;
+      const rangeEnd =
+        seriesEndDate && seriesEndDate < monthEndDate
+          ? seriesEndDate
+          : monthEndDate;
+
+      if (rangeStart > rangeEnd) return;
+
+      const weeklyDay =
+        series.repeat === "weekly"
+          ? series.weekday ?? getDay(seriesStart)
+          : null;
+
+      const rows: Array<Record<string, unknown>> = [];
+      for (let cursor = rangeStart; cursor <= rangeEnd; cursor = addDays(cursor, 1)) {
+        const dateKey = formatDateOnly(cursor);
+        const key = `${series.id}:${dateKey}`;
+        if (existingKeys.has(key) || skipKeys.has(key)) continue;
+
+        if (series.repeat === "weekly" && weeklyDay != null) {
+          if (getDay(cursor) !== weeklyDay) continue;
+        }
+
+        const nextPosition = (positionByDate.get(dateKey) ?? -1) + 1;
+        positionByDate.set(dateKey, nextPosition);
+
+        rows.push({
+          title: series.title,
+          duration: series.duration,
+          date: dateKey,
+          completed: false,
+          telegram_id: userId,
+          series_id: series.id,
+          position: nextPosition,
+        });
+      }
+
+      if (rows.length > 0) {
+        await supabase
+          .from("tasks")
+          .upsert(rows, { onConflict: "series_id,date", ignoreDuplicates: true });
+      }
+    },
+    [userId],
   );
 
   useEffect(() => {
@@ -293,6 +375,7 @@ export function usePlanner() {
             const row = payload.new as TaskRow;
             if (!row?.id || !isDateInActiveMonth(row.date)) return;
             const rowPosition = Number(row.position ?? 0);
+            const rowSeriesId = row.series_id ?? null;
 
             setTasks((prev) => {
               if (prev.some((task) => task.id === row.id)) {
@@ -306,7 +389,8 @@ export function usePlanner() {
                   pending.duration === row.duration &&
                   pending.date === row.date &&
                   pending.completed === row.completed &&
-                  (pending.position ?? 0) === rowPosition
+                  (pending.position ?? 0) === rowPosition &&
+                  (pending.series_id ?? null) === rowSeriesId
                 ) {
                   pendingMatchId = tempId;
                   break;
@@ -384,13 +468,68 @@ export function usePlanner() {
         }
         setIsLoading(false);
       }
+
+      if (isCancelled || tasksError || !tasksData) {
+        return;
+      }
+
+      const existingKeys = new Set<string>();
+      const positionByDate = new Map<string, number>();
+      tasksData.forEach((row: TaskRow) => {
+        const rowDate = row.date;
+        const rowPosition = Number(row.position ?? 0);
+        positionByDate.set(
+          rowDate,
+          Math.max(positionByDate.get(rowDate) ?? -1, rowPosition),
+        );
+        if (row.series_id) {
+          existingKeys.add(`${row.series_id}:${rowDate}`);
+        }
+      });
+
+      const { data: skipsData } = await supabase
+        .from("task_series_skips")
+        .select("series_id,date")
+        .gte("date", monthStartKey)
+        .lte("date", monthEndKey);
+
+      if (isCancelled) {
+        return;
+      }
+
+      const skipKeys = new Set(
+        (skipsData ?? []).map(
+          (skip: TaskSeriesSkipRow) => `${skip.series_id}:${skip.date}`,
+        ),
+      );
+
+      const { data: seriesData } = await supabase
+        .from("task_series")
+        .select("id,title,duration,repeat,weekday,start_date,end_date")
+        .lte("start_date", monthEndKey)
+        .or(`end_date.is.null,end_date.gte.${monthStartKey}`);
+
+      if (isCancelled) {
+        return;
+      }
+
+      for (const series of seriesData ?? []) {
+        await ensureSeriesInstancesForMonth(
+          series as TaskSeriesRow,
+          monthStartKey,
+          monthEndKey,
+          existingKeys,
+          skipKeys,
+          positionByDate,
+        );
+      }
     };
 
     fetchTasks();
     return () => {
       isCancelled = true;
     };
-  }, [userId, monthStartKey, monthEndKey]);
+  }, [userId, monthStartKey, monthEndKey, ensureSeriesInstancesForMonth]);
 
   const currentTasks = useMemo(
     () => tasks.filter((task) => isSameDay(task.date, selectedDate)),
@@ -473,7 +612,11 @@ export function usePlanner() {
     }
   };
 
-  const addTask = async (title: string, duration = DEFAULT_DURATION) => {
+  const addTask = async (
+    title: string,
+    duration = DEFAULT_DURATION,
+    repeat: TaskRepeat = "none",
+  ) => {
     const trimmedTitle = title.trim();
     if (!trimmedTitle) {
       return;
@@ -482,18 +625,91 @@ export function usePlanner() {
       return;
     }
 
+    const selectedDateKey = formatDateOnly(selectedDate);
     const nextPosition =
       tasks
         .filter((task) => isSameDay(task.date, selectedDate))
         .reduce((max, task) => Math.max(max, task.position ?? 0), -1) + 1;
+
+    if (repeat === "none") {
+      const tempId = Math.random().toString(36).substring(2, 9);
+      const pendingRow: TaskRow = {
+        id: tempId,
+        title: trimmedTitle,
+        duration,
+        date: selectedDateKey,
+        completed: false,
+        position: nextPosition,
+        series_id: null,
+      };
+      pendingInsertRef.current.set(tempId, pendingRow);
+
+      const newTask: Task = {
+        id: tempId,
+        title: trimmedTitle,
+        duration,
+        date: selectedDate,
+        completed: false,
+        position: nextPosition,
+        seriesId: null,
+      };
+
+      setTasks((prev) => [...prev, newTask]);
+
+      const { data, error } = await supabase
+        .from("tasks")
+        .insert({
+          title: newTask.title,
+          duration: newTask.duration,
+          date: formatDateOnly(newTask.date),
+          completed: false,
+          telegram_id: userId,
+          position: newTask.position,
+          series_id: null,
+        })
+        .select()
+        .single();
+
+      pendingInsertRef.current.delete(tempId);
+
+      if (error) {
+        setTasks((prev) => prev.filter((t) => t.id !== tempId));
+      } else if (data) {
+        setTasks((prev) =>
+          prev.map((t) => (t.id === tempId ? { ...t, id: data.id } : t)),
+        );
+      }
+      return;
+    }
+
+    const { data: seriesData, error: seriesError } = await supabase
+      .from("task_series")
+      .insert({
+        telegram_id: userId,
+        title: trimmedTitle,
+        duration,
+        repeat: repeat === "daily" ? "daily" : "weekly",
+        weekday: repeat === "weekly" ? getDay(selectedDate) : null,
+        start_date: selectedDateKey,
+      })
+      .select()
+      .single();
+
+    if (seriesError || !seriesData) {
+      return;
+    }
+
+    const series = seriesData as TaskSeriesRow;
+    const seriesId = series.id;
     const tempId = Math.random().toString(36).substring(2, 9);
     const pendingRow: TaskRow = {
       id: tempId,
       title: trimmedTitle,
       duration,
-      date: formatDateOnly(selectedDate),
+      date: selectedDateKey,
       completed: false,
       position: nextPosition,
+      series_id: seriesId,
     };
     pendingInsertRef.current.set(tempId, pendingRow);
 
@@ -504,6 +720,7 @@ export function usePlanner() {
       date: selectedDate,
       completed: false,
       position: nextPosition,
+      seriesId,
     };
 
     setTasks((prev) => [...prev, newTask]);
@@ -513,10 +730,11 @@ export function usePlanner() {
       .insert({
         title: newTask.title,
         duration: newTask.duration,
-        date: formatDateOnly(newTask.date),
+        date: selectedDateKey,
         completed: false,
         telegram_id: userId,
         position: newTask.position,
+        series_id: seriesId,
       })
       .select()
       .single();
@@ -525,11 +743,41 @@ export function usePlanner() {
 
     if (error) {
       setTasks((prev) => prev.filter((t) => t.id !== tempId));
-    } else if (data) {
+      return;
+    }
+
+    if (data) {
       setTasks((prev) =>
         prev.map((t) => (t.id === tempId ? { ...t, id: data.id } : t)),
       );
     }
+
+    const existingKeys = new Set<string>();
+    const positionByDate = new Map<string, number>();
+    tasks.forEach((task) => {
+      const dateKey = formatDateOnly(task.date);
+      positionByDate.set(
+        dateKey,
+        Math.max(positionByDate.get(dateKey) ?? -1, task.position ?? 0),
+      );
+      if (task.seriesId) {
+        existingKeys.add(`${task.seriesId}:${dateKey}`);
+      }
+    });
+    existingKeys.add(`${seriesId}:${selectedDateKey}`);
+    positionByDate.set(
+      selectedDateKey,
+      Math.max(positionByDate.get(selectedDateKey) ?? -1, nextPosition),
+    );
+
+    void ensureSeriesInstancesForMonth(
+      series,
+      monthStartKey,
+      monthEndKey,
+      existingKeys,
+      new Set(),
+      positionByDate,
+    );
   };
 
   const updateTask = async (
@@ -593,23 +841,58 @@ export function usePlanner() {
 
     setTasks((prev) => prev.filter((task) => task.id !== id));
 
-    const { error } = await supabase
+    const restoreInState = () => {
+      setTasks((prev) => {
+        const next = [...prev];
+        const index =
+          taskIndex >= 0 && taskIndex <= next.length ? taskIndex : next.length;
+        next.splice(index, 0, taskToDelete);
+        return next;
+      });
+    };
+
+    if (!taskToDelete.seriesId) {
+      const { error } = await supabase.from("tasks").delete().eq("id", id);
+
+      if (error) {
+        restoreInState();
+        return null;
+      }
+      return taskToDelete;
+    }
+
+    if (!userId) {
+      restoreInState();
+      return null;
+    }
+
+    const dateKey = formatDateOnly(taskToDelete.date);
+    const { error: skipError } = await supabase
+      .from("task_series_skips")
+      .upsert(
+        {
+          series_id: taskToDelete.seriesId,
+          telegram_id: userId,
+          date: dateKey,
+        },
+        { onConflict: "series_id,date", ignoreDuplicates: true },
+      );
+
+    if (skipError) {
+      restoreInState();
+      return null;
+    }
+
+    const { error: deleteError } = await supabase
       .from("tasks")
       .delete()
       .eq("id", id);
 
-    if (error) {
-      setTasks((prev) => {
-        const next = [...prev];
-        const index =
-          taskIndex >= 0 && taskIndex <= next.length
-            ? taskIndex
-            : next.length;
-        next.splice(index, 0, taskToDelete);
-        return next;
-      });
+    if (deleteError) {
+      restoreInState();
       return null;
     }
+
     return taskToDelete;
   };
 
@@ -621,21 +904,44 @@ export function usePlanner() {
       return;
     }
 
+    const dateKey = formatDateOnly(task.date);
+    let skipRemoved = false;
+
+    if (task.seriesId) {
+      const { error: skipError } = await supabase
+        .from("task_series_skips")
+        .delete()
+        .eq("series_id", task.seriesId)
+        .eq("date", dateKey);
+      skipRemoved = !skipError;
+    }
+
     const { data, error } = await supabase
       .from("tasks")
       .insert({
         title: task.title,
         duration: task.duration,
-        date: formatDateOnly(task.date),
+        date: dateKey,
         completed: task.completed,
         telegram_id: userId,
         position: task.position ?? 0,
+        series_id: task.seriesId ?? null,
       })
       .select()
       .single();
 
     if (error) {
       setTasks((prev) => prev.filter((t) => t.id !== task.id));
+      if (task.seriesId && skipRemoved) {
+        await supabase.from("task_series_skips").upsert(
+          {
+            series_id: task.seriesId,
+            telegram_id: userId,
+            date: dateKey,
+          },
+          { onConflict: "series_id,date", ignoreDuplicates: true },
+        );
+      }
     } else if (data) {
       setTasks((prev) =>
         prev.map((t) => (t.id === task.id ? { ...t, id: data.id } : t)),
