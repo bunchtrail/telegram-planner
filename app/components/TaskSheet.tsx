@@ -159,8 +159,9 @@ export default function TaskSheet({
   const repeatCountLabel = repeat === "weekly" ? "На сколько недель" : "На сколько дней";
   const repeatCountUnit = repeat === "weekly" ? "нед." : "дн.";
   const blurTitleIfFocused = () => {
-    if (document.activeElement === inputRef.current) {
-      inputRef.current.blur();
+    const el = inputRef.current;
+    if (el && document.activeElement === el) {
+      el.blur();
     }
   };
 
