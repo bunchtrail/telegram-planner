@@ -34,10 +34,17 @@ const TaskItem = memo(function TaskItem({
   const { impact, selection } = useHaptic();
   const dragControls = useDragControls();
   const [isExpanded, setIsExpanded] = useState(false);
+  const [pendingDate, setPendingDate] = useState<string | null>(null);
 
   const toggleExpand = () => {
     selection();
-    setIsExpanded((prev) => !prev);
+    setIsExpanded((prev) => {
+      const next = !prev;
+      if (!next) {
+        setPendingDate(null);
+      }
+      return next;
+    });
   };
 
   const handleKeyDown = (event: ReactKeyboardEvent) => {
@@ -47,24 +54,27 @@ const TaskItem = memo(function TaskItem({
     }
   };
 
+  const currentKey = format(task.date, 'yyyy-MM-dd');
+
   const handleMoveToDate = (dateStr: string) => {
-    const currentKey = format(task.date, 'yyyy-MM-dd');
     if (!dateStr || dateStr === currentKey) return;
     impact('medium');
     onMove(task.id, dateStr);
+    setPendingDate(null);
   };
 
-  const handleMoveTomorrow = (event: React.MouseEvent) => {
-    event.stopPropagation();
+  const handleMoveTomorrow = () => {
     const tomorrow = addDays(task.date, 1);
     handleMoveToDate(format(tomorrow, 'yyyy-MM-dd'));
   };
 
-  const handleMoveNextWeek = (event: React.MouseEvent) => {
-    event.stopPropagation();
+  const handleMoveNextWeek = () => {
     const nextWeek = addWeeks(task.date, 1);
     handleMoveToDate(format(nextWeek, 'yyyy-MM-dd'));
   };
+
+  const effectivePickerValue = pendingDate ?? currentKey;
+  const hasPendingChange = pendingDate != null && pendingDate !== currentKey;
 
   return (
     <Reorder.Item
@@ -199,7 +209,11 @@ const TaskItem = memo(function TaskItem({
                   <div className="grid grid-cols-2 gap-2">
                     <button
                       type="button"
-                      onClick={handleMoveTomorrow}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setPendingDate(null);
+                        handleMoveTomorrow();
+                      }}
                       className="flex items-center justify-center gap-2 h-10 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-[13px] font-semibold text-[var(--ink)] hover:bg-[var(--surface-2)] active:scale-[0.98] transition-all"
                     >
                       <Sunrise size={16} className="text-[var(--accent)]" />
@@ -209,23 +223,56 @@ const TaskItem = memo(function TaskItem({
                     <div className="relative h-10 w-full">
                       <input
                         type="date"
-                        value={format(task.date, 'yyyy-MM-dd')}
-                        onChange={(event) =>
-                          handleMoveToDate(event.target.value)
-                        }
+                        value={effectivePickerValue}
+                        onChange={(event) => {
+                          setPendingDate(event.target.value);
+                        }}
+                        onClick={(event) => event.stopPropagation()}
                         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                         aria-label="Выбрать дату"
                       />
                       <div className="absolute inset-0 flex items-center justify-center gap-2 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-[13px] font-semibold text-[var(--ink)] pointer-events-none">
                         <Calendar size={16} className="text-[var(--muted)]" />
-                        Выбрать дату
+                        {hasPendingChange ? 'Дата выбрана' : 'Выбрать дату'}
                       </div>
                     </div>
                   </div>
 
+                  {hasPendingChange && (
+                    <div className="flex gap-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          impact('light');
+                          setPendingDate(null);
+                        }}
+                        className="flex-1 h-10 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-[13px] font-semibold text-[var(--muted)] hover:bg-[var(--surface-2)] active:scale-[0.98] transition-all"
+                      >
+                        Отмена
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          if (!pendingDate) return;
+                          handleMoveToDate(pendingDate);
+                        }}
+                        className="flex-1 h-10 rounded-xl bg-[var(--ink)] text-[var(--bg)] text-[13px] font-bold hover:opacity-95 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                      >
+                        <Check size={16} />
+                        Готово
+                      </button>
+                    </div>
+                  )}
+
                   <button
                     type="button"
-                    onClick={handleMoveNextWeek}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setPendingDate(null);
+                      handleMoveNextWeek();
+                    }}
                     className="flex w-full items-center justify-center gap-2 h-9 rounded-xl bg-transparent text-[12px] font-medium text-[var(--muted)] hover:bg-[var(--surface-2)]/50 active:scale-[0.98] transition-all"
                   >
                     <ArrowRight size={14} />
