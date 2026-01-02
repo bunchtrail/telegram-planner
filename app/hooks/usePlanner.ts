@@ -35,6 +35,9 @@ type TelegramWebApp = {
   requestFullscreen?: () => void;
   exitFullscreen?: () => void;
   isFullscreen?: boolean;
+  isVerticalSwipesEnabled?: boolean;
+  disableVerticalSwipes?: () => void;
+  enableVerticalSwipes?: () => void;
   setHeaderColor?: (color: string) => void;
   setBackgroundColor?: (color: string) => void;
   setBottomBarColor?: (color: string) => void;
@@ -152,6 +155,9 @@ export function usePlanner() {
   useEffect(() => {
     const webApp = getTelegramWebApp();
     webApp?.ready?.();
+    if (webApp?.isVersionAtLeast?.("7.7")) {
+      webApp.disableVerticalSwipes?.();
+    }
     webApp?.expand?.();
     const headerColor = webApp?.themeParams?.secondary_bg_color ?? "#f2f2f7";
     webApp?.setHeaderColor?.(headerColor);
