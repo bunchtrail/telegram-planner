@@ -50,7 +50,7 @@ export default function PlannerHeader({
 
   return (
     <header className="relative z-30 flex flex-col border-b border-[var(--border)] bg-[var(--surface-glass)] backdrop-blur-xl backdrop-saturate-150 transition-all">
-      <div className="pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] pt-[calc(env(safe-area-inset-top)+0.5rem)] pb-2">
+      <div className="pl-[max(1rem,env(safe-area-inset-left),var(--tg-content-safe-left,0px))] pr-[max(1rem,env(safe-area-inset-right),var(--tg-content-safe-right,0px))] pt-[calc(max(env(safe-area-inset-top),var(--tg-content-safe-top,0px))+0.5rem)] pb-2">
         <div className="mb-4 flex items-end justify-between">
           <div>
             <p className="mb-0.5 text-[11px] font-bold uppercase tracking-widest text-[var(--muted)]">
@@ -142,7 +142,7 @@ export default function PlannerHeader({
         className="overflow-hidden"
         transition={{ type: "spring", stiffness: 500, damping: 40 }}
       >
-        <div className="pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] pb-4">
+        <div className="pl-[max(1rem,env(safe-area-inset-left),var(--tg-content-safe-left,0px))] pr-[max(1rem,env(safe-area-inset-right),var(--tg-content-safe-right,0px))] pb-4">
           <AnimatePresence mode="wait" initial={false}>
             <motion.div
               key={viewMode}

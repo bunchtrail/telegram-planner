@@ -37,7 +37,7 @@
 
 ## Telegram особенности
 
-- Safe-area: учитывайте `env(safe-area-inset-bottom)` и `env(safe-area-inset-right)`.
+- Safe-area: используйте `max(env(safe-area-inset-<side>), var(--tg-content-safe-<side>, 0px))` для защиты от UI Telegram (контентный safe area).
 - Haptics:
   - `selectionChanged()` — при выборе даты/шаге слайдера
   - `impactOccurred("light/medium")` — при переключении задач

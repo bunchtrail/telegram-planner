@@ -27,6 +27,9 @@ type TaskRow = {
   position?: number | string | null;
 };
 
+type Insets = { top: number; right: number; bottom: number; left: number };
+type TelegramWebAppEventHandler = (...args: unknown[]) => void;
+
 type TelegramWebApp = {
   initData?: string;
   ready?: () => void;
@@ -38,6 +41,10 @@ type TelegramWebApp = {
   isVerticalSwipesEnabled?: boolean;
   disableVerticalSwipes?: () => void;
   enableVerticalSwipes?: () => void;
+  safeAreaInset?: Insets;
+  contentSafeAreaInset?: Insets;
+  onEvent?: (event: string, cb: TelegramWebAppEventHandler) => void;
+  offEvent?: (event: string, cb: TelegramWebAppEventHandler) => void;
   setHeaderColor?: (color: string) => void;
   setBackgroundColor?: (color: string) => void;
   setBottomBarColor?: (color: string) => void;
@@ -154,15 +161,53 @@ export function usePlanner() {
 
   useEffect(() => {
     const webApp = getTelegramWebApp();
-    webApp?.ready?.();
-    if (webApp?.isVersionAtLeast?.("7.7")) {
+    if (!webApp) return;
+
+    webApp.ready?.();
+    if (webApp.isVersionAtLeast?.("7.7")) {
       webApp.disableVerticalSwipes?.();
     }
-    webApp?.expand?.();
-    const headerColor = webApp?.themeParams?.secondary_bg_color ?? "#f2f2f7";
-    webApp?.setHeaderColor?.(headerColor);
-    webApp?.setBackgroundColor?.(headerColor);
-    webApp?.setBottomBarColor?.(headerColor);
+    webApp.expand?.();
+    const headerColor = webApp.themeParams?.secondary_bg_color ?? "#f2f2f7";
+    webApp.setHeaderColor?.(headerColor);
+    webApp.setBackgroundColor?.(headerColor);
+    webApp.setBottomBarColor?.(headerColor);
+
+    const applyInsets = () => {
+      const root = document.documentElement.style;
+      const contentInsets = webApp.contentSafeAreaInset;
+      const safeInsets = webApp.safeAreaInset;
+
+      if (contentInsets) {
+        root.setProperty("--tg-content-safe-top", `${contentInsets.top}px`);
+        root.setProperty("--tg-content-safe-right", `${contentInsets.right}px`);
+        root.setProperty(
+          "--tg-content-safe-bottom",
+          `${contentInsets.bottom}px`,
+        );
+        root.setProperty("--tg-content-safe-left", `${contentInsets.left}px`);
+      }
+
+      if (safeInsets) {
+        root.setProperty("--tg-safe-top", `${safeInsets.top}px`);
+        root.setProperty("--tg-safe-right", `${safeInsets.right}px`);
+        root.setProperty("--tg-safe-bottom", `${safeInsets.bottom}px`);
+        root.setProperty("--tg-safe-left", `${safeInsets.left}px`);
+      }
+    };
+
+    if (webApp.isVersionAtLeast?.("8.0")) {
+      applyInsets();
+      webApp.onEvent?.("safeAreaChanged", applyInsets);
+      webApp.onEvent?.("contentSafeAreaChanged", applyInsets);
+      webApp.onEvent?.("fullscreenChanged", applyInsets);
+    }
+
+    return () => {
+      webApp.offEvent?.("safeAreaChanged", applyInsets);
+      webApp.offEvent?.("contentSafeAreaChanged", applyInsets);
+      webApp.offEvent?.("fullscreenChanged", applyInsets);
+    };
   }, []);
 
   useEffect(() => {

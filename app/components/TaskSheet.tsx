@@ -242,7 +242,7 @@ export default function TaskSheet({
             </div>
           </div>
 
-          <div className="px-6 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-2">
+          <div className="px-6 pb-[calc(1rem+max(env(safe-area-inset-bottom),var(--tg-content-safe-bottom,0px)))] pt-2">
             <button
               type="submit"
               className="mb-4 w-full rounded-[18px] bg-[var(--accent)] py-4 text-lg font-bold text-[var(--accent-ink)] transition-transform active:scale-[0.98]"
