@@ -271,6 +271,22 @@ export function usePlanner() {
       const safeInsets = webApp.safeAreaInset;
 
       if (contentInsets) {
+        root.setProperty(
+          '--tg-content-safe-area-inset-top',
+          `${contentInsets.top}px`
+        );
+        root.setProperty(
+          '--tg-content-safe-area-inset-right',
+          `${contentInsets.right}px`
+        );
+        root.setProperty(
+          '--tg-content-safe-area-inset-bottom',
+          `${contentInsets.bottom}px`
+        );
+        root.setProperty(
+          '--tg-content-safe-area-inset-left',
+          `${contentInsets.left}px`
+        );
         root.setProperty('--tg-content-safe-top', `${contentInsets.top}px`);
         root.setProperty('--tg-content-safe-right', `${contentInsets.right}px`);
         root.setProperty(
@@ -281,6 +297,13 @@ export function usePlanner() {
       }
 
       if (safeInsets) {
+        root.setProperty('--tg-safe-area-inset-top', `${safeInsets.top}px`);
+        root.setProperty('--tg-safe-area-inset-right', `${safeInsets.right}px`);
+        root.setProperty(
+          '--tg-safe-area-inset-bottom',
+          `${safeInsets.bottom}px`
+        );
+        root.setProperty('--tg-safe-area-inset-left', `${safeInsets.left}px`);
         root.setProperty('--tg-safe-top', `${safeInsets.top}px`);
         root.setProperty('--tg-safe-right', `${safeInsets.right}px`);
         root.setProperty('--tg-safe-bottom', `${safeInsets.bottom}px`);
@@ -1080,4 +1103,3 @@ export function usePlanner() {
     isLoading,
   };
 }
-

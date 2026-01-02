@@ -195,74 +195,77 @@ const TaskItem = memo(function TaskItem({
                   {task.title}
                 </p>
 
-                <div className="mb-4 space-y-2">
-                  <span className="text-[11px] font-bold uppercase tracking-widest text-[var(--muted)]">
-                    Перенести на
-                  </span>
+                {!task.completed && (
+                  <>
+                    <div className="mb-4 space-y-2">
+                      <span className="text-[11px] font-bold uppercase tracking-widest text-[var(--muted)]">
+                        Перенести на
+                      </span>
 
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        setPendingDate(null);
-                        handleMoveTomorrow();
-                      }}
-                      className="flex items-center justify-center gap-2 h-10 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-[13px] font-semibold text-[var(--ink)] hover:bg-[var(--surface-2)] active:scale-[0.98] transition-all"
-                    >
-                      <Sunrise size={16} className="text-[var(--accent)]" />
-                      Завтра
-                    </button>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            setPendingDate(null);
+                            handleMoveTomorrow();
+                          }}
+                          className="flex items-center justify-center gap-2 h-10 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-[13px] font-semibold text-[var(--ink)] hover:bg-[var(--surface-2)] active:scale-[0.98] transition-all"
+                        >
+                          <Sunrise size={16} className="text-[var(--accent)]" />
+                          Завтра
+                        </button>
 
-                    <div className="relative h-10 w-full">
-                      <input
-                        type="date"
-                        value={effectivePickerValue}
-                        onChange={(event) => {
-                          setPendingDate(event.target.value);
-                        }}
-                        onClick={(event) => event.stopPropagation()}
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                        aria-label="Выбрать дату"
-                      />
-                      <div className="absolute inset-0 flex items-center justify-center gap-2 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-[13px] font-semibold text-[var(--ink)] pointer-events-none">
-                        <Calendar size={16} className="text-[var(--muted)]" />
-                        {hasPendingChange ? 'Дата выбрана' : 'Выбрать дату'}
+                        <div className="relative h-10 w-full">
+                          <input
+                            type="date"
+                            value={effectivePickerValue}
+                            onChange={(event) => {
+                              setPendingDate(event.target.value);
+                            }}
+                            onClick={(event) => event.stopPropagation()}
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                            aria-label="Выбрать дату"
+                          />
+                          <div className="absolute inset-0 flex items-center justify-center gap-2 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-[13px] font-semibold text-[var(--ink)] pointer-events-none">
+                            <Calendar size={16} className="text-[var(--muted)]" />
+                            {hasPendingChange ? 'Дата выбрана' : 'Выбрать дату'}
+                          </div>
+                        </div>
                       </div>
+
+                      {hasPendingChange && (
+                        <div className="flex gap-2 pt-1">
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              impact('light');
+                              setPendingDate(null);
+                            }}
+                            className="flex-1 h-10 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-[13px] font-semibold text-[var(--muted)] hover:bg-[var(--surface-2)] active:scale-[0.98] transition-all"
+                          >
+                            Отмена
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              if (!pendingDate) return;
+                              handleMoveToDate(pendingDate);
+                            }}
+                            className="flex-1 h-10 rounded-xl bg-[var(--ink)] text-[var(--bg)] text-[13px] font-bold hover:opacity-95 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                          >
+                            <Check size={16} />
+                            Готово
+                          </button>
+                        </div>
+                      )}
                     </div>
-                  </div>
 
-                  {hasPendingChange && (
-                    <div className="flex gap-2 pt-1">
-                      <button
-                        type="button"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          impact('light');
-                          setPendingDate(null);
-                        }}
-                        className="flex-1 h-10 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-[13px] font-semibold text-[var(--muted)] hover:bg-[var(--surface-2)] active:scale-[0.98] transition-all"
-                      >
-                        Отмена
-                      </button>
-                      <button
-                        type="button"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          if (!pendingDate) return;
-                          handleMoveToDate(pendingDate);
-                        }}
-                        className="flex-1 h-10 rounded-xl bg-[var(--ink)] text-[var(--bg)] text-[13px] font-bold hover:opacity-95 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
-                      >
-                        <Check size={16} />
-                        Готово
-                      </button>
-                    </div>
-                  )}
-
-                </div>
-
-                <div className="h-[1px] bg-[var(--border)] mb-4 opacity-50" />
+                    <div className="h-[1px] bg-[var(--border)] mb-4 opacity-50" />
+                  </>
+                )}
 
                 <div className="flex gap-3">
                   <motion.button
