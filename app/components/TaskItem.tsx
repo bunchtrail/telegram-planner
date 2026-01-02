@@ -1,9 +1,4 @@
-import {
-  memo,
-  useRef,
-  useState,
-  type KeyboardEvent as ReactKeyboardEvent,
-} from 'react';
+import { memo, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { addDays, addWeeks, format } from 'date-fns';
 import { AnimatePresence, Reorder, motion, useDragControls } from 'framer-motion';
 import {
@@ -39,7 +34,6 @@ const TaskItem = memo(function TaskItem({
   const { impact, selection } = useHaptic();
   const dragControls = useDragControls();
   const [isExpanded, setIsExpanded] = useState(false);
-  const dateInputRef = useRef<HTMLInputElement>(null);
 
   const toggleExpand = () => {
     selection();
@@ -62,13 +56,13 @@ const TaskItem = memo(function TaskItem({
 
   const handleMoveTomorrow = (event: React.MouseEvent) => {
     event.stopPropagation();
-    const tomorrow = addDays(new Date(), 1);
+    const tomorrow = addDays(task.date, 1);
     handleMoveToDate(format(tomorrow, 'yyyy-MM-dd'));
   };
 
   const handleMoveNextWeek = (event: React.MouseEvent) => {
     event.stopPropagation();
-    const nextWeek = addWeeks(new Date(), 1);
+    const nextWeek = addWeeks(task.date, 1);
     handleMoveToDate(format(nextWeek, 'yyyy-MM-dd'));
   };
 
@@ -214,8 +208,8 @@ const TaskItem = memo(function TaskItem({
 
                     <div className="relative h-10 w-full">
                       <input
-                        ref={dateInputRef}
                         type="date"
+                        value={format(task.date, 'yyyy-MM-dd')}
                         onChange={(event) =>
                           handleMoveToDate(event.target.value)
                         }
