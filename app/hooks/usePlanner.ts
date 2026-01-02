@@ -30,6 +30,11 @@ type TelegramWebApp = {
   initData?: string;
   ready?: () => void;
   expand?: () => void;
+  setHeaderColor?: (color: string) => void;
+  setBackgroundColor?: (color: string) => void;
+  themeParams?: {
+    secondary_bg_color?: string;
+  };
 };
 
 const getTelegramWebApp = () => {
@@ -80,8 +85,6 @@ export function usePlanner() {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [newTaskTitle, setNewTaskTitle] = useState("");
-  const [newTaskDuration, setNewTaskDuration] = useState(DEFAULT_DURATION);
   const toggleRequestRef = useRef(new Map<string, number>());
   const pendingInsertRef = useRef(new Map<string, TaskRow>());
 
@@ -143,6 +146,9 @@ export function usePlanner() {
     const webApp = getTelegramWebApp();
     webApp?.ready?.();
     webApp?.expand?.();
+    const headerColor = webApp?.themeParams?.secondary_bg_color ?? "#f2f2f7";
+    webApp?.setHeaderColor?.(headerColor);
+    webApp?.setBackgroundColor?.(headerColor);
   }, []);
 
   useEffect(() => {
@@ -327,13 +333,6 @@ export function usePlanner() {
 
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
-  const isAddDisabled = newTaskTitle.trim().length === 0;
-
-  const resetNewTask = useCallback(() => {
-    setNewTaskTitle("");
-    setNewTaskDuration(DEFAULT_DURATION);
-  }, []);
-
   const goToToday = useCallback(() => {
     setSelectedDate(new Date());
   }, []);
@@ -350,8 +349,9 @@ export function usePlanner() {
     );
   }, [viewMode]);
 
-  const handleAddTask = async () => {
-    if (!newTaskTitle.trim()) {
+  const addTask = async (title: string, duration = DEFAULT_DURATION) => {
+    const trimmedTitle = title.trim();
+    if (!trimmedTitle) {
       return;
     }
     if (!userId) {
@@ -361,8 +361,8 @@ export function usePlanner() {
     const tempId = Math.random().toString(36).substring(2, 9);
     const pendingRow: TaskRow = {
       id: tempId,
-      title: newTaskTitle,
-      duration: newTaskDuration,
+      title: trimmedTitle,
+      duration,
       date: formatDateOnly(selectedDate),
       completed: false,
     };
@@ -370,15 +370,13 @@ export function usePlanner() {
 
     const newTask: Task = {
       id: tempId,
-      title: newTaskTitle,
-      duration: newTaskDuration,
+      title: trimmedTitle,
+      duration,
       date: selectedDate,
       completed: false,
     };
 
     setTasks((prev) => [...prev, newTask]);
-    resetNewTask();
-    setIsAddOpen(false);
 
     const { data, error } = await supabase
       .from("tasks")
@@ -399,6 +397,29 @@ export function usePlanner() {
     } else if (data) {
       setTasks((prev) =>
         prev.map((t) => (t.id === tempId ? { ...t, id: data.id } : t)),
+      );
+    }
+  };
+
+  const updateTask = async (
+    id: string,
+    updates: { title: string; duration: number },
+  ) => {
+    const existingTask = tasks.find((task) => task.id === id);
+    if (!existingTask) return;
+
+    setTasks((prev) =>
+      prev.map((task) => (task.id === id ? { ...task, ...updates } : task)),
+    );
+
+    const { error } = await supabase
+      .from("tasks")
+      .update(updates)
+      .eq("id", id);
+
+    if (error) {
+      setTasks((prev) =>
+        prev.map((task) => (task.id === id ? existingTask : task)),
       );
     }
   };
@@ -504,19 +525,14 @@ export function usePlanner() {
     taskDates,
     hours,
     minutes,
-    newTaskTitle,
-    setNewTaskTitle,
-    newTaskDuration,
-    setNewTaskDuration,
-    isAddDisabled,
-    resetNewTask,
     goToToday,
     goToPreviousPeriod,
     goToNextPeriod,
-    handleAddTask,
+    addTask,
     toggleTask,
     deleteTask,
     restoreTask,
+    updateTask,
     isLoading,
   };
 }

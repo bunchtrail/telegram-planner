@@ -14,22 +14,21 @@ body {
 
 :root {
   color-scheme: light dark;
-  --bg: #f2f2f7;
-  --surface: #ffffff;
-  --surface-2: #ffffff;
-  --surface-glass: rgba(255, 255, 255, 0.85);
-  --ink: #000000;
-  --muted: #8e8e93;
-  --border: rgba(60, 60, 67, 0.18);
-  --accent: #ff9500;
-  --accent-strong: #ff9f0a;
+  --bg: var(--tg-theme-secondary-bg-color, #f2f2f7);
+  --surface: var(--tg-theme-bg-color, #ffffff);
+  --surface-2: var(--tg-theme-section-bg-color, #ffffff);
+  --surface-glass: var(--tg-theme-bg-color, rgba(255, 255, 255, 0.85));
+  --ink: var(--tg-theme-text-color, #000000);
+  --muted: var(--tg-theme-hint-color, #8e8e93);
+  --border: var(--tg-theme-section-separator-color, rgba(60, 60, 67, 0.18));
+  --accent: var(--tg-theme-button-color, #ff9500);
+  --accent-strong: var(--tg-theme-button-color, #ff9f0a);
   --accent-soft: rgba(255, 149, 0, 0.15);
-  --accent-ink: #ffffff;
-  --danger: #ff3b30;
-  --shadow-soft: 0 1px 4px rgba(0, 0, 0, 0.08);
-  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.04),
-    0 1px 2px rgba(0, 0, 0, 0.06);
-  --shadow-pop: 0 8px 24px rgba(0, 0, 0, 0.12);
+  --accent-ink: var(--tg-theme-button-text-color, #ffffff);
+  --danger: var(--tg-theme-destructive-text-color, #ff3b30);
+  --shadow-soft: none;
+  --shadow-card: 0 0.5px 0 0 var(--border);
+  --shadow-pop: 0 4px 20px rgba(0, 0, 0, 0.15);
 }
 
 button,
@@ -53,31 +52,11 @@ textarea {
     "Liberation Mono", "Courier New", monospace;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #000000;
-    --surface: #1c1c1e;
-    --surface-2: #2c2c2e;
-    --surface-glass: rgba(28, 28, 30, 0.85);
-    --ink: #ffffff;
-    --muted: #98989d;
-    --border: rgba(84, 84, 88, 0.45);
-    --accent: #ff9f0a;
-    --accent-strong: #ffb340;
-    --accent-soft: rgba(255, 159, 10, 0.25);
-    --accent-ink: #000000;
-    --danger: #ff453a;
-    --shadow-soft: 0 0 0 1px rgba(255, 255, 255, 0.06);
-    --shadow-card: 0 0 0 1px rgba(255, 255, 255, 0.08);
-    --shadow-pop: 0 10px 40px rgba(0, 0, 0, 0.8);
-  }
-}
-
 body {
   min-height: 100%;
   background: var(--bg);
   color: var(--ink);
-  font-family: var(--font-body), sans-serif;
+  font-family: var(--font-body), -apple-system, BlinkMacSystemFont, sans-serif;
   overscroll-behavior: none;
 }
 

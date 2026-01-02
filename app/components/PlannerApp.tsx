@@ -1,10 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { flushSync } from "react-dom";
 import confetti from "canvas-confetti";
 import { AnimatePresence, motion } from "framer-motion";
-import AddTaskSheet, { type AddTaskSheetHandle } from "./AddTaskSheet";
+import TaskSheet from "./TaskSheet";
 import FloatingActionButton from "./FloatingActionButton";
 import PlannerHeader from "./PlannerHeader";
 import TaskList from "./TaskList";
@@ -26,26 +25,22 @@ export default function PlannerApp() {
     taskDates,
     hours,
     minutes,
-    newTaskTitle,
-    setNewTaskTitle,
-    newTaskDuration,
-    setNewTaskDuration,
-    isAddDisabled,
-    resetNewTask,
     goToToday,
     goToPreviousPeriod,
     goToNextPeriod,
-    handleAddTask,
+    addTask,
     toggleTask,
     deleteTask,
     restoreTask,
+    updateTask,
     isLoading,
   } = usePlanner();
   const fabRef = useRef<HTMLButtonElement>(null);
-  const sheetRef = useRef<AddTaskSheetHandle>(null);
   const [undoTask, setUndoTask] = useState<Task | null>(null);
   const undoTimeoutRef = useRef<number | null>(null);
   const prevIsAddOpenRef = useRef(isAddOpen);
+  const [sheetMode, setSheetMode] = useState<"create" | "edit">("create");
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
   const { impact, notification } = useHaptic();
 
   const triggerConfetti = () => {
@@ -80,13 +75,12 @@ export default function PlannerApp() {
 
   useEffect(() => {
     if (prevIsAddOpenRef.current && !isAddOpen) {
-      resetNewTask();
       if (document.activeElement instanceof HTMLElement) {
         document.activeElement.blur();
       }
     }
     prevIsAddOpenRef.current = isAddOpen;
-  }, [isAddOpen, resetNewTask]);
+  }, [isAddOpen]);
 
   useEffect(() => {
     return () => {
@@ -129,21 +123,33 @@ export default function PlannerApp() {
     }
   };
 
-  const handleOpenAdd = () => {
+  const handleOpenCreate = () => {
     impact("light");
-    flushSync(() => setIsAddOpen(true));
-    window.setTimeout(() => {
-      sheetRef.current?.focusTitleInput();
-    }, 50);
+    setSheetMode("create");
+    setEditingTask(null);
+    setIsAddOpen(true);
   };
 
-  const handleSmartAddTask = () => {
-    if (isAddDisabled) {
-      notification("error");
-      return;
+  const handleOpenEdit = (task: Task) => {
+    impact("light");
+    setSheetMode("edit");
+    setEditingTask(task);
+    setIsAddOpen(true);
+  };
+
+  const handleCloseSheet = () => {
+    setIsAddOpen(false);
+    setEditingTask(null);
+    setSheetMode("create");
+  };
+
+  const handleSheetSubmit = (title: string, duration: number) => {
+    if (sheetMode === "create") {
+      addTask(title, duration);
+    } else if (editingTask) {
+      updateTask(editingTask.id, { title, duration });
     }
-    notification("success");
-    handleAddTask();
+    handleCloseSheet();
   };
 
   return (
@@ -171,7 +177,8 @@ export default function PlannerApp() {
           isLoading={isLoading}
           onToggle={handleTaskToggle}
           onDelete={handleDelete}
-          onAdd={handleOpenAdd}
+          onEdit={handleOpenEdit}
+          onAdd={handleOpenCreate}
         />
         <div className="pointer-events-none absolute bottom-0 left-0 right-0 z-20 h-16 bg-gradient-to-t from-[var(--bg)] to-transparent" />
       </main>
@@ -184,24 +191,21 @@ export default function PlannerApp() {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
           >
-            <FloatingActionButton ref={fabRef} onClick={handleOpenAdd} />
+            <FloatingActionButton ref={fabRef} onClick={handleOpenCreate} />
           </motion.div>
         )}
       </AnimatePresence>
 
       <AnimatePresence>
         {isAddOpen && (
-          <AddTaskSheet
-            key="add-task-sheet"
-            ref={sheetRef}
+          <TaskSheet
+            key="task-sheet"
             isOpen={isAddOpen}
-            title={newTaskTitle}
-            duration={newTaskDuration}
-            onClose={() => setIsAddOpen(false)}
-            onTitleChange={setNewTaskTitle}
-            onDurationChange={setNewTaskDuration}
-            onAdd={handleSmartAddTask}
-            isAddDisabled={isAddDisabled}
+            onClose={handleCloseSheet}
+            mode={sheetMode}
+            initialTitle={sheetMode === "edit" ? editingTask?.title : ""}
+            initialDuration={sheetMode === "edit" ? editingTask?.duration : 30}
+            onSubmit={handleSheetSubmit}
           />
         )}
       </AnimatePresence>

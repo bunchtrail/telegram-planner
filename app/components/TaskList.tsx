@@ -9,6 +9,7 @@ type TaskListProps = {
   isLoading?: boolean;
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
+  onEdit: (task: Task) => void;
   onAdd: () => void;
 };
 
@@ -17,6 +18,7 @@ export default function TaskList({
   isLoading,
   onToggle,
   onDelete,
+  onEdit,
   onAdd,
 }: TaskListProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -85,6 +87,7 @@ export default function TaskList({
               task={task}
               onToggle={onToggle}
               onDelete={onDelete}
+              onEdit={onEdit}
             />
           ))}
         </AnimatePresence>
