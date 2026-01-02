@@ -815,6 +815,93 @@ export function usePlanner() {
     }
   };
 
+  const moveTask = async (id: string, nextDateKey: string) => {
+    const taskToMove = tasks.find((task) => task.id === id);
+    if (!taskToMove) return;
+
+    const currentDateKey = formatDateOnly(taskToMove.date);
+    if (!nextDateKey || nextDateKey === currentDateKey) return;
+
+    const nextPosition =
+      tasks
+        .filter(
+          (task) =>
+            formatDateOnly(task.date) === nextDateKey && task.id !== id,
+        )
+        .reduce((max, task) => Math.max(max, task.position ?? 0), -1) + 1;
+
+    const nextDate = parseDateOnly(nextDateKey);
+    const isNextInMonth = isDateInActiveMonth(nextDateKey);
+    const updatedTask: Task = {
+      ...taskToMove,
+      date: nextDate,
+      position: nextPosition,
+      seriesId: taskToMove.seriesId ? null : taskToMove.seriesId,
+    };
+
+    setTasks((prev) => {
+      const next = prev.filter((task) => task.id !== id);
+      if (isNextInMonth) {
+        next.push(updatedTask);
+      }
+      return next;
+    });
+
+    if (!userId) {
+      return;
+    }
+
+    if (taskToMove.seriesId) {
+      const { error: skipError } = await supabase
+        .from("task_series_skips")
+        .upsert(
+          {
+            series_id: taskToMove.seriesId,
+            telegram_id: userId,
+            date: currentDateKey,
+          },
+          { onConflict: "series_id,date", ignoreDuplicates: true },
+        );
+
+      if (skipError) {
+        setTasks((prev) => {
+          const next = prev.filter((task) => task.id !== id);
+          if (isDateInActiveMonth(taskToMove.date)) {
+            next.push(taskToMove);
+          }
+          return next;
+        });
+        return;
+      }
+    }
+
+    const { error } = await supabase
+      .from("tasks")
+      .update({
+        date: nextDateKey,
+        position: nextPosition,
+        series_id: taskToMove.seriesId ? null : taskToMove.seriesId ?? null,
+      })
+      .eq("id", id);
+
+    if (error) {
+      setTasks((prev) => {
+        const next = prev.filter((task) => task.id !== id);
+        if (isDateInActiveMonth(taskToMove.date)) {
+          next.push(taskToMove);
+        }
+        return next;
+      });
+      if (taskToMove.seriesId) {
+        await supabase
+          .from("task_series_skips")
+          .delete()
+          .eq("series_id", taskToMove.seriesId)
+          .eq("date", currentDateKey);
+      }
+    }
+  };
+
   const toggleTask = async (id: string) => {
     const targetTask = tasks.find((task) => task.id === id);
     if (!targetTask) return;
@@ -984,6 +1071,7 @@ export function usePlanner() {
     deleteTask,
     restoreTask,
     updateTask,
+    moveTask,
     isLoading,
   };
 }

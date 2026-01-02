@@ -10,6 +10,7 @@ type TaskListProps = {
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
   onEdit: (task: Task) => void;
+  onMove: (id: string, nextDateKey: string) => void;
   onAdd: () => void;
   onReorder: (tasks: Task[]) => void;
 };
@@ -20,6 +21,7 @@ export default function TaskList({
   onToggle,
   onDelete,
   onEdit,
+  onMove,
   onAdd,
   onReorder,
 }: TaskListProps) {
@@ -104,6 +106,7 @@ export default function TaskList({
               onToggle={onToggle}
               onDelete={onDelete}
               onEdit={onEdit}
+              onMove={onMove}
             />
           ))}
         </AnimatePresence>

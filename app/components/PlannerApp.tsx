@@ -34,6 +34,7 @@ export default function PlannerApp() {
     deleteTask,
     restoreTask,
     updateTask,
+    moveTask,
     isLoading,
   } = usePlanner();
   const fabRef = useRef<HTMLButtonElement>(null);
@@ -138,6 +139,10 @@ export default function PlannerApp() {
     setIsAddOpen(true);
   };
 
+  const handleMoveTask = (id: string, nextDateKey: string) => {
+    moveTask(id, nextDateKey);
+  };
+
   const handleCloseSheet = () => {
     setIsAddOpen(false);
     setEditingTask(null);
@@ -185,6 +190,7 @@ export default function PlannerApp() {
             onToggle={handleTaskToggle}
             onDelete={handleDelete}
             onEdit={handleOpenEdit}
+            onMove={handleMoveTask}
             onAdd={handleOpenCreate}
             onReorder={handleReorder}
           />

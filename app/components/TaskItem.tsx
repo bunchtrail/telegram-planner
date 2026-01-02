@@ -1,4 +1,10 @@
-import { memo, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
+import {
+  memo,
+  useEffect,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+} from "react";
+import { format } from "date-fns";
 import { AnimatePresence, Reorder, motion, useDragControls } from "framer-motion";
 import {
   Check,
@@ -17,6 +23,7 @@ type TaskItemProps = {
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
   onEdit: (task: Task) => void;
+  onMove: (id: string, nextDateKey: string) => void;
 };
 
 const TaskItem = memo(function TaskItem({
@@ -24,10 +31,14 @@ const TaskItem = memo(function TaskItem({
   onToggle,
   onDelete,
   onEdit,
+  onMove,
 }: TaskItemProps) {
   const { impact, selection } = useHaptic();
   const dragControls = useDragControls();
   const [isExpanded, setIsExpanded] = useState(false);
+  const [moveDate, setMoveDate] = useState(() =>
+    format(task.date, "yyyy-MM-dd"),
+  );
 
   const toggleExpand = () => {
     selection();
@@ -39,6 +50,19 @@ const TaskItem = memo(function TaskItem({
       event.preventDefault();
       toggleExpand();
     }
+  };
+
+  useEffect(() => {
+    if (isExpanded) {
+      setMoveDate(format(task.date, "yyyy-MM-dd"));
+    }
+  }, [isExpanded, task.date]);
+
+  const handleMove = () => {
+    const currentKey = format(task.date, "yyyy-MM-dd");
+    if (!moveDate || moveDate === currentKey) return;
+    impact("light");
+    onMove(task.id, moveDate);
   };
 
   return (
@@ -165,6 +189,29 @@ const TaskItem = memo(function TaskItem({
                 <p className="text-[15px] text-[var(--ink)] whitespace-pre-wrap leading-relaxed mb-4 opacity-80">
                   {task.title}
                 </p>
+
+                <div className="mb-4 flex flex-wrap items-center gap-2">
+                  <span className="text-[11px] font-bold uppercase tracking-widest text-[var(--muted)]">
+                    Перенести
+                  </span>
+                  <input
+                    type="date"
+                    value={moveDate}
+                    onChange={(event) => setMoveDate(event.target.value)}
+                    className="h-10 rounded-xl bg-[var(--surface)] px-3 text-[13px] font-semibold text-[var(--ink)] border border-[var(--border)]"
+                    aria-label="Новая дата"
+                  />
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      handleMove();
+                    }}
+                    className="h-10 rounded-xl bg-[var(--ink)] px-4 text-[13px] font-bold text-[var(--bg)] active:scale-[0.98] transition-transform"
+                  >
+                    Перенести
+                  </button>
+                </div>
 
                 <div className="flex gap-3">
                   <motion.button
