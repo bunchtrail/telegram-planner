@@ -162,10 +162,7 @@ export default function PlannerApp() {
   return (
     <>
       <KeyboardManager />
-      <div
-        className="fixed inset-0 flex flex-col overflow-hidden bg-[var(--bg)] font-sans text-[var(--ink)]"
-        style={{ height: "var(--tg-viewport-stable-height, 100vh)" }}
-      >
+      <div className="fixed inset-0 flex flex-col overflow-hidden bg-[var(--bg)] font-sans text-[var(--ink)]">
         <div className="relative z-10 flex-none">
           <PlannerHeader
             selectedDate={selectedDate}

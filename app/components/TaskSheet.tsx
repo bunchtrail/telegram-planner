@@ -166,13 +166,7 @@ export default function TaskSheet({
   };
 
   return (
-    <div
-      className="fixed left-0 z-50 w-full pointer-events-none"
-      style={{
-        top: "var(--tg-viewport-top, 0px)",
-        height: "var(--tg-viewport-stable-height, 100dvh)",
-      }}
-    >
+    <div className="fixed inset-0 z-50 flex flex-col justify-end pointer-events-none">
       <motion.div
         className="pointer-events-auto absolute inset-0 bg-black/40"
         onClick={handleClose}
@@ -183,17 +177,14 @@ export default function TaskSheet({
         style={{ willChange: "opacity" }}
       />
 
-      <div
-        className="pointer-events-auto absolute left-0 right-0 flex w-full flex-col justify-end"
-        style={{ bottom: "var(--kb, 0px)" }}
-      >
+      <div className="pointer-events-auto relative w-full">
         <motion.div
           ref={dialogRef}
           role="dialog"
           aria-modal="true"
           aria-labelledby="task-sheet-title"
           className="relative flex w-full flex-col overflow-hidden rounded-t-[24px] bg-[var(--surface)] shadow-2xl will-change-transform"
-          style={{ maxHeight: "100%" }}
+          style={{ maxHeight: "85vh" }}
           initial={{ y: "100%" }}
           animate={{ y: 0 }}
           exit={{ y: "100%" }}
@@ -209,7 +200,7 @@ export default function TaskSheet({
             shouldAutoFocusRef.current = false;
             setTimeout(() => {
               inputRef.current?.focus({ preventScroll: true });
-            }, 50);
+            }, 100);
           }}
         >
           <div
