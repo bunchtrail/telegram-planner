@@ -5,6 +5,7 @@ import type { Task } from '../types/task';
 import TaskItem from './TaskItem';
 
 type TaskListProps = {
+  dateKey: string;
   tasks: Task[];
   isLoading?: boolean;
   onToggle: (id: string) => void;
@@ -16,6 +17,7 @@ type TaskListProps = {
 };
 
 export default function TaskList({
+  dateKey,
   tasks,
   isLoading,
   onToggle,
@@ -96,6 +98,7 @@ export default function TaskList({
   return (
     <motion.div className={scrollClasses} layoutScroll>
       <Reorder.Group
+        key={dateKey}
         axis="y"
         values={tasks}
         onReorder={onReorder}
@@ -120,4 +123,3 @@ export default function TaskList({
     </motion.div>
   );
 }
-

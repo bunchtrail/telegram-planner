@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { format } from 'date-fns';
 import confetti from 'canvas-confetti';
 import { AnimatePresence, motion } from 'framer-motion';
 import TaskSheet from './TaskSheet';
@@ -185,6 +186,7 @@ export default function PlannerApp() {
 
         <main className="relative h-full w-full flex-1 overflow-hidden">
           <TaskList
+            dateKey={format(selectedDate, 'yyyy-MM-dd')}
             tasks={currentTasks}
             isLoading={isLoading}
             onToggle={handleTaskToggle}
@@ -254,4 +256,3 @@ export default function PlannerApp() {
     </>
   );
 }
-
