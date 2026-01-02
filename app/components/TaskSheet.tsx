@@ -6,6 +6,7 @@ import {
   AnimatePresence,
   motion,
   type PanInfo,
+  type Transition,
   useDragControls,
 } from "framer-motion";
 import { cn } from "../lib/cn";
@@ -13,7 +14,11 @@ import { useHaptic } from "../hooks/useHaptic";
 import type { TaskRepeat } from "../types/task";
 
 const DURATION_PRESETS = [15, 30, 45, 60, 90, 120];
-const SHEET_TRANSITION = { type: "spring", damping: 28, stiffness: 350 };
+const SHEET_TRANSITION: Transition = {
+  type: "spring",
+  damping: 28,
+  stiffness: 350,
+};
 const REPEAT_COUNT_MIN = 1;
 const REPEAT_COUNT_MAX = 365;
 const DEFAULT_REPEAT_COUNT_DAILY = 7;
