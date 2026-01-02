@@ -60,8 +60,7 @@ create index if not exists tasks_position_idx
   on public.tasks (position);
 
 create unique index if not exists tasks_series_date_unique
-  on public.tasks (series_id, date)
-  where series_id is not null;
+  on public.tasks (series_id, date);
 
 create index if not exists tasks_goals_period_idx
   on public.tasks (telegram_id, goal_period);

@@ -233,9 +233,12 @@ export function usePlanner() {
       }
 
       if (rows.length > 0) {
-        await supabase
+        const { error } = await supabase
           .from("tasks")
           .upsert(rows, { onConflict: "series_id,date", ignoreDuplicates: true });
+        if (error) {
+          console.error("Series instance upsert failed", error);
+        }
       }
     },
     [userId],
