@@ -158,13 +158,18 @@ export default function TaskSheet({
 
   const repeatCountLabel = repeat === "weekly" ? "На сколько недель" : "На сколько дней";
   const repeatCountUnit = repeat === "weekly" ? "нед." : "дн.";
+  const blurTitleIfFocused = () => {
+    if (document.activeElement === inputRef.current) {
+      inputRef.current.blur();
+    }
+  };
 
   return (
     <div
       className="fixed left-0 z-50 w-full pointer-events-none"
       style={{
-        top: "var(--tg-viewport-top, 0px)",
-        height: "var(--tg-viewport-height, 100%)",
+        top: "var(--vvt, 0px)",
+        height: "var(--vvh, 100%)",
       }}
     >
       <motion.div
@@ -177,7 +182,10 @@ export default function TaskSheet({
         style={{ willChange: "opacity" }}
       />
 
-      <div className="pointer-events-auto absolute bottom-0 flex w-full flex-col justify-end">
+      <div
+        className="pointer-events-auto absolute bottom-0 flex w-full flex-col justify-end"
+        style={{ transform: "translate3d(0, calc(-1 * var(--kb, 0px)), 0)" }}
+      >
         <motion.div
           ref={dialogRef}
           role="dialog"
@@ -254,7 +262,10 @@ export default function TaskSheet({
               )}
             </div>
 
-            <div className="no-scrollbar flex-1 touch-pan-y overflow-y-auto px-6 pb-2 overscroll-contain [-webkit-overflow-scrolling:touch]">
+            <div
+              className="no-scrollbar flex-1 touch-pan-y overflow-y-auto px-6 pb-2 overscroll-contain [-webkit-overflow-scrolling:touch]"
+              onPointerDown={blurTitleIfFocused}
+            >
               <div className="mb-8 mt-4">
                 <div className="mb-3 flex items-baseline justify-between">
                   <span className="font-semibold text-[var(--ink)]">Время</span>
@@ -271,9 +282,13 @@ export default function TaskSheet({
                   onChange={(event) =>
                     handleDurationChange(Number(event.target.value))
                   }
+                  onPointerDown={blurTitleIfFocused}
                   className="mb-4 h-2 w-full touch-none rounded-full bg-[var(--bg)] accent-[var(--accent)] cursor-pointer"
                 />
-                <div className="no-scrollbar -mx-6 flex gap-2 overflow-x-auto px-6 touch-pan-x py-1">
+                <div
+                  className="no-scrollbar -mx-6 flex gap-2 overflow-x-auto px-6 touch-pan-x py-1"
+                  onPointerDown={blurTitleIfFocused}
+                >
                   {DURATION_PRESETS.map((value) => (
                     <button
                       key={value}
@@ -302,7 +317,10 @@ export default function TaskSheet({
                       Повтор
                     </span>
                   </div>
-                  <div className="flex flex-wrap gap-2">
+                  <div
+                    className="flex flex-wrap gap-2"
+                    onPointerDown={blurTitleIfFocused}
+                  >
                     {(
                       [
                         { id: "none", label: "Без повтора" },
@@ -339,7 +357,10 @@ export default function TaskSheet({
                   </div>
 
                   {repeat !== "none" && (
-                    <div className="mt-4 flex items-center justify-between gap-3 rounded-2xl bg-[var(--bg)] px-4 py-3">
+                    <div
+                      className="mt-4 flex items-center justify-between gap-3 rounded-2xl bg-[var(--bg)] px-4 py-3"
+                      onPointerDown={blurTitleIfFocused}
+                    >
                       <span className="text-sm font-semibold text-[var(--ink)]">
                         {repeatCountLabel}
                       </span>
