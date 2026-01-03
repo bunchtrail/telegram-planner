@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import { AnimatePresence, Reorder, motion } from 'framer-motion';
 import { Calendar, Loader2 } from 'lucide-react';
 import type { Task } from '../types/task';
@@ -8,6 +8,7 @@ type TaskListProps = {
   dateKey: string;
   tasks: Task[];
   isLoading?: boolean;
+  header?: ReactNode;
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
   onEdit: (task: Task) => void;
@@ -22,6 +23,7 @@ export default function TaskList({
   dateKey,
   tasks,
   isLoading,
+  header,
   onToggle,
   onDelete,
   onEdit,
@@ -110,6 +112,7 @@ export default function TaskList({
 
   return (
     <motion.div ref={scrollContainerRef} className={scrollClasses} layoutScroll>
+      {header && <div className="mt-2 mb-2">{header}</div>}
       <Reorder.Group
         key={dateKey}
         axis="y"

@@ -134,7 +134,7 @@ export default function TaskSheet({
         dragConstraints={{ top: 0 }}
         dragElastic={0.05}
         onDragEnd={handleDragEnd}
-        className="pointer-events-auto relative w-full bg-[var(--surface-glass)] backdrop-blur-2xl rounded-t-[36px] shadow-[var(--shadow-pop)] flex flex-col max-h-[92dvh] border-t border-white/10"
+        className="pointer-events-auto relative w-full bg-[var(--surface-glass)] backdrop-blur-2xl rounded-t-[36px] shadow-[var(--shadow-pop)] flex flex-col max-h-[92dvh] border-t border-[var(--border)]"
         style={{
           paddingBottom:
             "max(env(safe-area-inset-bottom), var(--tg-content-safe-bottom, 0px), 20px)",
@@ -264,37 +264,42 @@ export default function TaskSheet({
                     exit={{ height: 0, opacity: 0 }}
                     className="overflow-hidden"
                   >
-                    <div className="p-2 pt-0 space-y-1">
-                      <div className="h-px bg-[var(--border)] mx-3 my-2 opacity-50" />
-                      {[
-                        { id: "none", label: "Не повторять" },
-                        { id: "daily", label: "Каждый день" },
-                        { id: "weekly", label: "Раз в неделю" },
-                      ].map((opt) => (
-                        <button
-                          key={opt.id}
-                          type="button"
-                          onClick={() => {
-                            impact("light");
-                            setRepeat(opt.id as TaskRepeat);
-                            if (opt.id !== "none" && repeatCount < 1) {
-                              setRepeatCount(
-                                opt.id === "weekly"
-                                  ? DEFAULT_REPEAT_COUNT_WEEKLY
-                                  : DEFAULT_REPEAT_COUNT_DAILY,
-                              );
-                            }
-                          }}
-                          className={cn(
-                            "w-full text-left px-4 py-3 rounded-xl text-[14px] font-medium transition-all",
-                            repeat === opt.id
-                              ? "bg-[var(--bg)] text-[var(--ink)] shadow-sm font-bold"
-                              : "text-[var(--muted)] hover:text-[var(--ink)]",
-                          )}
-                        >
-                          {opt.label}
-                        </button>
-                      ))}
+                    <div className="overflow-hidden">
+                      <div className="mx-2 mt-2 overflow-hidden rounded-[20px] bg-[var(--surface-2)]/50 border border-[var(--border)]">
+                        {[
+                          { id: "none", label: "Не повторять" },
+                          { id: "daily", label: "Каждый день" },
+                          { id: "weekly", label: "Раз в неделю" },
+                        ].map((opt, index, arr) => (
+                          <div key={opt.id} className="relative">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                impact("light");
+                                setRepeat(opt.id as TaskRepeat);
+                                if (opt.id !== "none" && repeatCount < 1) {
+                                  setRepeatCount(
+                                    opt.id === "weekly"
+                                      ? DEFAULT_REPEAT_COUNT_WEEKLY
+                                      : DEFAULT_REPEAT_COUNT_DAILY,
+                                  );
+                                }
+                              }}
+                              className={cn(
+                                "w-full text-left px-4 py-3.5 text-[15px] transition-colors active:bg-[var(--surface-2)]",
+                                repeat === opt.id
+                                  ? "text-[var(--ink)] font-bold"
+                                  : "text-[var(--ink)] font-medium",
+                              )}
+                            >
+                              {opt.label}
+                            </button>
+                            {index < arr.length - 1 && (
+                              <div className="absolute bottom-0 left-4 right-0 h-px bg-[var(--border)] opacity-60" />
+                            )}
+                          </div>
+                        ))}
+                      </div>
 
                       {repeat !== "none" && (
                         <div className="mt-2 flex items-center justify-between px-4 py-2">

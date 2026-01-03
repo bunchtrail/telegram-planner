@@ -237,7 +237,7 @@ const TaskItem = memo(function TaskItem({
                       }}
                       aria-pressed={isActive}
                       className={cn(
-                        'w-full h-[56px] rounded-2xl flex items-center justify-center gap-2 text-[13px] font-bold transition-all active:scale-95',
+                        'w-full h-[56px] rounded-[20px] flex items-center justify-center gap-2 text-[13px] font-bold transition-all active:scale-95',
                         isActive
                           ? 'bg-[var(--accent)] text-[var(--accent-ink)] shadow-[var(--shadow-soft)]'
                           : 'bg-[var(--surface-2)] text-[var(--ink)] hover:bg-[var(--border)]'
@@ -260,7 +260,7 @@ const TaskItem = memo(function TaskItem({
                         setPendingDate(null);
                         handleMoveTomorrow();
                       }}
-                      className="col-span-1 flex flex-col items-center justify-center gap-1 h-[72px] rounded-2xl bg-[var(--surface-2)] text-[var(--ink)] active:scale-95 transition-all relative overflow-hidden group"
+                      className="col-span-1 flex flex-col items-center justify-center gap-1 h-[72px] rounded-[20px] bg-[var(--surface-2)] text-[var(--ink)] active:scale-95 transition-all relative overflow-hidden group"
                     >
                       <div className="absolute inset-0 bg-[var(--accent)]/10 opacity-0 group-hover:opacity-100 transition-opacity" />
                       <Sunrise size={22} className="text-[var(--accent)] mb-0.5" />
@@ -305,7 +305,7 @@ const TaskItem = memo(function TaskItem({
                             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
                             aria-label="Выбрать дату"
                           />
-                          <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 rounded-2xl bg-[var(--surface-2)] text-[var(--ink)] pointer-events-none">
+                          <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 rounded-[20px] bg-[var(--surface-2)] text-[var(--ink)] pointer-events-none">
                             <Calendar
                               size={22}
                               className="text-[var(--muted)] mb-0.5"
@@ -322,7 +322,7 @@ const TaskItem = memo(function TaskItem({
                         event.stopPropagation();
                         onEdit(task);
                       }}
-                      className="col-span-1 flex items-center justify-center gap-2 h-[56px] rounded-2xl bg-[var(--surface-2)] text-[var(--ink)] font-bold text-[13px] active:scale-95 transition-all hover:bg-[var(--border)]"
+                      className="col-span-1 flex items-center justify-center gap-2 h-[56px] rounded-[20px] bg-[var(--surface-2)] text-[var(--ink)] font-bold text-[13px] active:scale-95 transition-all hover:bg-[var(--border)]"
                     >
                       <Pencil size={18} /> Изменить
                     </button>
@@ -333,7 +333,7 @@ const TaskItem = memo(function TaskItem({
                         event.stopPropagation();
                         onDelete(task.id);
                       }}
-                      className="col-span-1 flex items-center justify-center gap-2 h-[56px] rounded-2xl bg-[var(--danger)]/10 text-[var(--danger)] font-bold text-[13px] active:scale-95 transition-all hover:bg-[var(--danger)]/20"
+                      className="col-span-1 flex items-center justify-center gap-2 h-[56px] rounded-[20px] bg-[var(--danger)]/10 text-[var(--danger)] font-bold text-[13px] active:scale-95 transition-all hover:bg-[var(--danger)]/20"
                     >
                       <Trash2 size={18} /> Удалить
                     </button>
@@ -346,7 +346,7 @@ const TaskItem = memo(function TaskItem({
                       event.stopPropagation();
                       onDelete(task.id);
                     }}
-                    className="w-full flex items-center justify-center gap-2 h-[56px] rounded-2xl bg-[var(--surface-2)] text-[var(--danger)] font-bold text-[13px] active:scale-95 transition-all"
+                    className="w-full flex items-center justify-center gap-2 h-[56px] rounded-[20px] bg-[var(--surface-2)] text-[var(--danger)] font-bold text-[13px] active:scale-95 transition-all"
                   >
                     <Trash2 size={18} /> Удалить задачу
                   </button>
