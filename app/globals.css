@@ -90,6 +90,11 @@ body {
   border-bottom: 1px solid rgba(0, 0, 0, 0.05);
 }
 
+.glass-clip {
+  -webkit-mask-image: linear-gradient(#fff, #fff);
+  mask-image: linear-gradient(#fff, #fff);
+}
+
 .will-change-transform {
   will-change: transform;
   transform: translateZ(0);
