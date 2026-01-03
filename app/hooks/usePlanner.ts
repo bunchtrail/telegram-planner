@@ -190,6 +190,7 @@ export function usePlanner() {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [refetchKey, setRefetchKey] = useState(0);
   const [timerNow, setTimerNow] = useState(() => Date.now());
   const toggleRequestRef = useRef(new Map<string, number>());
   const pendingInsertRef = useRef(new Map<string, TaskRow>());
@@ -680,7 +681,33 @@ export function usePlanner() {
           }
         }
       )
-      .subscribe();
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'task_series',
+          filter: `telegram_id=eq.${userId}`,
+        },
+        () => {
+          setRefetchKey((prev) => prev + 1);
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'task_series_skips',
+          filter: `telegram_id=eq.${userId}`,
+        },
+        () => {
+          setRefetchKey((prev) => prev + 1);
+        }
+      )
+      .subscribe((status) => {
+        console.log('[realtime] tasks channel:', status);
+      });
 
     return () => {
       supabase.removeChannel(channel);
@@ -772,7 +799,22 @@ export function usePlanner() {
     return () => {
       isCancelled = true;
     };
-  }, [userId, monthStartKey, monthEndKey, ensureSeriesInstancesForMonth]);
+  }, [userId, monthStartKey, monthEndKey, ensureSeriesInstancesForMonth, refetchKey]);
+
+  useEffect(() => {
+    if (!userId) return;
+
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') {
+        setRefetchKey((prev) => prev + 1);
+      }
+    };
+
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [userId]);
 
   const currentTasks = useMemo(
     () => {

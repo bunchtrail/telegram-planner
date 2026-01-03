@@ -7,6 +7,7 @@ let accessToken: string | null = null;
 
 export const setSupabaseAccessToken = (token: string | null) => {
   accessToken = token;
+  supabase.realtime.setAuth(token ?? '');
 };
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
