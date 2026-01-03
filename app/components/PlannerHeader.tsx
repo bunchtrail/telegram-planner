@@ -44,7 +44,7 @@ export default function PlannerHeader({
   const hasTime = hours > 0 || minutes > 0;
 
   return (
-    <header className="relative z-30 flex flex-col glass rounded-b-[32px] shadow-[var(--shadow-soft)] transition-all">
+    <header className="relative z-30 flex flex-col glass rounded-b-[32px] shadow-[var(--shadow-soft)] transition-all overflow-hidden">
       <div className="pl-[max(1rem,env(safe-area-inset-left),var(--tg-content-safe-left,0px))] pr-[max(1rem,env(safe-area-inset-right),var(--tg-content-safe-right,0px))] pt-[calc(max(env(safe-area-inset-top),var(--tg-content-safe-top,0px))+var(--tma-tg-controls-top,0px)+1rem)] pb-0">
         <div className="flex items-center justify-between gap-2 mb-3">
           <div className="flex items-center gap-1 min-w-0 flex-1 mr-2">
