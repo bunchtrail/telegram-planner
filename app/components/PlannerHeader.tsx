@@ -152,7 +152,7 @@ export default function PlannerHeader({
 
         <motion.div
           layout
-          className="overflow-hidden bg-[var(--bg)]"
+          className="overflow-hidden"
           transition={{ type: "spring", stiffness: 450, damping: 35 }}
         >
           <div className="pl-[max(0.5rem,env(safe-area-inset-left),var(--tg-content-safe-left,0px))] pr-[max(0.5rem,env(safe-area-inset-right),var(--tg-content-safe-right,0px))] pb-3">
