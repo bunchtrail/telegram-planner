@@ -117,6 +117,8 @@ for each row execute function public.stop_task_timer_on_complete();
 create or replace function public.toggle_task_timer(task_id uuid)
 returns table(id uuid, active_started_at timestamptz, elapsed_ms bigint)
 language plpgsql
+security definer
+set search_path = public
 as $$
 declare
   current_user text := auth.jwt()->>'telegram_id';
@@ -168,6 +170,8 @@ begin
   where id = task_id and telegram_id = current_user;
 end;
 $$;
+
+grant execute on function public.toggle_task_timer(uuid) to authenticated;
 
 alter table public.tasks enable row level security;
 alter table public.task_series enable row level security;
