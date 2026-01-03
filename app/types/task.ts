@@ -8,4 +8,6 @@ export type Task = {
   completed: boolean;
   position: number;
   seriesId?: string | null;
+  elapsedMs: number;
+  activeStartedAt: Date | null;
 };

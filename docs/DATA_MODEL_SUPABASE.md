@@ -20,6 +20,8 @@
 - `date date not null` — логическая дата (без времени)
 - `completed bool`
 - `position bigint not null default 0` — порядок задач внутри дня
+- `elapsed_ms bigint not null default 0` — фактически затраченное время (мс)
+- `active_started_at timestamptz` — когда запущен таймер (null если не активна)
 - `series_id uuid` — связь с серией повтора (если `null` — обычная задача)
 - goal-поля:
   - `is_goal bool`
@@ -29,6 +31,7 @@
 ### Ограничения целостности (почему это важно)
 
 - `tasks_title_length` и `tasks_duration_range` защищают от мусора/переполнений.
+- `tasks_elapsed_nonnegative` защищает от отрицательного времени.
 - `tasks_goal_fields` гарантирует консистентность: goal поля либо все пустые, либо валидные.
 
 ### Индексы
@@ -36,6 +39,7 @@
 - `tasks_telegram_id_date_idx` — критичен для выборок по календарю
 - `tasks_goals_period_idx` + `tasks_goals_slot_idx` — для целей и сортировки по слоту
 - `tasks_position_idx` — упрощает сортировку задач по ручному порядку
+- `tasks_active_single_idx` — гарантирует одну активную задачу на пользователя
 - `tasks_series_date_unique` — защита от дублей инстанса серии на одну дату
 
 ## Таблица `public.task_series`

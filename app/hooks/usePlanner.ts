@@ -27,6 +27,8 @@ type TaskRow = {
   completed: boolean;
   position?: number | string | null;
   series_id?: string | null;
+  elapsed_ms?: number | string | null;
+  active_started_at?: string | null;
 };
 
 type TaskSeriesRow = {
@@ -117,6 +119,19 @@ const parseDateOnly = (value: string) => {
   return new Date(year, month - 1, day);
 };
 
+const parseElapsedMs = (value?: number | string | null) => {
+  if (value == null) return 0;
+  const numeric = typeof value === 'string' ? Number(value) : value;
+  if (!Number.isFinite(numeric)) return 0;
+  return Math.max(0, numeric);
+};
+
+const parseTimestamp = (value?: string | null) => {
+  if (!value) return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+};
+
 const normalizeHex = (value?: string | null) => {
   if (!value) return null;
   const trimmed = value.trim();
@@ -164,6 +179,8 @@ const mapTaskRow = (row: TaskRow): Task => ({
   completed: row.completed,
   position: Number(row.position ?? 0),
   seriesId: row.series_id ?? null,
+  elapsedMs: parseElapsedMs(row.elapsed_ms),
+  activeStartedAt: parseTimestamp(row.active_started_at),
 });
 
 export function usePlanner() {
@@ -173,9 +190,6 @@ export function usePlanner() {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
-  const activeStartedAtRef = useRef<number | null>(null);
-  const [elapsedById, setElapsedById] = useState<Record<string, number>>({});
   const [timerNow, setTimerNow] = useState(() => Date.now());
   const toggleRequestRef = useRef(new Map<string, number>());
   const pendingInsertRef = useRef(new Map<string, TaskRow>());
@@ -223,66 +237,73 @@ export function usePlanner() {
     return dateSet;
   }, [tasks]);
 
-  const commitElapsed = useCallback((id: string, startedAt: number) => {
-    const delta = Date.now() - startedAt;
-    if (delta <= 0) return;
-    setElapsedById((prev) => ({
-      ...prev,
-      [id]: (prev[id] ?? 0) + delta,
-    }));
-  }, []);
+  const tasksById = useMemo(() => {
+    const map = new Map<string, Task>();
+    tasks.forEach((task) => map.set(task.id, task));
+    return map;
+  }, [tasks]);
 
-  const stopActiveTask = useCallback(
-    (id?: string) => {
-      const targetId = id ?? activeTaskId;
-      if (!targetId || targetId !== activeTaskId) return;
-      const startedAt = activeStartedAtRef.current;
-      if (startedAt) {
-        commitElapsed(targetId, startedAt);
-      }
-      activeStartedAtRef.current = null;
-      setActiveTaskId(null);
-    },
-    [activeTaskId, commitElapsed]
+  const activeTask = useMemo(
+    () =>
+      tasks.find((task) => task.activeStartedAt && !task.completed) ?? null,
+    [tasks]
   );
 
-  const startActiveTask = useCallback(
-    (id: string) => {
-      if (activeTaskId && activeTaskId !== id) {
-        const startedAt = activeStartedAtRef.current;
-        if (startedAt) {
-          commitElapsed(activeTaskId, startedAt);
-        }
-      }
-      activeStartedAtRef.current = Date.now();
-      setActiveTaskId(id);
-      setTimerNow(Date.now());
-    },
-    [activeTaskId, commitElapsed]
-  );
+  const activeTaskId = activeTask?.id ?? null;
 
   const toggleActiveTask = useCallback(
-    (id: string) => {
-      const target = tasks.find((task) => task.id === id);
+    async (id: string) => {
+      if (!userId) return;
+      const target = tasksById.get(id);
       if (!target || target.completed) return;
-      if (activeTaskId === id) {
-        stopActiveTask(id);
-        return;
+      const now = Date.now();
+      const isTargetActive = Boolean(target.activeStartedAt);
+      const previousTasks = tasks;
+
+      setTasks((prev) =>
+        prev.map((task) => {
+          if (task.activeStartedAt) {
+            const elapsed =
+              task.elapsedMs +
+              Math.max(0, now - task.activeStartedAt.getTime());
+            if (task.id === id) {
+              return isTargetActive
+                ? { ...task, elapsedMs: elapsed, activeStartedAt: null }
+                : { ...task, elapsedMs: elapsed, activeStartedAt: new Date(now) };
+            }
+            return { ...task, elapsedMs: elapsed, activeStartedAt: null };
+          }
+          if (task.id === id && !isTargetActive) {
+            return { ...task, activeStartedAt: new Date(now) };
+          }
+          return task;
+        })
+      );
+      setTimerNow(now);
+
+      const { error } = await supabase.rpc('toggle_task_timer', {
+        task_id: id,
+      });
+
+      if (error) {
+        console.error('Toggle task timer failed', error);
+        setTasks(previousTasks);
       }
-      startActiveTask(id);
     },
-    [activeTaskId, startActiveTask, stopActiveTask, tasks]
+    [tasksById, tasks, userId]
   );
 
   const getTaskElapsedMs = useCallback(
     (id: string) => {
-      const base = elapsedById[id] ?? 0;
-      if (id === activeTaskId && activeStartedAtRef.current) {
-        return base + (timerNow - activeStartedAtRef.current);
+      const task = tasksById.get(id);
+      if (!task) return 0;
+      const base = task.elapsedMs ?? 0;
+      if (task.activeStartedAt) {
+        return base + Math.max(0, timerNow - task.activeStartedAt.getTime());
       }
       return base;
     },
-    [elapsedById, activeTaskId, timerNow]
+    [tasksById, timerNow]
   );
 
   useEffect(() => {
@@ -888,6 +909,8 @@ export function usePlanner() {
         completed: false,
         position: nextPosition,
         seriesId: null,
+        elapsedMs: 0,
+        activeStartedAt: null,
       };
 
       setTasks((prev) => [...prev, newTask]);
@@ -965,6 +988,8 @@ export function usePlanner() {
       completed: false,
       position: nextPosition,
       seriesId,
+      elapsedMs: 0,
+      activeStartedAt: null,
     };
 
     setTasks((prev) => [...prev, newTask]);
@@ -1138,9 +1163,11 @@ export function usePlanner() {
     toggleRequestRef.current.set(id, requestId);
 
     const newStatus = !targetTask.completed;
-    if (newStatus && activeTaskId === id) {
-      stopActiveTask(id);
-    }
+    const wasActive = Boolean(targetTask.activeStartedAt);
+    const completionElapsed = wasActive
+      ? targetTask.elapsedMs +
+        Math.max(0, Date.now() - targetTask.activeStartedAt!.getTime())
+      : targetTask.elapsedMs;
     const dateKey = formatDateOnly(targetTask.date);
     const sameDayTasks = tasks.filter(
       (task) => task.id !== id && formatDateOnly(task.date) === dateKey
@@ -1156,7 +1183,13 @@ export function usePlanner() {
     setTasks((prev) =>
       prev.map((task) =>
         task.id === id
-          ? { ...task, completed: newStatus, position: nextPosition }
+          ? {
+              ...task,
+              completed: newStatus,
+              position: nextPosition,
+              activeStartedAt: newStatus ? null : task.activeStartedAt,
+              elapsedMs: newStatus ? completionElapsed : task.elapsedMs,
+            }
           : task
       )
     );
@@ -1173,7 +1206,13 @@ export function usePlanner() {
       setTasks((prev) =>
         prev.map((task) =>
           task.id === id
-            ? { ...task, completed: !newStatus, position: previousPosition }
+            ? {
+                ...task,
+                completed: !newStatus,
+                position: previousPosition,
+                activeStartedAt: targetTask.activeStartedAt,
+                elapsedMs: targetTask.elapsedMs,
+              }
             : task
         )
       );
@@ -1184,10 +1223,6 @@ export function usePlanner() {
     const taskToDelete = tasks.find((t) => t.id === id);
     if (!taskToDelete) return;
     const taskIndex = tasks.findIndex((t) => t.id === id);
-
-    if (activeTaskId === id) {
-      stopActiveTask(id);
-    }
 
     setTasks((prev) => prev.filter((task) => task.id !== id));
 
@@ -1276,6 +1311,8 @@ export function usePlanner() {
         telegram_id: userId,
         position: task.position ?? 0,
         series_id: task.seriesId ?? null,
+        elapsed_ms: task.elapsedMs ?? 0,
+        active_started_at: null,
       })
       .select()
       .single();

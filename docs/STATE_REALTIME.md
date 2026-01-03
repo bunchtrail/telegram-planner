@@ -11,6 +11,7 @@
   - `taskDates` (Set дат с задачами)
   - `goalsByPeriod` (группировка + сортировка по slot)
   - `hours/minutes` (остаток времени по незавершенным)
+  - `active task timer` — `elapsed_ms` + `active_started_at` в `tasks`
 
 ## Паттерн optimistic insert (почему так)
 
@@ -46,6 +47,14 @@ toggleTask/toggleGoal используют:
 - двойных кликов
 - задержек сети
 - out-of-order ответов
+
+## Таймер задачи (sync между устройствами)
+
+- Источник истины: поля `tasks.elapsed_ms` и `tasks.active_started_at`.
+- Включение/выключение — через RPC `toggle_task_timer(task_id)`, который:
+  - останавливает предыдущую активную задачу пользователя,
+  - запускает новую (если она не выполнена).
+- Завершение задачи автоматически останавливает таймер на уровне БД (trigger).
 
 ## Delete + Undo
 
