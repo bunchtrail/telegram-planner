@@ -676,7 +676,7 @@ export function usePlanner() {
 
           if (payload.eventType === 'DELETE') {
             const row = payload.old as TaskRow;
-            if (!row?.id || !isDateInActiveMonth(row.date)) return;
+            if (!row?.id) return;
             setTasks((prev) => prev.filter((task) => task.id !== row.id));
           }
         }
