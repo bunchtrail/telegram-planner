@@ -103,11 +103,11 @@ const TaskItem = memo(function TaskItem({
       id={task.id}
       dragListener={false}
       dragControls={dragControls}
-      layout="position"
+      layout
       initial={false}
       animate={{ opacity: task.completed ? 0.8 : 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95 }}
-      transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+      transition={{ type: 'spring', stiffness: 400, damping: 35 }}
       className={cn(
         'relative mb-3 overflow-hidden rounded-[24px] bg-[var(--surface)] shadow-[var(--shadow-card)] transition-all border transform-gpu will-change-transform',
         isActive
@@ -263,9 +263,11 @@ const TaskItem = memo(function TaskItem({
         <AnimatePresence initial={false}>
           {isExpanded && (
             <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
+              key="details"
+              initial={{ opacity: 0, y: -6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.18, ease: 'easeOut' }}
               className="overflow-hidden"
             >
               <div className="px-4 pb-4 pt-0 pl-[3.5rem] space-y-2">

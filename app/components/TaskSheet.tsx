@@ -224,7 +224,10 @@ export default function TaskSheet({
               </div>
             </div>
 
-            <div className="rounded-[24px] bg-[var(--surface-2)] p-2">
+            <motion.div
+              layout
+              className="rounded-[24px] bg-[var(--surface-2)] p-2"
+            >
               <button
                 type="button"
                 onClick={() => setShowRepeatOptions(!showRepeatOptions)}
@@ -259,9 +262,11 @@ export default function TaskSheet({
               <AnimatePresence>
                 {showRepeatOptions && (
                   <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: "auto", opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
+                    key="repeat-options"
+                    initial={{ opacity: 0, y: -6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -6 }}
+                    transition={{ duration: 0.18, ease: "easeOut" }}
                     className="overflow-hidden"
                   >
                     <div className="px-2 pt-0 pb-2 space-y-2">
@@ -350,7 +355,7 @@ export default function TaskSheet({
                   </motion.div>
                 )}
               </AnimatePresence>
-            </div>
+            </motion.div>
           </div>
         </form>
 

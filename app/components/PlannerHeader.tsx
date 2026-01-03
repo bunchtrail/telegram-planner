@@ -235,11 +235,11 @@ export default function PlannerHeader({
                   key={viewMode}
                   initial={{
                     opacity: 0,
-                    height: viewMode === "week" ? 64 : 280,
+                    y: 8,
                   }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.2 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.18, ease: "easeOut" }}
                 >
                   {viewMode === "week" ? (
                     <WeekStrip
