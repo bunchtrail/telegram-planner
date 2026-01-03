@@ -100,14 +100,17 @@ const TaskItem = memo(function TaskItem({
       dragControls={dragControls}
       layout="position"
       initial={false}
-      animate={{ opacity: 1, y: 0 }}
+      animate={{ opacity: task.completed ? 0.6 : 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95 }}
       transition={{ type: 'spring', stiffness: 400, damping: 30 }}
       className={cn(
-        'relative mb-3 overflow-hidden rounded-[24px] bg-[var(--surface)] shadow-[var(--shadow-card)] transition-colors border border-transparent transform-gpu will-change-transform',
-        isExpanded
-          ? 'ring-2 ring-[var(--surface-2)] shadow-none z-10'
-          : 'hover:border-[var(--border)]'
+        'relative mb-3 overflow-hidden rounded-[24px] bg-[var(--surface)] shadow-[var(--shadow-card)] transition-all border transform-gpu will-change-transform',
+        isActive
+          ? 'shadow-[var(--shadow-glow)] border-[var(--accent)]/50 bg-[var(--surface)] z-10'
+          : isExpanded
+            ? 'ring-2 ring-[var(--surface-2)] border-transparent shadow-none z-10'
+            : 'border-transparent hover:border-[var(--border)]',
+        task.completed && 'grayscale-[0.5]'
       )}
       style={{ transformOrigin: 'center' }}
       as="li"
@@ -119,7 +122,7 @@ const TaskItem = memo(function TaskItem({
           isExpanded && 'bg-[var(--surface-2)]/30'
         )}
       >
-        <div className="flex items-start gap-3.5 p-4">
+        <div className="flex items-center gap-3.5 p-3.5 pl-4 pr-2">
           <motion.button
             type="button"
             whileTap={{ scale: 0.8 }}
@@ -136,15 +139,15 @@ const TaskItem = memo(function TaskItem({
                 : 'Отметить как выполненную'
             }
             className={cn(
-              'mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-[2px] transition-colors',
+              'flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-full border-[2px] transition-all duration-300',
               task.completed
                 ? 'border-[var(--accent)] bg-[var(--accent)]'
-                : 'border-[var(--muted)]/30 hover:border-[var(--accent)]'
+                : 'border-[var(--muted)]/30 hover:border-[var(--accent)] bg-[var(--surface-2)]'
             )}
           >
             {task.completed && (
               <Check
-                size={14}
+                size={16}
                 strokeWidth={3.5}
                 className="text-[var(--accent-ink)]"
               />
@@ -152,7 +155,7 @@ const TaskItem = memo(function TaskItem({
           </motion.button>
 
           <div
-            className="flex-1 min-w-0 cursor-pointer pt-0.5 select-none touch-manipulation"
+            className="flex-1 min-w-0 cursor-pointer select-none touch-manipulation py-1"
             role="button"
             tabIndex={0}
             aria-expanded={isExpanded}
@@ -161,7 +164,7 @@ const TaskItem = memo(function TaskItem({
           >
             <p
               className={cn(
-                'text-[17px] font-medium leading-snug transition-colors',
+                'text-[17px] font-semibold leading-tight transition-colors mb-1.5 font-[var(--font-display)]',
                 task.completed
                   ? 'text-[var(--muted)] line-through'
                   : 'text-[var(--ink)]',
@@ -171,19 +174,26 @@ const TaskItem = memo(function TaskItem({
               {task.title}
             </p>
             {!task.completed && (
-              <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                <div className="inline-flex items-center gap-1 rounded-md bg-[var(--surface-2)] px-1.5 py-0.5 text-[11px] font-bold text-[var(--muted)]">
-                  <Clock size={10} strokeWidth={2.5} /> {task.duration} мин
+              <div className="flex items-center gap-2 flex-wrap">
+                <div className="inline-flex items-center gap-1 text-[11px] font-bold text-[var(--muted)] opacity-80 uppercase tracking-wide">
+                  <Clock size={11} strokeWidth={2.5} />
+                  <span>{task.duration} мин</span>
                 </div>
                 {(isActive || hasElapsed) && (
                   <div
                     className={cn(
-                      'inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-bold border',
+                      'inline-flex items-center gap-1.5 rounded-md px-1.5 py-0.5 text-[10px] font-bold border uppercase tracking-wide shadow-sm',
                       isActive
-                        ? 'bg-[var(--accent)]/10 text-[var(--accent)] border-[var(--accent)]/30'
-                        : 'bg-[var(--surface-2)] text-[var(--muted)] border-[var(--border)]'
+                        ? 'bg-[var(--accent)] text-[var(--accent-ink)] border-[var(--accent)]'
+                        : 'bg-[var(--surface-2)] text-[var(--ink)] border-[var(--border)]'
                     )}
                   >
+                    {isActive && (
+                      <span className="relative flex h-1.5 w-1.5">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75" />
+                        <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-white" />
+                      </span>
+                    )}
                     <Clock size={10} strokeWidth={2.5} />
                     {isActive ? 'В работе' : 'Факт'} {elapsedLabel}
                   </div>
@@ -192,7 +202,7 @@ const TaskItem = memo(function TaskItem({
                   <motion.span
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="text-[11px] font-semibold text-[var(--accent)] flex items-center"
+                    className="text-[11px] font-semibold text-[var(--accent)] flex items-center ml-auto mr-2"
                   >
                     Опции
                     <ChevronDown size={10} className="rotate-180 ml-0.5" />
@@ -205,7 +215,7 @@ const TaskItem = memo(function TaskItem({
           <button
             type="button"
             aria-label="Перетащить"
-            className="p-2 -m-2 text-[var(--muted)] opacity-30 active:opacity-100 cursor-grab active:cursor-grabbing touch-none"
+            className="h-10 w-10 flex items-center justify-center text-[var(--muted)] opacity-30 active:opacity-100 cursor-grab active:cursor-grabbing touch-none -mr-1"
             onPointerDown={(event) => {
               event.preventDefault();
               event.stopPropagation();
@@ -225,9 +235,9 @@ const TaskItem = memo(function TaskItem({
               exit={{ height: 0, opacity: 0 }}
               className="overflow-hidden"
             >
-              <div className="px-4 pb-4 pt-1 pl-[3.5rem]">
+              <div className="px-4 pb-4 pt-0 pl-[3.5rem] space-y-2">
                 {!task.completed ? (
-                  <div className="space-y-2">
+                  <>
                     <button
                       type="button"
                       onClick={(event) => {
@@ -237,108 +247,110 @@ const TaskItem = memo(function TaskItem({
                       }}
                       aria-pressed={isActive}
                       className={cn(
-                        'w-full h-[56px] rounded-[20px] flex items-center justify-center gap-2 text-[13px] font-bold transition-all active:scale-95',
+                        'w-full h-[52px] rounded-[18px] flex items-center justify-center gap-2 text-[13px] font-bold transition-all active:scale-[0.98]',
                         isActive
                           ? 'bg-[var(--accent)] text-[var(--accent-ink)] shadow-[var(--shadow-soft)]'
                           : 'bg-[var(--surface-2)] text-[var(--ink)] hover:bg-[var(--border)]'
                       )}
                     >
                       <Clock size={18} strokeWidth={2.5} />
-                      {isActive ? 'Остановить таймер' : 'Начать таймер'}
+                      {isActive ? 'Остановить' : 'Запустить таймер'}
                       {(isActive || hasElapsed) && (
-                        <span className="text-[11px] tabular-nums">
+                        <span className="opacity-80 tabular-nums font-medium ml-1">
                           {elapsedLabel}
                         </span>
                       )}
                     </button>
 
                     <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        setPendingDate(null);
-                        handleMoveTomorrow();
-                      }}
-                      className="col-span-1 flex flex-col items-center justify-center gap-1 h-[72px] rounded-[20px] bg-[var(--surface-2)] text-[var(--ink)] active:scale-95 transition-all relative overflow-hidden group"
-                    >
-                      <div className="absolute inset-0 bg-[var(--accent)]/10 opacity-0 group-hover:opacity-100 transition-opacity" />
-                      <Sunrise size={22} className="text-[var(--accent)] mb-0.5" />
-                      <span className="text-[12px] font-bold">Завтра</span>
-                    </button>
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setPendingDate(null);
+                          handleMoveTomorrow();
+                        }}
+                        className="col-span-1 flex flex-col items-center justify-center gap-1 h-[64px] rounded-[18px] bg-[var(--surface-2)] text-[var(--ink)] active:scale-95 transition-all relative overflow-hidden group hover:bg-[var(--border)]"
+                      >
+                        <Sunrise
+                          size={20}
+                          className="text-[var(--accent)] mb-0.5"
+                        />
+                        <span className="text-[12px] font-bold">Завтра</span>
+                      </button>
 
-                    <div className="col-span-1 relative h-[72px]">
-                      {hasPendingChange ? (
-                        <div className="absolute inset-0 flex flex-col gap-1">
-                          <button
-                            type="button"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              if (pendingDate) {
-                                handleMoveToDate(pendingDate);
-                              }
-                            }}
-                            className="flex-1 w-full bg-[var(--ink)] text-[var(--bg)] rounded-t-2xl flex items-center justify-center gap-1.5 active:opacity-90 transition-opacity"
-                          >
-                            <Check size={14} strokeWidth={3} />
-                            <span className="text-[11px] font-bold">ОК</span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              setPendingDate(null);
-                            }}
-                            className="flex-1 w-full bg-[var(--surface-2)] text-[var(--muted)] rounded-b-2xl flex items-center justify-center gap-1.5 active:bg-[var(--border)] transition-colors"
-                          >
-                            <X size={14} strokeWidth={3} />
-                            <span className="text-[11px] font-bold">Отмена</span>
-                          </button>
-                        </div>
-                      ) : (
-                        <>
-                          <input
-                            type="date"
-                            value={effectivePickerValue}
-                            onChange={(event) => setPendingDate(event.target.value)}
-                            onClick={(event) => event.stopPropagation()}
-                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
-                            aria-label="Выбрать дату"
-                          />
-                          <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 rounded-[20px] bg-[var(--surface-2)] text-[var(--ink)] pointer-events-none">
-                            <Calendar
-                              size={22}
-                              className="text-[var(--muted)] mb-0.5"
-                            />
-                            <span className="text-[12px] font-bold">Дата</span>
+                      <div className="col-span-1 relative h-[64px]">
+                        {hasPendingChange ? (
+                          <div className="absolute inset-0 flex flex-col gap-0.5">
+                            <button
+                              type="button"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                if (pendingDate) handleMoveToDate(pendingDate);
+                              }}
+                              className="flex-1 w-full bg-[var(--ink)] text-[var(--bg)] rounded-t-[18px] flex items-center justify-center gap-1.5 active:opacity-90"
+                            >
+                              <Check size={14} strokeWidth={3} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                setPendingDate(null);
+                              }}
+                              className="flex-1 w-full bg-[var(--surface-2)] text-[var(--muted)] rounded-b-[18px] flex items-center justify-center gap-1.5 active:bg-[var(--border)]"
+                            >
+                              <X size={14} strokeWidth={3} />
+                            </button>
                           </div>
-                        </>
-                      )}
-                    </div>
+                        ) : (
+                          <>
+                            <input
+                              type="date"
+                              value={effectivePickerValue}
+                              onChange={(event) =>
+                                setPendingDate(event.target.value)
+                              }
+                              onClick={(event) => event.stopPropagation()}
+                              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
+                              aria-label="Выбрать дату"
+                            />
+                            <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 rounded-[18px] bg-[var(--surface-2)] text-[var(--ink)] pointer-events-none hover:bg-[var(--border)] transition-colors">
+                              <Calendar
+                                size={20}
+                                className="text-[var(--muted)] mb-0.5"
+                              />
+                              <span className="text-[12px] font-bold">
+                                Дата
+                              </span>
+                            </div>
+                          </>
+                        )}
+                      </div>
 
-                    <button
-                      type="button"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        onEdit(task);
-                      }}
-                      className="col-span-1 flex items-center justify-center gap-2 h-[56px] rounded-[20px] bg-[var(--surface-2)] text-[var(--ink)] font-bold text-[13px] active:scale-95 transition-all hover:bg-[var(--border)]"
-                    >
-                      <Pencil size={18} /> Изменить
-                    </button>
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          onEdit(task);
+                        }}
+                        className="col-span-1 flex items-center justify-center gap-2 h-[52px] rounded-[18px] bg-[var(--surface-2)] text-[var(--ink)] font-bold text-[13px] active:scale-95 transition-all hover:bg-[var(--border)]"
+                      >
+                        <Pencil size={18} /> Изменить
+                      </button>
 
-                    <button
-                      type="button"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        onDelete(task.id);
-                      }}
-                      className="col-span-1 flex items-center justify-center gap-2 h-[56px] rounded-[20px] bg-[var(--danger)]/10 text-[var(--danger)] font-bold text-[13px] active:scale-95 transition-all hover:bg-[var(--danger)]/20"
-                    >
-                      <Trash2 size={18} /> Удалить
-                    </button>
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          onDelete(task.id);
+                        }}
+                        className="col-span-1 flex items-center justify-center gap-2 h-[52px] rounded-[18px] bg-[var(--danger)]/10 text-[var(--danger)] font-bold text-[13px] active:scale-95 transition-all hover:bg-[var(--danger)]/20"
+                      >
+                        <Trash2 size={18} /> Удалить
+                      </button>
                     </div>
-                  </div>
+                  </>
                 ) : (
                   <button
                     type="button"
@@ -346,7 +358,7 @@ const TaskItem = memo(function TaskItem({
                       event.stopPropagation();
                       onDelete(task.id);
                     }}
-                    className="w-full flex items-center justify-center gap-2 h-[56px] rounded-[20px] bg-[var(--surface-2)] text-[var(--danger)] font-bold text-[13px] active:scale-95 transition-all"
+                    className="w-full flex items-center justify-center gap-2 h-[52px] rounded-[18px] bg-[var(--surface-2)] text-[var(--danger)] font-bold text-[13px] active:scale-95 transition-all hover:bg-[var(--danger)]/10"
                   >
                     <Trash2 size={18} /> Удалить задачу
                   </button>

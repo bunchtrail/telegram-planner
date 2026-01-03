@@ -1,7 +1,7 @@
 "use client";
 
 import { type FormEvent, useCallback, useEffect, useRef, useState } from "react";
-import { ChevronRight, Clock, Repeat, X } from "lucide-react";
+import { Check, ChevronRight, Clock, Repeat, X } from "lucide-react";
 import {
   AnimatePresence,
   motion,
@@ -264,8 +264,10 @@ export default function TaskSheet({
                     exit={{ height: 0, opacity: 0 }}
                     className="overflow-hidden"
                   >
-                    <div className="overflow-hidden">
-                      <div className="mx-2 mt-2 overflow-hidden rounded-[20px] bg-[var(--surface-2)]/50 border border-[var(--border)]">
+                    <div className="px-2 pt-0 pb-2 space-y-2">
+                      <div className="h-px bg-[var(--border)] mx-3 my-1 opacity-50" />
+
+                      <div className="flex flex-col overflow-hidden rounded-[20px] bg-[var(--surface)]/50 border border-[var(--border)]/50">
                         {[
                           { id: "none", label: "Не повторять" },
                           { id: "daily", label: "Каждый день" },
@@ -286,27 +288,37 @@ export default function TaskSheet({
                                 }
                               }}
                               className={cn(
-                                "w-full text-left px-4 py-3.5 text-[15px] transition-colors active:bg-[var(--surface-2)]",
+                                "w-full text-left px-4 py-3 text-[14px] transition-colors active:bg-[var(--border)] flex items-center justify-between",
                                 repeat === opt.id
-                                  ? "text-[var(--ink)] font-bold"
+                                  ? "text-[var(--ink)] font-bold bg-[var(--surface)]"
                                   : "text-[var(--ink)] font-medium",
                               )}
                             >
                               {opt.label}
+                              {repeat === opt.id && (
+                                <motion.div
+                                  layoutId="check"
+                                  initial={{ scale: 0 }}
+                                  animate={{ scale: 1 }}
+                                  className="text-[var(--accent)]"
+                                >
+                                  <Check size={18} strokeWidth={3} />
+                                </motion.div>
+                              )}
                             </button>
                             {index < arr.length - 1 && (
-                              <div className="absolute bottom-0 left-4 right-0 h-px bg-[var(--border)] opacity-60" />
+                              <div className="absolute bottom-0 left-4 right-0 h-px bg-[var(--border)]" />
                             )}
                           </div>
                         ))}
                       </div>
 
                       {repeat !== "none" && (
-                        <div className="mt-2 flex items-center justify-between px-4 py-2">
+                        <div className="mt-2 flex items-center justify-between px-2 py-1">
                           <span className="text-sm font-medium text-[var(--muted)]">
                             {repeatCountLabel}
                           </span>
-                          <div className="flex items-center gap-2 bg-[var(--bg)] rounded-xl p-1 shadow-sm">
+                          <div className="flex items-center gap-2 bg-[var(--bg)] rounded-xl p-1 shadow-sm border border-[var(--border)]/50">
                             <button
                               type="button"
                               onClick={() =>
@@ -329,7 +341,7 @@ export default function TaskSheet({
                               +
                             </button>
                           </div>
-                          <span className="text-xs font-semibold text-[var(--muted)] mr-2">
+                          <span className="text-xs font-semibold text-[var(--muted)] ml-2 min-w-[30px]">
                             {repeatCountUnit}
                           </span>
                         </div>

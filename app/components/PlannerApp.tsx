@@ -8,7 +8,6 @@ import TaskSheet from './TaskSheet';
 import FloatingActionButton from './FloatingActionButton';
 import PlannerHeader from './PlannerHeader';
 import TaskList from './TaskList';
-import GoalsSection from './GoalsSection';
 import { usePlanner } from '../hooks/usePlanner';
 import { useHaptic } from '../hooks/useHaptic';
 import type { Task, TaskRepeat } from '../types/task';
@@ -192,7 +191,6 @@ export default function PlannerApp() {
             dateKey={format(selectedDate, 'yyyy-MM-dd')}
             tasks={currentTasks}
             isLoading={isLoading}
-            header={viewMode === 'week' ? <GoalsSection /> : null}
             onToggle={handleTaskToggle}
             onDelete={handleDelete}
             onEdit={handleOpenEdit}
