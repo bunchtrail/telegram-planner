@@ -821,7 +821,14 @@ export function usePlanner() {
       const dayTasks = tasks.filter((task) =>
         isSameDay(task.date, selectedDate)
       );
+      const isActiveTask = (task: Task) =>
+        Boolean(task.activeStartedAt) && !task.completed;
       return dayTasks.sort((a, b) => {
+        const aActive = isActiveTask(a);
+        const bActive = isActiveTask(b);
+        if (aActive !== bActive) {
+          return aActive ? -1 : 1;
+        }
         if (a.completed !== b.completed) {
           return a.completed ? 1 : -1;
         }

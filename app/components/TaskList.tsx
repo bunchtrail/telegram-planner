@@ -14,7 +14,6 @@ type TaskListProps = {
   onMove: (id: string, nextDateKey: string) => void;
   onAdd: () => void;
   onReorder: (tasks: Task[]) => void;
-  activeTaskId: string | null;
   onToggleActive: (id: string) => void;
   getElapsedMs: (id: string) => number;
 };
@@ -29,7 +28,6 @@ export default function TaskList({
   onMove,
   onAdd,
   onReorder,
-  activeTaskId,
   onToggleActive,
   getElapsedMs,
 }: TaskListProps) {
@@ -130,7 +128,7 @@ export default function TaskList({
               onDelete={onDelete}
               onEdit={onEdit}
               onMove={onMove}
-              isActive={task.id === activeTaskId}
+              isActive={Boolean(task.activeStartedAt) && !task.completed}
               elapsedMs={getElapsedMs(task.id)}
               onToggleActive={onToggleActive}
             />

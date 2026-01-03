@@ -26,7 +26,6 @@ export default function PlannerApp() {
     taskDates,
     hours,
     minutes,
-    activeTaskId,
     toggleActiveTask,
     getTaskElapsedMs,
     goToToday,
@@ -198,7 +197,6 @@ export default function PlannerApp() {
             onMove={handleMoveTask}
             onAdd={handleOpenCreate}
             onReorder={handleReorder}
-            activeTaskId={activeTaskId}
             onToggleActive={toggleActiveTask}
             getElapsedMs={getTaskElapsedMs}
           />
