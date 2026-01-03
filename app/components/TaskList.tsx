@@ -33,7 +33,7 @@ export default function TaskList({
   onToggleActive,
   getElapsedMs,
 }: TaskListProps) {
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const prevTaskIdsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
@@ -47,13 +47,22 @@ export default function TaskList({
       }
     }
     if (isIncremental && nextIds.size > prevIds.size) {
-      const prefersReducedMotion =
-        typeof window !== 'undefined' &&
-        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      bottomRef.current?.scrollIntoView({
-        behavior: prefersReducedMotion ? 'auto' : 'smooth',
-        block: 'start',
-      });
+      const container = scrollContainerRef.current;
+      if (container) {
+        const prefersReducedMotion =
+          typeof window !== 'undefined' &&
+          window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const isScrollable = container.scrollHeight > container.clientHeight + 1;
+        const nearBottom =
+          container.scrollTop + container.clientHeight >=
+          container.scrollHeight - 120;
+        if (isScrollable && nearBottom) {
+          container.scrollTo({
+            top: container.scrollHeight,
+            behavior: prefersReducedMotion ? 'auto' : 'smooth',
+          });
+        }
+      }
     }
     prevTaskIdsRef.current = nextIds;
   }, [tasks]);
@@ -102,7 +111,7 @@ export default function TaskList({
   }
 
   return (
-    <motion.div className={scrollClasses} layoutScroll>
+    <motion.div ref={scrollContainerRef} className={scrollClasses} layoutScroll>
       <Reorder.Group
         key={dateKey}
         axis="y"
@@ -128,7 +137,7 @@ export default function TaskList({
           ))}
         </AnimatePresence>
       </Reorder.Group>
-      <div ref={bottomRef} className="h-4" />
+      <div className="h-4" />
     </motion.div>
   );
 }

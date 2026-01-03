@@ -93,6 +93,12 @@ RLS включен, политики работают через claim:
 
 RLS применяется ко всем таблицам: `tasks`, `task_series`, `task_series_skips`.
 
+## Realtime и DELETE события
+
+Чтобы фильтры Realtime по `telegram_id` корректно работали на DELETE,
+таблицы имеют `REPLICA IDENTITY FULL` — это гарантирует, что `old` содержит
+`telegram_id` и события не теряются.
+
 ## Best practices для изменений схемы
 
 ### 1) Миграции

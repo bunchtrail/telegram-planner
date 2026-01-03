@@ -53,6 +53,10 @@ create table if not exists public.tasks (
   )
 );
 
+alter table public.tasks replica identity full;
+alter table public.task_series replica identity full;
+alter table public.task_series_skips replica identity full;
+
 create index if not exists tasks_telegram_id_date_idx
   on public.tasks (telegram_id, date);
 
