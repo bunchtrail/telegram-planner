@@ -829,9 +829,6 @@ export function usePlanner() {
         if (aActive !== bActive) {
           return aActive ? -1 : 1;
         }
-        if (a.completed !== b.completed) {
-          return a.completed ? 1 : -1;
-        }
         const aPos = a.position ?? 0;
         const bPos = b.position ?? 0;
         if (aPos !== bPos) return aPos - bPos;
@@ -1217,25 +1214,12 @@ export function usePlanner() {
       ? targetTask.elapsedMs +
         Math.max(0, Date.now() - targetTask.activeStartedAt!.getTime())
       : targetTask.elapsedMs;
-    const dateKey = formatDateOnly(targetTask.date);
-    const sameDayTasks = tasks.filter(
-      (task) => task.id !== id && formatDateOnly(task.date) === dateKey
-    );
-    const getMaxPosition = (list: Task[]) =>
-      list.reduce((max, task) => Math.max(max, task.position ?? 0), -1);
-    const completedTasks = sameDayTasks.filter((task) => task.completed);
-    const incompleteTasks = sameDayTasks.filter((task) => !task.completed);
-    const nextPosition = newStatus
-      ? getMaxPosition(completedTasks) + 1
-      : getMaxPosition(incompleteTasks) + 1;
-    const previousPosition = targetTask.position ?? 0;
     setTasks((prev) =>
       prev.map((task) =>
         task.id === id
           ? {
               ...task,
               completed: newStatus,
-              position: nextPosition,
               activeStartedAt: newStatus ? null : task.activeStartedAt,
               elapsedMs: newStatus ? completionElapsed : task.elapsedMs,
             }
@@ -1245,7 +1229,7 @@ export function usePlanner() {
 
     const { error } = await supabase
       .from('tasks')
-      .update({ completed: newStatus, position: nextPosition })
+      .update({ completed: newStatus })
       .eq('id', id);
 
     if (error) {
@@ -1258,7 +1242,6 @@ export function usePlanner() {
             ? {
                 ...task,
                 completed: !newStatus,
-                position: previousPosition,
                 activeStartedAt: targetTask.activeStartedAt,
                 elapsedMs: targetTask.elapsedMs,
               }
