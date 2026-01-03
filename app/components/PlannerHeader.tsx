@@ -41,19 +41,20 @@ export default function PlannerHeader({
   const { impact } = useHaptic();
   const isToday =
     format(selectedDate, "yyyy-MM-dd") === format(new Date(), "yyyy-MM-dd");
+  const hasTime = hours > 0 || minutes > 0;
 
   return (
     <header className="relative z-30 flex flex-col glass rounded-b-[32px] shadow-[var(--shadow-soft)] transition-all">
       <div className="pl-[max(1rem,env(safe-area-inset-left),var(--tg-content-safe-left,0px))] pr-[max(1rem,env(safe-area-inset-right),var(--tg-content-safe-right,0px))] pt-[calc(max(env(safe-area-inset-top),var(--tg-content-safe-top,0px))+var(--tma-tg-controls-top,0px)+1rem)] pb-0">
         <div className="flex items-center justify-between gap-2 mb-3">
-          <div className="flex items-center gap-1 min-w-0">
+          <div className="flex items-center gap-1 min-w-0 flex-1 mr-2">
             <button
               type="button"
               onClick={() => {
                 impact("light");
                 onPrev();
               }}
-              className="p-1.5 rounded-xl hover:bg-[var(--border)] text-[var(--muted)] active:scale-90 transition-all"
+              className="p-1.5 rounded-xl hover:bg-[var(--border)] text-[var(--muted)] active:scale-90 transition-all flex-shrink-0"
               aria-label="Назад"
             >
               <ChevronLeft size={22} />
@@ -61,15 +62,29 @@ export default function PlannerHeader({
 
             <button
               type="button"
-              className="flex flex-col items-start px-1.5 cursor-pointer active:opacity-60 transition-opacity text-left min-w-0"
+              className="flex flex-col items-start px-1.5 cursor-pointer active:opacity-60 transition-opacity text-left min-w-0 overflow-hidden"
               onClick={() => {
                 impact("light");
                 onToday();
               }}
             >
-              <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)] leading-none mb-0.5 ml-[1px]">
-                {format(selectedDate, "LLLL", { locale: ru })}
-              </span>
+              <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-[var(--muted)] leading-none mb-0.5 ml-[1px] whitespace-nowrap">
+                <span>{format(selectedDate, "LLLL", { locale: ru })}</span>
+                {hasTime && (
+                  <motion.div
+                    initial={{ opacity: 0, x: -5 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className="flex items-center gap-1 text-[var(--accent)]"
+                  >
+                    <span className="w-0.5 h-0.5 rounded-full bg-[var(--muted)]" />
+                    <Clock size={10} strokeWidth={3} />
+                    <span>
+                      {hours > 0 ? `${hours}ч` : ""} {minutes > 0 ? `${minutes}м` : ""}
+                    </span>
+                  </motion.div>
+                )}
+              </div>
+
               <div className="flex items-center gap-1.5 w-full">
                 <h1 className="text-[19px] font-bold capitalize text-[var(--ink)] font-[var(--font-display)] leading-none tracking-tight truncate">
                   {format(selectedDate, "d, EEEE", { locale: ru })}
@@ -86,14 +101,14 @@ export default function PlannerHeader({
                 impact("light");
                 onNext();
               }}
-              className="p-1.5 rounded-xl hover:bg-[var(--border)] text-[var(--muted)] active:scale-90 transition-all"
+              className="p-1.5 rounded-xl hover:bg-[var(--border)] text-[var(--muted)] active:scale-90 transition-all flex-shrink-0"
               aria-label="Вперед"
             >
               <ChevronRight size={22} />
             </button>
           </div>
 
-          <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="flex-shrink-0">
             <div className="flex bg-[var(--surface-2)] p-0.5 rounded-[12px] h-9 border border-[var(--border)]/50">
               {(["week", "month"] as const).map((mode) => (
                 <button
@@ -106,7 +121,7 @@ export default function PlannerHeader({
                     }
                   }}
                   className={cn(
-                    "relative px-3 text-[11px] font-bold rounded-[10px] transition-all z-10",
+                    "relative px-3 text-[11px] font-bold rounded-[10px] transition-all z-10 w-[42px]",
                     viewMode === mode
                       ? "text-[var(--ink)]"
                       : "text-[var(--muted)] hover:text-[var(--ink)]",
@@ -124,19 +139,6 @@ export default function PlannerHeader({
                 </button>
               ))}
             </div>
-
-            {(hours > 0 || minutes > 0) && (
-              <div className="flex items-center gap-1.5 h-9 px-2.5 rounded-[12px] bg-[var(--surface-2)] border border-[var(--border)]/50">
-                <Clock
-                  size={13}
-                  className="text-[var(--accent)]"
-                  strokeWidth={2.5}
-                />
-                <span className="text-[11px] font-bold tabular-nums text-[var(--ink)] pt-[1px]">
-                  {hours > 0 ? `${hours}ч` : `${minutes}м`}
-                </span>
-              </div>
-            )}
           </div>
         </div>
       </div>

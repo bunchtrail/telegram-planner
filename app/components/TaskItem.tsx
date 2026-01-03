@@ -10,6 +10,7 @@ import {
   Pencil,
   Sunrise,
   Trash2,
+  X,
 } from 'lucide-react';
 import type { Task } from '../types/task';
 import { cn } from '../lib/cn';
@@ -150,7 +151,7 @@ const TaskItem = memo(function TaskItem({
             </p>
             {!task.completed && (
               <div className="flex items-center gap-2 mt-1.5">
-                <div className="inline-flex items-center gap-1 rounded-md bg-[var(--surface-2)] px-1.5 py-0.5 text-[11px] font-bold text-[var(--muted)] border border-[var(--border)]">
+                <div className="inline-flex items-center gap-1 rounded-md bg-[var(--surface-2)] px-1.5 py-0.5 text-[11px] font-bold text-[var(--muted)]">
                   <Clock size={10} strokeWidth={2.5} /> {task.duration} мин
                 </div>
                 {isExpanded && (
@@ -190,106 +191,106 @@ const TaskItem = memo(function TaskItem({
               exit={{ height: 0, opacity: 0 }}
               className="overflow-hidden"
             >
-              <div className="px-4 pb-4 pt-0 pl-[3.5rem]">
-                {!task.completed && (
-                  <>
-                    <div className="mb-4 space-y-2">
-                      <span className="text-[11px] font-bold uppercase tracking-widest text-[var(--muted)]">
-                        Перенести на
-                      </span>
+              <div className="px-4 pb-4 pt-1 pl-[3.5rem]">
+                {!task.completed ? (
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setPendingDate(null);
+                        handleMoveTomorrow();
+                      }}
+                      className="col-span-1 flex flex-col items-center justify-center gap-1 h-[72px] rounded-2xl bg-[var(--surface-2)] text-[var(--ink)] active:scale-95 transition-all relative overflow-hidden group"
+                    >
+                      <div className="absolute inset-0 bg-[var(--accent)]/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      <Sunrise size={22} className="text-[var(--accent)] mb-0.5" />
+                      <span className="text-[12px] font-bold">Завтра</span>
+                    </button>
 
-                      <div className="grid grid-cols-2 gap-2">
-                        <button
-                          type="button"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            setPendingDate(null);
-                            handleMoveTomorrow();
-                          }}
-                          className="flex items-center justify-center gap-2 h-10 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-[13px] font-semibold text-[var(--ink)] hover:bg-[var(--surface-2)] active:scale-[0.98] transition-all"
-                        >
-                          <Sunrise size={16} className="text-[var(--accent)]" />
-                          Завтра
-                        </button>
-
-                        <div className="relative h-10 w-full">
+                    <div className="col-span-1 relative h-[72px]">
+                      {hasPendingChange ? (
+                        <div className="absolute inset-0 flex flex-col gap-1">
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              if (pendingDate) {
+                                handleMoveToDate(pendingDate);
+                              }
+                            }}
+                            className="flex-1 w-full bg-[var(--ink)] text-[var(--bg)] rounded-t-2xl flex items-center justify-center gap-1.5 active:opacity-90 transition-opacity"
+                          >
+                            <Check size={14} strokeWidth={3} />
+                            <span className="text-[11px] font-bold">ОК</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setPendingDate(null);
+                            }}
+                            className="flex-1 w-full bg-[var(--surface-2)] text-[var(--muted)] rounded-b-2xl flex items-center justify-center gap-1.5 active:bg-[var(--border)] transition-colors"
+                          >
+                            <X size={14} strokeWidth={3} />
+                            <span className="text-[11px] font-bold">Отмена</span>
+                          </button>
+                        </div>
+                      ) : (
+                        <>
                           <input
                             type="date"
                             value={effectivePickerValue}
-                            onChange={(event) => {
-                              setPendingDate(event.target.value);
-                            }}
+                            onChange={(event) => setPendingDate(event.target.value)}
                             onClick={(event) => event.stopPropagation()}
-                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
                             aria-label="Выбрать дату"
                           />
-                          <div className="absolute inset-0 flex items-center justify-center gap-2 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-[13px] font-semibold text-[var(--ink)] pointer-events-none">
-                            <Calendar size={16} className="text-[var(--muted)]" />
-                            {hasPendingChange ? 'Дата выбрана' : 'Выбрать дату'}
+                          <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 rounded-2xl bg-[var(--surface-2)] text-[var(--ink)] pointer-events-none">
+                            <Calendar
+                              size={22}
+                              className="text-[var(--muted)] mb-0.5"
+                            />
+                            <span className="text-[12px] font-bold">Дата</span>
                           </div>
-                        </div>
-                      </div>
-
-                      {hasPendingChange && (
-                        <div className="flex gap-2 pt-1">
-                          <button
-                            type="button"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              impact('light');
-                              setPendingDate(null);
-                            }}
-                            className="flex-1 h-10 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-[13px] font-semibold text-[var(--muted)] hover:bg-[var(--surface-2)] active:scale-[0.98] transition-all"
-                          >
-                            Отмена
-                          </button>
-                          <button
-                            type="button"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              if (!pendingDate) return;
-                              handleMoveToDate(pendingDate);
-                            }}
-                            className="flex-1 h-10 rounded-xl bg-[var(--ink)] text-[var(--bg)] text-[13px] font-bold hover:opacity-95 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
-                          >
-                            <Check size={16} />
-                            Готово
-                          </button>
-                        </div>
+                        </>
                       )}
                     </div>
 
-                    <div className="h-[1px] bg-[var(--border)] mb-4 opacity-50" />
-                  </>
-                )}
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onEdit(task);
+                      }}
+                      className="col-span-1 flex items-center justify-center gap-2 h-[56px] rounded-2xl bg-[var(--surface-2)] text-[var(--ink)] font-bold text-[13px] active:scale-95 transition-all hover:bg-[var(--border)]"
+                    >
+                      <Pencil size={18} /> Изменить
+                    </button>
 
-                <div className="flex gap-3">
-                  <motion.button
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onDelete(task.id);
+                      }}
+                      className="col-span-1 flex items-center justify-center gap-2 h-[56px] rounded-2xl bg-[var(--danger)]/10 text-[var(--danger)] font-bold text-[13px] active:scale-95 transition-all hover:bg-[var(--danger)]/20"
+                    >
+                      <Trash2 size={18} /> Удалить
+                    </button>
+                  </div>
+                ) : (
+                  <button
                     type="button"
-                    whileTap={{ scale: 0.96 }}
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      onEdit(task);
-                    }}
-                    className="flex-1 rounded-xl bg-[var(--surface)] py-3 text-[14px] font-bold text-[var(--ink)] shadow-sm border border-[var(--border)] hover:bg-[var(--surface-2)]"
-                  >
-                    <div className="flex items-center justify-center gap-2">
-                      <Pencil size={16} /> Изменить
-                    </div>
-                  </motion.button>
-                  <motion.button
-                    type="button"
-                    whileTap={{ scale: 0.96 }}
                     onClick={(event) => {
                       event.stopPropagation();
                       onDelete(task.id);
                     }}
-                    aria-label="Удалить"
-                    className="px-5 rounded-xl bg-[var(--surface)] text-[var(--danger)] shadow-sm border border-[var(--border)] hover:bg-[var(--danger)]/5"
+                    className="w-full flex items-center justify-center gap-2 h-[56px] rounded-2xl bg-[var(--surface-2)] text-[var(--danger)] font-bold text-[13px] active:scale-95 transition-all"
                   >
-                    <Trash2 size={18} />
-                  </motion.button>
-                </div>
+                    <Trash2 size={18} /> Удалить задачу
+                  </button>
+                )}
               </div>
             </motion.div>
           )}

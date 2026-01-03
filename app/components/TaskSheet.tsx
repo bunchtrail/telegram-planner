@@ -106,7 +106,6 @@ export default function TaskSheet({
 
   useEffect(() => {
     setTimeout(adjustTextareaHeight, 0);
-
     if (mode === "create") {
       setTimeout(() => {
         inputRef.current?.focus({ preventScroll: true });
@@ -120,7 +119,7 @@ export default function TaskSheet({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="absolute inset-0 bg-black/30 backdrop-blur-[2px] pointer-events-auto transition-colors"
+        className="absolute inset-0 bg-black/40 backdrop-blur-[4px] pointer-events-auto transition-colors"
         onClick={handleClose}
       />
 
@@ -135,7 +134,7 @@ export default function TaskSheet({
         dragConstraints={{ top: 0 }}
         dragElastic={0.05}
         onDragEnd={handleDragEnd}
-        className="pointer-events-auto relative w-full bg-[var(--surface)] rounded-t-[36px] shadow-[var(--shadow-pop)] flex flex-col max-h-[92dvh]"
+        className="pointer-events-auto relative w-full bg-[var(--surface-glass)] backdrop-blur-2xl rounded-t-[36px] shadow-[var(--shadow-pop)] flex flex-col max-h-[92dvh] border-t border-white/10"
         style={{
           paddingBottom:
             "max(env(safe-area-inset-bottom), var(--tg-content-safe-bottom, 0px), 20px)",
@@ -148,8 +147,8 @@ export default function TaskSheet({
           <div className="w-12 h-1.5 bg-[var(--border)] rounded-full opacity-60" />
         </div>
 
-        <div className="px-6 flex items-center justify-between shrink-0 mb-2">
-          <h2 className="text-[15px] font-bold text-[var(--muted)] uppercase tracking-wider">
+        <div className="px-6 flex items-center justify-between shrink-0 mb-1">
+          <h2 className="text-[13px] font-bold text-[var(--muted)] uppercase tracking-wider">
             {mode === "create" ? "Новая задача" : "Редактирование"}
           </h2>
           <button
@@ -167,7 +166,7 @@ export default function TaskSheet({
           onSubmit={handleSubmit}
           className="flex flex-col min-h-0 overflow-y-auto overscroll-contain px-6"
         >
-          <div className="py-5">
+          <div className="py-4">
             <textarea
               ref={inputRef}
               rows={1}
@@ -188,7 +187,7 @@ export default function TaskSheet({
                   }
                 }
               }}
-              placeholder="Что нужно сделать?"
+              placeholder="Что планируете?"
               className="w-full bg-transparent text-[24px] font-bold text-[var(--ink)] placeholder:text-[var(--muted)]/40 resize-none outline-none leading-tight"
               style={{ minHeight: "44px" }}
             />
@@ -196,14 +195,14 @@ export default function TaskSheet({
 
           <div className="space-y-6 mb-8">
             <div className="mt-2">
-              <div className="flex items-center gap-2 mb-4 text-[var(--muted)]">
+              <div className="flex items-center gap-2 mb-3 text-[var(--muted)]">
                 <Clock size={16} />
                 <span className="text-xs font-bold uppercase tracking-widest">
                   Длительность
                 </span>
               </div>
 
-              <div className="flex gap-3 overflow-x-auto no-scrollbar -mx-6 px-6 pb-2">
+              <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-6 px-6 pb-2">
                 {DURATION_PRESETS.map((value) => (
                   <button
                     key={value}
@@ -213,13 +212,13 @@ export default function TaskSheet({
                       setDuration(value);
                     }}
                     className={cn(
-                      "flex-none h-11 px-5 rounded-[18px] text-[15px] font-bold transition-all active:scale-95 border",
+                      "flex-none h-12 min-w-[70px] px-4 rounded-2xl text-[15px] font-bold transition-all active:scale-95 flex items-center justify-center",
                       duration === value
-                        ? "bg-[var(--accent)] text-[var(--accent-ink)] border-[var(--accent)] shadow-[var(--shadow-soft)]"
-                        : "bg-[var(--surface)] border-[var(--border)] text-[var(--ink)] hover:bg-[var(--surface-2)]",
+                        ? "bg-[var(--accent)] text-[var(--accent-ink)] shadow-[var(--shadow-soft)]"
+                        : "bg-[var(--surface-2)] text-[var(--ink)] hover:bg-[var(--border)]",
                     )}
                   >
-                    {value} мин
+                    {value} м
                   </button>
                 ))}
               </div>
@@ -229,10 +228,10 @@ export default function TaskSheet({
               <button
                 type="button"
                 onClick={() => setShowRepeatOptions(!showRepeatOptions)}
-                className="flex w-full items-center justify-between p-3 rounded-2xl hover:bg-[var(--surface)] transition-colors"
+                className="flex w-full items-center justify-between p-3 rounded-2xl hover:bg-[var(--surface)]/50 transition-colors"
               >
                 <div className="flex items-center gap-3.5">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--accent)] text-[var(--accent-ink)] shadow-sm">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--bg)] text-[var(--ink)] shadow-sm">
                     <Repeat size={18} strokeWidth={2.5} />
                   </div>
                   <span className="text-[16px] font-semibold text-[var(--ink)]">
@@ -289,7 +288,7 @@ export default function TaskSheet({
                           className={cn(
                             "w-full text-left px-4 py-3 rounded-xl text-[14px] font-medium transition-all",
                             repeat === opt.id
-                              ? "bg-[var(--surface)] text-[var(--ink)] shadow-sm font-bold"
+                              ? "bg-[var(--bg)] text-[var(--ink)] shadow-sm font-bold"
                               : "text-[var(--muted)] hover:text-[var(--ink)]",
                           )}
                         >
@@ -302,14 +301,13 @@ export default function TaskSheet({
                           <span className="text-sm font-medium text-[var(--muted)]">
                             {repeatCountLabel}
                           </span>
-                          <div className="flex items-center gap-3 bg-[var(--surface)] rounded-xl p-1 shadow-sm border border-[var(--border)]">
+                          <div className="flex items-center gap-2 bg-[var(--bg)] rounded-xl p-1 shadow-sm">
                             <button
                               type="button"
                               onClick={() =>
                                 setRepeatCount(clampRepeatCount(repeatCount - 1))
                               }
-                              aria-label="Уменьшить"
-                              className="w-8 h-8 flex items-center justify-center text-[var(--ink)] hover:bg-[var(--surface-2)] rounded-lg"
+                              className="w-8 h-8 flex items-center justify-center text-[var(--ink)] hover:bg-[var(--surface-2)] rounded-lg active:scale-90 transition-transform"
                             >
                               -
                             </button>
@@ -321,8 +319,7 @@ export default function TaskSheet({
                               onClick={() =>
                                 setRepeatCount(clampRepeatCount(repeatCount + 1))
                               }
-                              aria-label="Увеличить"
-                              className="w-8 h-8 flex items-center justify-center text-[var(--ink)] hover:bg-[var(--surface-2)] rounded-lg"
+                              className="w-8 h-8 flex items-center justify-center text-[var(--ink)] hover:bg-[var(--surface-2)] rounded-lg active:scale-90 transition-transform"
                             >
                               +
                             </button>
@@ -352,9 +349,9 @@ export default function TaskSheet({
                 );
               }
             }}
-            className="w-full h-14 rounded-[20px] bg-[var(--ink)] text-[var(--bg)] text-[17px] font-bold shadow-xl shadow-[var(--ink)]/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+            className="w-full h-14 rounded-[24px] bg-[var(--ink)] text-[var(--bg)] text-[17px] font-bold shadow-xl shadow-[var(--ink)]/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
           >
-            {mode === "create" ? "Создать задачу" : "Сохранить"}
+            {mode === "create" ? "Создать" : "Сохранить"}
           </button>
         </div>
       </motion.div>
