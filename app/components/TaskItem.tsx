@@ -1,11 +1,13 @@
 import {
   memo,
+  useLayoutEffect,
+  useRef,
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
   type MouseEvent,
 } from 'react';
 import { addDays, format } from 'date-fns';
-import { AnimatePresence, Reorder, motion, useDragControls } from 'framer-motion';
+import { Reorder, motion, useDragControls } from 'framer-motion';
 import {
   Calendar,
   Check,
@@ -46,6 +48,8 @@ const TaskItem = memo(function TaskItem({
   const dragControls = useDragControls();
   const [isExpanded, setIsExpanded] = useState(false);
   const [pendingDate, setPendingDate] = useState<string | null>(null);
+  const detailsRef = useRef<HTMLDivElement>(null);
+  const [detailsHeight, setDetailsHeight] = useState(0);
 
   const toggleExpand = () => {
     selection();
@@ -96,6 +100,21 @@ const TaskItem = memo(function TaskItem({
   };
   const hasElapsed = elapsedMs > 0;
   const elapsedLabel = formatElapsed(elapsedMs);
+
+  useLayoutEffect(() => {
+    if (!isExpanded) return;
+    const el = detailsRef.current;
+    if (!el) return;
+    const update = () => {
+      setDetailsHeight(el.scrollHeight);
+    };
+    update();
+    if (typeof ResizeObserver !== 'undefined') {
+      const observer = new ResizeObserver(update);
+      observer.observe(el);
+      return () => observer.disconnect();
+    }
+  }, [isExpanded, pendingDate, task.completed, isActive, elapsedMs]);
 
   return (
     <Reorder.Item
@@ -259,148 +278,139 @@ const TaskItem = memo(function TaskItem({
           </button>
         </div>
 
-        <AnimatePresence initial={false}>
-          {isExpanded && (
-            <motion.div
-              key="details"
-              initial={{ opacity: 0, y: -6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -6 }}
-              transition={{ duration: 0.18, ease: 'easeOut' }}
-              className="overflow-hidden"
-            >
-              <div className="px-4 pb-4 pt-0 pl-[3.5rem] space-y-2">
-                {!task.completed ? (
-                  <>
-                    <button
-                      type="button"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        impact('light');
-                        onToggleActive(task.id);
-                      }}
-                      aria-pressed={isActive}
-                      className={cn(
-                        'w-full h-[52px] rounded-[18px] flex items-center justify-center gap-2 text-[13px] font-bold transition-[transform,colors] duration-200 active:scale-[0.98]',
-                        isActive
-                          ? 'bg-[var(--accent)] text-[var(--accent-ink)] shadow-[var(--shadow-soft)]'
-                          : 'bg-[var(--surface-2)] text-[var(--ink)] hover:bg-[var(--border)]'
-                      )}
-                    >
-                      <Clock size={18} strokeWidth={2.5} />
-                      {isActive ? 'Остановить' : 'Запустить таймер'}
-                      {(isActive || hasElapsed) && (
-                        <span className="opacity-80 tabular-nums font-medium ml-1">
-                          {elapsedLabel}
-                        </span>
-                      )}
-                    </button>
+        <motion.div
+          initial={false}
+          animate={{
+            height: isExpanded ? detailsHeight : 0,
+            opacity: isExpanded ? 1 : 0,
+          }}
+          transition={{ duration: 0.18, ease: 'easeOut' }}
+          className="overflow-hidden"
+          style={{ pointerEvents: isExpanded ? 'auto' : 'none' }}
+        >
+          <div ref={detailsRef} className="px-4 pb-4 pt-0 pl-[3.5rem] space-y-2">
+            {!task.completed ? (
+              <>
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    impact('light');
+                    onToggleActive(task.id);
+                  }}
+                  aria-pressed={isActive}
+                  className={cn(
+                    'w-full h-[52px] rounded-[18px] flex items-center justify-center gap-2 text-[13px] font-bold transition-[transform,colors] duration-200 active:scale-[0.98]',
+                    isActive
+                      ? 'bg-[var(--accent)] text-[var(--accent-ink)] shadow-[var(--shadow-soft)]'
+                      : 'bg-[var(--surface-2)] text-[var(--ink)] hover:bg-[var(--border)]'
+                  )}
+                >
+                  <Clock size={18} strokeWidth={2.5} />
+                  {isActive ? 'Остановить' : 'Запустить таймер'}
+                  {(isActive || hasElapsed) && (
+                    <span className="opacity-80 tabular-nums font-medium ml-1">
+                      {elapsedLabel}
+                    </span>
+                  )}
+                </button>
 
-                    <div className="grid grid-cols-2 gap-2">
-                      <button
-                        type="button"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          setPendingDate(null);
-                          handleMoveTomorrow();
-                        }}
-                        className="col-span-1 flex flex-col items-center justify-center gap-1 h-[64px] rounded-[18px] bg-[var(--surface-2)] text-[var(--ink)] active:scale-95 transition-[transform,colors] duration-200 relative overflow-hidden group hover:bg-[var(--border)]"
-                      >
-                        <Sunrise
-                          size={20}
-                          className="text-[var(--accent)] mb-0.5"
-                        />
-                        <span className="text-[12px] font-bold">Завтра</span>
-                      </button>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setPendingDate(null);
+                      handleMoveTomorrow();
+                    }}
+                    className="col-span-1 flex flex-col items-center justify-center gap-1 h-[64px] rounded-[18px] bg-[var(--surface-2)] text-[var(--ink)] active:scale-95 transition-[transform,colors] duration-200 relative overflow-hidden group hover:bg-[var(--border)]"
+                  >
+                    <Sunrise size={20} className="text-[var(--accent)] mb-0.5" />
+                    <span className="text-[12px] font-bold">Завтра</span>
+                  </button>
 
-                      <div className="col-span-1 relative h-[64px]">
-                        {hasPendingChange ? (
-                          <div className="absolute inset-0 flex flex-col gap-0.5">
-                            <button
-                              type="button"
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                if (pendingDate) handleMoveToDate(pendingDate);
-                              }}
-                              className="flex-1 w-full bg-[var(--ink)] text-[var(--bg)] rounded-t-[18px] flex items-center justify-center gap-1.5 active:opacity-90"
-                            >
-                              <Check size={14} strokeWidth={3} />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                setPendingDate(null);
-                              }}
-                              className="flex-1 w-full bg-[var(--surface-2)] text-[var(--muted)] rounded-b-[18px] flex items-center justify-center gap-1.5 active:bg-[var(--border)]"
-                            >
-                              <X size={14} strokeWidth={3} />
-                            </button>
-                          </div>
-                        ) : (
-                          <>
-                            <input
-                              type="date"
-                              value={effectivePickerValue}
-                              onChange={(event) =>
-                                setPendingDate(event.target.value)
-                              }
-                              onClick={(event) => event.stopPropagation()}
-                              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
-                              aria-label="Выбрать дату"
-                            />
-                            <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 rounded-[18px] bg-[var(--surface-2)] text-[var(--ink)] pointer-events-none hover:bg-[var(--border)] transition-colors">
-                              <Calendar
-                                size={20}
-                                className="text-[var(--muted)] mb-0.5"
-                              />
-                              <span className="text-[12px] font-bold">
-                                Дата
-                              </span>
-                            </div>
-                          </>
-                        )}
+                  <div className="col-span-1 relative h-[64px]">
+                    {hasPendingChange ? (
+                      <div className="absolute inset-0 flex flex-col gap-0.5">
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            if (pendingDate) handleMoveToDate(pendingDate);
+                          }}
+                          className="flex-1 w-full bg-[var(--ink)] text-[var(--bg)] rounded-t-[18px] flex items-center justify-center gap-1.5 active:opacity-90"
+                        >
+                          <Check size={14} strokeWidth={3} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            setPendingDate(null);
+                          }}
+                          className="flex-1 w-full bg-[var(--surface-2)] text-[var(--muted)] rounded-b-[18px] flex items-center justify-center gap-1.5 active:bg-[var(--border)]"
+                        >
+                          <X size={14} strokeWidth={3} />
+                        </button>
                       </div>
+                    ) : (
+                      <>
+                        <input
+                          type="date"
+                          value={effectivePickerValue}
+                          onChange={(event) => setPendingDate(event.target.value)}
+                          onClick={(event) => event.stopPropagation()}
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
+                          aria-label="Выбрать дату"
+                        />
+                        <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 rounded-[18px] bg-[var(--surface-2)] text-[var(--ink)] pointer-events-none hover:bg-[var(--border)] transition-colors">
+                          <Calendar
+                            size={20}
+                            className="text-[var(--muted)] mb-0.5"
+                          />
+                          <span className="text-[12px] font-bold">Дата</span>
+                        </div>
+                      </>
+                    )}
+                  </div>
 
-                      <button
-                        type="button"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          onEdit(task);
-                        }}
-                        className="col-span-1 flex items-center justify-center gap-2 h-[52px] rounded-[18px] bg-[var(--surface-2)] text-[var(--ink)] font-bold text-[13px] active:scale-95 transition-[transform,colors] duration-200 hover:bg-[var(--border)]"
-                      >
-                        <Pencil size={18} /> Изменить
-                      </button>
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onEdit(task);
+                    }}
+                    className="col-span-1 flex items-center justify-center gap-2 h-[52px] rounded-[18px] bg-[var(--surface-2)] text-[var(--ink)] font-bold text-[13px] active:scale-95 transition-[transform,colors] duration-200 hover:bg-[var(--border)]"
+                  >
+                    <Pencil size={18} /> Изменить
+                  </button>
 
-                      <button
-                        type="button"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          onDelete(task.id);
-                        }}
-                        className="col-span-1 flex items-center justify-center gap-2 h-[52px] rounded-[18px] bg-[var(--danger)]/10 text-[var(--danger)] font-bold text-[13px] active:scale-95 transition-[transform,colors] duration-200 hover:bg-[var(--danger)]/20"
-                      >
-                        <Trash2 size={18} /> Удалить
-                      </button>
-                    </div>
-                  </>
-                ) : (
                   <button
                     type="button"
                     onClick={(event) => {
                       event.stopPropagation();
                       onDelete(task.id);
                     }}
-                    className="w-full flex items-center justify-center gap-2 h-[52px] rounded-[18px] bg-[var(--surface-2)] text-[var(--danger)] font-bold text-[13px] active:scale-95 transition-[transform,colors] duration-200 hover:bg-[var(--danger)]/10"
+                    className="col-span-1 flex items-center justify-center gap-2 h-[52px] rounded-[18px] bg-[var(--danger)]/10 text-[var(--danger)] font-bold text-[13px] active:scale-95 transition-[transform,colors] duration-200 hover:bg-[var(--danger)]/20"
                   >
-                    <Trash2 size={18} /> Удалить задачу
+                    <Trash2 size={18} /> Удалить
                   </button>
-                )}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+                </div>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onDelete(task.id);
+                }}
+                className="w-full flex items-center justify-center gap-2 h-[52px] rounded-[18px] bg-[var(--surface-2)] text-[var(--danger)] font-bold text-[13px] active:scale-95 transition-[transform,colors] duration-200 hover:bg-[var(--danger)]/10"
+              >
+                <Trash2 size={18} /> Удалить задачу
+              </button>
+            )}
+          </div>
+        </motion.div>
       </motion.div>
     </Reorder.Item>
   );
