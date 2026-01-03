@@ -103,13 +103,13 @@ const TaskItem = memo(function TaskItem({
       id={task.id}
       dragListener={false}
       dragControls={dragControls}
-      layout
+      layout="position"
       initial={false}
       animate={{ opacity: task.completed ? 0.8 : 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95 }}
-      transition={{ type: 'spring', stiffness: 400, damping: 35 }}
+      transition={{ type: 'tween', duration: 0.18, ease: 'easeOut' }}
       className={cn(
-        'relative mb-3 overflow-hidden rounded-[24px] bg-[var(--surface)] shadow-[var(--shadow-card)] transition-all border transform-gpu will-change-transform',
+        'relative mb-3 overflow-hidden rounded-[24px] bg-[var(--surface)] shadow-[var(--shadow-card)] border transform-gpu will-change-transform transition-colors duration-200',
         isActive
           ? 'shadow-[var(--shadow-glow)] border-[var(--accent)]/50 bg-[var(--surface)] z-10'
           : isExpanded
@@ -120,7 +120,6 @@ const TaskItem = memo(function TaskItem({
       as="li"
     >
       <motion.div
-        layout="position"
         className={cn(
           'flex flex-col relative',
           isExpanded && 'bg-[var(--surface-2)]/30'
@@ -201,9 +200,9 @@ const TaskItem = memo(function TaskItem({
               </p>
               <motion.div
                 initial={false}
-                animate={{ width: task.completed ? '100%' : '0%' }}
-                transition={{ duration: 0.3, ease: 'easeInOut' }}
-                className="absolute top-[0.65em] left-0 h-[2px] bg-[var(--muted)] opacity-60 pointer-events-none rounded-full"
+                animate={{ scaleX: task.completed ? 1 : 0 }}
+                transition={{ duration: 0.18, ease: 'easeOut' }}
+                className="absolute top-[0.65em] left-0 h-[2px] w-full bg-[var(--muted)] opacity-60 pointer-events-none rounded-full origin-left"
               />
             </div>
             {!task.completed && (
@@ -282,7 +281,7 @@ const TaskItem = memo(function TaskItem({
                       }}
                       aria-pressed={isActive}
                       className={cn(
-                        'w-full h-[52px] rounded-[18px] flex items-center justify-center gap-2 text-[13px] font-bold transition-all active:scale-[0.98]',
+                        'w-full h-[52px] rounded-[18px] flex items-center justify-center gap-2 text-[13px] font-bold transition-[transform,colors] duration-200 active:scale-[0.98]',
                         isActive
                           ? 'bg-[var(--accent)] text-[var(--accent-ink)] shadow-[var(--shadow-soft)]'
                           : 'bg-[var(--surface-2)] text-[var(--ink)] hover:bg-[var(--border)]'
@@ -305,7 +304,7 @@ const TaskItem = memo(function TaskItem({
                           setPendingDate(null);
                           handleMoveTomorrow();
                         }}
-                        className="col-span-1 flex flex-col items-center justify-center gap-1 h-[64px] rounded-[18px] bg-[var(--surface-2)] text-[var(--ink)] active:scale-95 transition-all relative overflow-hidden group hover:bg-[var(--border)]"
+                        className="col-span-1 flex flex-col items-center justify-center gap-1 h-[64px] rounded-[18px] bg-[var(--surface-2)] text-[var(--ink)] active:scale-95 transition-[transform,colors] duration-200 relative overflow-hidden group hover:bg-[var(--border)]"
                       >
                         <Sunrise
                           size={20}
@@ -369,7 +368,7 @@ const TaskItem = memo(function TaskItem({
                           event.stopPropagation();
                           onEdit(task);
                         }}
-                        className="col-span-1 flex items-center justify-center gap-2 h-[52px] rounded-[18px] bg-[var(--surface-2)] text-[var(--ink)] font-bold text-[13px] active:scale-95 transition-all hover:bg-[var(--border)]"
+                        className="col-span-1 flex items-center justify-center gap-2 h-[52px] rounded-[18px] bg-[var(--surface-2)] text-[var(--ink)] font-bold text-[13px] active:scale-95 transition-[transform,colors] duration-200 hover:bg-[var(--border)]"
                       >
                         <Pencil size={18} /> Изменить
                       </button>
@@ -380,7 +379,7 @@ const TaskItem = memo(function TaskItem({
                           event.stopPropagation();
                           onDelete(task.id);
                         }}
-                        className="col-span-1 flex items-center justify-center gap-2 h-[52px] rounded-[18px] bg-[var(--danger)]/10 text-[var(--danger)] font-bold text-[13px] active:scale-95 transition-all hover:bg-[var(--danger)]/20"
+                        className="col-span-1 flex items-center justify-center gap-2 h-[52px] rounded-[18px] bg-[var(--danger)]/10 text-[var(--danger)] font-bold text-[13px] active:scale-95 transition-[transform,colors] duration-200 hover:bg-[var(--danger)]/20"
                       >
                         <Trash2 size={18} /> Удалить
                       </button>
@@ -393,7 +392,7 @@ const TaskItem = memo(function TaskItem({
                       event.stopPropagation();
                       onDelete(task.id);
                     }}
-                    className="w-full flex items-center justify-center gap-2 h-[52px] rounded-[18px] bg-[var(--surface-2)] text-[var(--danger)] font-bold text-[13px] active:scale-95 transition-all hover:bg-[var(--danger)]/10"
+                    className="w-full flex items-center justify-center gap-2 h-[52px] rounded-[18px] bg-[var(--surface-2)] text-[var(--danger)] font-bold text-[13px] active:scale-95 transition-[transform,colors] duration-200 hover:bg-[var(--danger)]/10"
                   >
                     <Trash2 size={18} /> Удалить задачу
                   </button>

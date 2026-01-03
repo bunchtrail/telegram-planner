@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { AnimatePresence, Reorder, motion } from 'framer-motion';
+import { AnimatePresence, Reorder } from 'framer-motion';
 import { Calendar, Loader2 } from 'lucide-react';
 import type { Task } from '../types/task';
 import TaskItem from './TaskItem';
@@ -50,6 +50,9 @@ export default function TaskList({
         const prefersReducedMotion =
           typeof window !== 'undefined' &&
           window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const isIOS =
+          typeof navigator !== 'undefined' &&
+          /iPad|iPhone|iPod/.test(navigator.userAgent);
         const isScrollable = container.scrollHeight > container.clientHeight + 1;
         const nearBottom =
           container.scrollTop + container.clientHeight >=
@@ -57,7 +60,7 @@ export default function TaskList({
         if (isScrollable && nearBottom) {
           container.scrollTo({
             top: container.scrollHeight,
-            behavior: prefersReducedMotion ? 'auto' : 'smooth',
+            behavior: prefersReducedMotion || isIOS ? 'auto' : 'smooth',
           });
         }
       }
@@ -109,7 +112,7 @@ export default function TaskList({
   }
 
   return (
-    <motion.div ref={scrollContainerRef} className={scrollClasses} layoutScroll>
+    <div ref={scrollContainerRef} className={scrollClasses}>
       <Reorder.Group
         key={dateKey}
         axis="y"
@@ -119,7 +122,7 @@ export default function TaskList({
         role="list"
         className="relative"
       >
-        <AnimatePresence initial={false} mode="popLayout">
+        <AnimatePresence initial={false}>
           {tasks.map((task) => (
             <TaskItem
               key={task.id}
@@ -136,6 +139,6 @@ export default function TaskList({
         </AnimatePresence>
       </Reorder.Group>
       <div className="h-4" />
-    </motion.div>
+    </div>
   );
 }

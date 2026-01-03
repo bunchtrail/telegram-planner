@@ -224,10 +224,7 @@ export default function TaskSheet({
               </div>
             </div>
 
-            <motion.div
-              layout
-              className="rounded-[24px] bg-[var(--surface-2)] p-2"
-            >
+            <motion.div className="rounded-[24px] bg-[var(--surface-2)] p-2">
               <button
                 type="button"
                 onClick={() => setShowRepeatOptions(!showRepeatOptions)}
