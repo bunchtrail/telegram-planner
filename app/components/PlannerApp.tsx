@@ -1,8 +1,7 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { format } from 'date-fns';
-import confetti from 'canvas-confetti';
 import { AnimatePresence, motion } from 'framer-motion';
 import TaskSheet from './TaskSheet';
 import FloatingActionButton from './FloatingActionButton';
@@ -10,6 +9,7 @@ import PlannerHeader from './PlannerHeader';
 import TaskList from './TaskList';
 import { usePlanner } from '../hooks/usePlanner';
 import { useHaptic } from '../hooks/useHaptic';
+import { useReward } from '../hooks/useReward';
 import type { Task, TaskRepeat } from '../types/task';
 
 export default function PlannerApp() {
@@ -47,36 +47,16 @@ export default function PlannerApp() {
   const [sheetMode, setSheetMode] = useState<'create' | 'edit'>('create');
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const { impact, notification } = useHaptic();
+  const { fire } = useReward();
+  const [showDayComplete, setShowDayComplete] = useState(false);
+  const dayCompleteTimeoutRef = useRef<number | null>(null);
 
-  const triggerConfetti = () => {
-    const end = Date.now() + 1000;
-    const colors = ['#ff9500', '#ffb340', '#ffffff'];
-
-    const frame = () => {
-      confetti({
-        particleCount: 2,
-        angle: 60,
-        spread: 55,
-        origin: { x: 0 },
-        colors,
-        zIndex: 9999,
-      });
-      confetti({
-        particleCount: 2,
-        angle: 120,
-        spread: 55,
-        origin: { x: 1 },
-        colors,
-        zIndex: 9999,
-      });
-
-      if (Date.now() < end) {
-        requestAnimationFrame(frame);
-      }
+  const { completedCount, totalCount } = useMemo(() => {
+    return {
+      completedCount: currentTasks.filter((task) => task.completed).length,
+      totalCount: currentTasks.length,
     };
-
-    frame();
-  };
+  }, [currentTasks]);
 
   useEffect(() => {
     if (prevIsAddOpenRef.current && !isAddOpen) {
@@ -92,8 +72,21 @@ export default function PlannerApp() {
       if (undoTimeoutRef.current) {
         window.clearTimeout(undoTimeoutRef.current);
       }
+      if (dayCompleteTimeoutRef.current) {
+        window.clearTimeout(dayCompleteTimeoutRef.current);
+      }
     };
   }, []);
+
+  useEffect(() => {
+    if (totalCount > completedCount) {
+      setShowDayComplete(false);
+      if (dayCompleteTimeoutRef.current) {
+        window.clearTimeout(dayCompleteTimeoutRef.current);
+        dayCompleteTimeoutRef.current = null;
+      }
+    }
+  }, [totalCount, completedCount, selectedDate]);
 
   const handleDelete = async (id: string) => {
     const deletedTask = await deleteTask(id);
@@ -109,11 +102,35 @@ export default function PlannerApp() {
     }, 4000);
   };
 
-  const handleTaskToggle = (id: string) => {
+  const handleTaskToggle = (id: string, coords?: { x: number; y: number }) => {
     const task = currentTasks.find((item) => item.id === id);
-    if (task && !task.completed) {
-      triggerConfetti();
+    if (!task) return;
+    const isCompleting = !task.completed;
+
+    if (isCompleting) {
+      const othersCompleted = currentTasks.filter(
+        (item) => item.id !== id && item.completed
+      ).length;
+      const isLastOne = othersCompleted === totalCount - 1;
+
+      if (isLastOne && totalCount > 1) {
+        fire(window.innerWidth / 2, window.innerHeight, 'climax');
+        notification('success');
+        setShowDayComplete(true);
+        if (dayCompleteTimeoutRef.current) {
+          window.clearTimeout(dayCompleteTimeoutRef.current);
+        }
+        dayCompleteTimeoutRef.current = window.setTimeout(() => {
+          setShowDayComplete(false);
+          dayCompleteTimeoutRef.current = null;
+        }, 3000);
+      } else if (coords) {
+        fire(coords.x, coords.y, 'light');
+      } else {
+        fire(window.innerWidth / 2, window.innerHeight / 2, 'light');
+      }
     }
+
     toggleTask(id);
   };
 
@@ -178,6 +195,8 @@ export default function PlannerApp() {
             viewMode={viewMode}
             hours={hours}
             minutes={minutes}
+            completedCount={completedCount}
+            totalCount={totalCount}
             onSelectDate={setSelectedDate}
             onViewModeChange={setViewMode}
             onPrev={goToPreviousPeriod}
@@ -252,6 +271,29 @@ export default function PlannerApp() {
                 >
                   Отменить
                 </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {showDayComplete && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.5, y: -20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 pointer-events-none"
+              role="status"
+              aria-live="polite"
+            >
+              <div className="bg-[var(--surface-glass)] backdrop-blur-xl border border-[var(--accent)]/20 shadow-[var(--shadow-pop)] rounded-[32px] p-6 flex flex-col items-center justify-center text-center">
+                <div className="text-[40px] mb-2">🎉</div>
+                <h2 className="text-xl font-bold text-[var(--ink)] font-[var(--font-display)]">
+                  День завершен!
+                </h2>
+                <p className="text-sm text-[var(--muted)] mt-1">
+                  Отличная работа, все цели достигнуты.
+                </p>
               </div>
             </motion.div>
           )}

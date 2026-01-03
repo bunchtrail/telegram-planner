@@ -8,7 +8,7 @@ type TaskListProps = {
   dateKey: string;
   tasks: Task[];
   isLoading?: boolean;
-  onToggle: (id: string) => void;
+  onToggle: (id: string, coords?: { x: number; y: number }) => void;
   onDelete: (id: string) => void;
   onEdit: (task: Task) => void;
   onMove: (id: string, nextDateKey: string) => void;

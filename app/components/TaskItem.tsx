@@ -1,4 +1,9 @@
-import { memo, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
+import {
+  memo,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+  type MouseEvent,
+} from 'react';
 import { addDays, format } from 'date-fns';
 import { AnimatePresence, Reorder, motion, useDragControls } from 'framer-motion';
 import {
@@ -18,7 +23,7 @@ import { useHaptic } from '../hooks/useHaptic';
 
 type TaskItemProps = {
   task: Task;
-  onToggle: (id: string) => void;
+  onToggle: (id: string, coords?: { x: number; y: number }) => void;
   onDelete: (id: string) => void;
   onEdit: (task: Task) => void;
   onMove: (id: string, nextDateKey: string) => void;
@@ -100,7 +105,7 @@ const TaskItem = memo(function TaskItem({
       dragControls={dragControls}
       layout="position"
       initial={false}
-      animate={{ opacity: task.completed ? 0.6 : 1, y: 0 }}
+      animate={{ opacity: task.completed ? 0.8 : 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95 }}
       transition={{ type: 'spring', stiffness: 400, damping: 30 }}
       className={cn(
@@ -110,7 +115,6 @@ const TaskItem = memo(function TaskItem({
           : isExpanded
             ? 'ring-2 ring-[var(--surface-2)] border-transparent shadow-none z-10'
             : 'border-transparent hover:border-[var(--border)]',
-        task.completed && 'grayscale-[0.5]'
       )}
       style={{ transformOrigin: 'center' }}
       as="li"
@@ -125,12 +129,15 @@ const TaskItem = memo(function TaskItem({
         <div className="flex items-center gap-3.5 p-3.5 pl-4 pr-2">
           <motion.button
             type="button"
-            whileTap={{ scale: 0.8 }}
+            whileTap={{ scale: 0.85 }}
             onPointerDown={(event) => event.stopPropagation()}
-            onClick={(event) => {
+            onClick={(event: MouseEvent<HTMLButtonElement>) => {
               event.stopPropagation();
-              impact('medium');
-              onToggle(task.id);
+              impact(task.completed ? 'light' : 'medium');
+              const rect = event.currentTarget.getBoundingClientRect();
+              const x = rect.left + rect.width / 2;
+              const y = rect.top + rect.height / 2;
+              onToggle(task.id, { x, y });
             }}
             aria-pressed={task.completed}
             aria-label={
@@ -139,19 +146,39 @@ const TaskItem = memo(function TaskItem({
                 : 'Отметить как выполненную'
             }
             className={cn(
-              'flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-full border-[2px] transition-all duration-300',
+              'relative flex h-[28px] w-[28px] shrink-0 items-center justify-center rounded-full border-[2px] transition-colors duration-300',
               task.completed
                 ? 'border-[var(--accent)] bg-[var(--accent)]'
                 : 'border-[var(--muted)]/30 hover:border-[var(--accent)] bg-[var(--surface-2)]'
             )}
           >
-            {task.completed && (
-              <Check
-                size={16}
-                strokeWidth={3.5}
-                className="text-[var(--accent-ink)]"
+            <motion.svg
+              viewBox="0 0 24 24"
+              className="absolute inset-0 h-full w-full p-1 text-[var(--accent-ink)]"
+              initial={false}
+              animate={task.completed ? 'checked' : 'unchecked'}
+            >
+              <motion.path
+                d="M20 6L9 17l-5-5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="3.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                variants={{
+                  checked: {
+                    pathLength: 1,
+                    opacity: 1,
+                    transition: { duration: 0.3, type: 'spring' },
+                  },
+                  unchecked: {
+                    pathLength: 0,
+                    opacity: 0,
+                    transition: { duration: 0.2 },
+                  },
+                }}
               />
-            )}
+            </motion.svg>
           </motion.button>
 
           <div
@@ -162,17 +189,23 @@ const TaskItem = memo(function TaskItem({
             onClick={toggleExpand}
             onKeyDown={handleKeyDown}
           >
-            <p
-              className={cn(
-                'text-[17px] font-semibold leading-tight transition-colors mb-1.5 font-[var(--font-display)]',
-                task.completed
-                  ? 'text-[var(--muted)] line-through'
-                  : 'text-[var(--ink)]',
-                !isExpanded && 'truncate'
-              )}
-            >
-              {task.title}
-            </p>
+            <div className="relative w-full max-w-full">
+              <p
+                className={cn(
+                  'text-[17px] font-semibold leading-tight transition-colors mb-1.5 font-[var(--font-display)]',
+                  task.completed ? 'text-[var(--muted)]' : 'text-[var(--ink)]',
+                  !isExpanded && 'truncate'
+                )}
+              >
+                {task.title}
+              </p>
+              <motion.div
+                initial={false}
+                animate={{ width: task.completed ? '100%' : '0%' }}
+                transition={{ duration: 0.3, ease: 'easeInOut' }}
+                className="absolute top-[0.65em] left-0 h-[2px] bg-[var(--muted)] opacity-60 pointer-events-none rounded-full"
+              />
+            </div>
             {!task.completed && (
               <div className="flex items-center gap-2 flex-wrap">
                 <div className="inline-flex items-center gap-1 text-[11px] font-bold text-[var(--muted)] opacity-80 uppercase tracking-wide">

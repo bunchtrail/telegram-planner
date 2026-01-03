@@ -17,12 +17,60 @@ type PlannerHeaderProps = {
   viewMode: PlannerViewMode;
   hours: number;
   minutes: number;
+  completedCount: number;
+  totalCount: number;
   onSelectDate: (date: Date) => void;
   onViewModeChange: (mode: PlannerViewMode) => void;
   onPrev: () => void;
   onNext: () => void;
   onToday: () => void;
 };
+
+function ProgressRing({
+  radius,
+  stroke,
+  progress,
+}: {
+  radius: number;
+  stroke: number;
+  progress: number;
+}) {
+  const normalizedRadius = radius - stroke * 2;
+  const circumference = normalizedRadius * 2 * Math.PI;
+  const strokeDashoffset = circumference - (progress / 100) * circumference;
+
+  return (
+    <div className="relative flex items-center justify-center" aria-hidden>
+      <svg
+        height={radius * 2}
+        width={radius * 2}
+        className="rotate-[-90deg] transition-all duration-500"
+      >
+        <circle
+          stroke="var(--border)"
+          strokeWidth={stroke}
+          fill="transparent"
+          r={normalizedRadius}
+          cx={radius}
+          cy={radius}
+          className="opacity-50"
+        />
+        <circle
+          stroke="var(--accent)"
+          fill="transparent"
+          strokeWidth={stroke}
+          strokeDasharray={`${circumference} ${circumference}`}
+          style={{ strokeDashoffset }}
+          strokeLinecap="round"
+          r={normalizedRadius}
+          cx={radius}
+          cy={radius}
+          className="transition-all duration-500 ease-out"
+        />
+      </svg>
+    </div>
+  );
+}
 
 export default function PlannerHeader({
   selectedDate,
@@ -32,6 +80,8 @@ export default function PlannerHeader({
   viewMode,
   hours,
   minutes,
+  completedCount,
+  totalCount,
   onSelectDate,
   onViewModeChange,
   onPrev,
@@ -42,6 +92,8 @@ export default function PlannerHeader({
   const isToday =
     format(selectedDate, "yyyy-MM-dd") === format(new Date(), "yyyy-MM-dd");
   const hasTime = hours > 0 || minutes > 0;
+  const progressPercentage =
+    totalCount > 0 ? Math.min(100, (completedCount / totalCount) * 100) : 0;
 
   return (
     <header className="relative z-30 flex flex-col transition-all">
@@ -92,11 +144,29 @@ export default function PlannerHeader({
                     )}
                   </div>
 
-                  <div className="flex items-center gap-1.5 w-full">
+                  <div className="flex items-center gap-2 w-full">
                     <h1 className="text-[19px] font-bold capitalize text-[var(--ink)] font-[var(--font-display)] leading-none tracking-tight truncate">
                       {format(selectedDate, "d, EEEE", { locale: ru })}
                     </h1>
-                    {isToday && (
+                    {totalCount > 0 && (
+                      <div className="relative w-4 h-4 ml-1 flex-shrink-0">
+                        <ProgressRing
+                          radius={9}
+                          stroke={2.5}
+                          progress={progressPercentage}
+                        />
+                        {completedCount === totalCount && (
+                          <motion.div
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            className="absolute inset-0 flex items-center justify-center"
+                          >
+                            <div className="w-1.5 h-1.5 bg-[var(--accent)] rounded-full shadow-[0_0_8px_var(--accent)]" />
+                          </motion.div>
+                        )}
+                      </div>
+                    )}
+                    {isToday && totalCount === 0 && (
                       <div className="w-1.5 h-1.5 flex-shrink-0 rounded-full bg-[var(--accent)] mt-0.5" />
                     )}
                   </div>
