@@ -26,6 +26,9 @@ export default function PlannerApp() {
     taskDates,
     hours,
     minutes,
+    activeTaskId,
+    toggleActiveTask,
+    getTaskElapsedMs,
     goToToday,
     goToPreviousPeriod,
     goToNextPeriod,
@@ -195,6 +198,9 @@ export default function PlannerApp() {
             onMove={handleMoveTask}
             onAdd={handleOpenCreate}
             onReorder={handleReorder}
+            activeTaskId={activeTaskId}
+            onToggleActive={toggleActiveTask}
+            getElapsedMs={getTaskElapsedMs}
           />
           <div className="pointer-events-none absolute bottom-0 left-0 right-0 z-20 h-16 bg-gradient-to-t from-[var(--bg)] to-transparent" />
         </main>

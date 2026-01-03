@@ -14,6 +14,9 @@ type TaskListProps = {
   onMove: (id: string, nextDateKey: string) => void;
   onAdd: () => void;
   onReorder: (tasks: Task[]) => void;
+  activeTaskId: string | null;
+  onToggleActive: (id: string) => void;
+  getElapsedMs: (id: string) => number;
 };
 
 export default function TaskList({
@@ -26,6 +29,9 @@ export default function TaskList({
   onMove,
   onAdd,
   onReorder,
+  activeTaskId,
+  onToggleActive,
+  getElapsedMs,
 }: TaskListProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const prevTaskIdsRef = useRef<Set<string>>(new Set());
@@ -115,6 +121,9 @@ export default function TaskList({
               onDelete={onDelete}
               onEdit={onEdit}
               onMove={onMove}
+              isActive={task.id === activeTaskId}
+              elapsedMs={getElapsedMs(task.id)}
+              onToggleActive={onToggleActive}
             />
           ))}
         </AnimatePresence>

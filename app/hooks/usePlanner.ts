@@ -173,6 +173,10 @@ export function usePlanner() {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
+  const activeStartedAtRef = useRef<number | null>(null);
+  const [elapsedById, setElapsedById] = useState<Record<string, number>>({});
+  const [timerNow, setTimerNow] = useState(() => Date.now());
   const toggleRequestRef = useRef(new Map<string, number>());
   const pendingInsertRef = useRef(new Map<string, TaskRow>());
 
@@ -218,6 +222,76 @@ export function usePlanner() {
     });
     return dateSet;
   }, [tasks]);
+
+  const commitElapsed = useCallback((id: string, startedAt: number) => {
+    const delta = Date.now() - startedAt;
+    if (delta <= 0) return;
+    setElapsedById((prev) => ({
+      ...prev,
+      [id]: (prev[id] ?? 0) + delta,
+    }));
+  }, []);
+
+  const stopActiveTask = useCallback(
+    (id?: string) => {
+      const targetId = id ?? activeTaskId;
+      if (!targetId || targetId !== activeTaskId) return;
+      const startedAt = activeStartedAtRef.current;
+      if (startedAt) {
+        commitElapsed(targetId, startedAt);
+      }
+      activeStartedAtRef.current = null;
+      setActiveTaskId(null);
+    },
+    [activeTaskId, commitElapsed]
+  );
+
+  const startActiveTask = useCallback(
+    (id: string) => {
+      if (activeTaskId && activeTaskId !== id) {
+        const startedAt = activeStartedAtRef.current;
+        if (startedAt) {
+          commitElapsed(activeTaskId, startedAt);
+        }
+      }
+      activeStartedAtRef.current = Date.now();
+      setActiveTaskId(id);
+      setTimerNow(Date.now());
+    },
+    [activeTaskId, commitElapsed]
+  );
+
+  const toggleActiveTask = useCallback(
+    (id: string) => {
+      const target = tasks.find((task) => task.id === id);
+      if (!target || target.completed) return;
+      if (activeTaskId === id) {
+        stopActiveTask(id);
+        return;
+      }
+      startActiveTask(id);
+    },
+    [activeTaskId, startActiveTask, stopActiveTask, tasks]
+  );
+
+  const getTaskElapsedMs = useCallback(
+    (id: string) => {
+      const base = elapsedById[id] ?? 0;
+      if (id === activeTaskId && activeStartedAtRef.current) {
+        return base + (timerNow - activeStartedAtRef.current);
+      }
+      return base;
+    },
+    [elapsedById, activeTaskId, timerNow]
+  );
+
+  useEffect(() => {
+    if (!activeTaskId) return;
+    const interval = window.setInterval(() => {
+      setTimerNow(Date.now());
+    }, 1000);
+    return () => window.clearInterval(interval);
+  }, [activeTaskId]);
 
   const isDateInActiveMonth = useCallback(
     (value: string | Date | null | undefined) => {
@@ -1064,6 +1138,9 @@ export function usePlanner() {
     toggleRequestRef.current.set(id, requestId);
 
     const newStatus = !targetTask.completed;
+    if (newStatus && activeTaskId === id) {
+      stopActiveTask(id);
+    }
     const dateKey = formatDateOnly(targetTask.date);
     const sameDayTasks = tasks.filter(
       (task) => task.id !== id && formatDateOnly(task.date) === dateKey
@@ -1107,6 +1184,10 @@ export function usePlanner() {
     const taskToDelete = tasks.find((t) => t.id === id);
     if (!taskToDelete) return;
     const taskIndex = tasks.findIndex((t) => t.id === id);
+
+    if (activeTaskId === id) {
+      stopActiveTask(id);
+    }
 
     setTasks((prev) => prev.filter((task) => task.id !== id));
 
@@ -1232,6 +1313,9 @@ export function usePlanner() {
     taskDates,
     hours,
     minutes,
+    activeTaskId,
+    toggleActiveTask,
+    getTaskElapsedMs,
     goToToday,
     goToPreviousPeriod,
     goToNextPeriod,

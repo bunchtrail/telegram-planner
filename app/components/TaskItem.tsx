@@ -22,6 +22,9 @@ type TaskItemProps = {
   onDelete: (id: string) => void;
   onEdit: (task: Task) => void;
   onMove: (id: string, nextDateKey: string) => void;
+  isActive: boolean;
+  elapsedMs: number;
+  onToggleActive: (id: string) => void;
 };
 
 const TaskItem = memo(function TaskItem({
@@ -30,6 +33,9 @@ const TaskItem = memo(function TaskItem({
   onDelete,
   onEdit,
   onMove,
+  isActive,
+  elapsedMs,
+  onToggleActive,
 }: TaskItemProps) {
   const { impact, selection } = useHaptic();
   const dragControls = useDragControls();
@@ -70,6 +76,21 @@ const TaskItem = memo(function TaskItem({
 
   const effectivePickerValue = pendingDate ?? currentKey;
   const hasPendingChange = pendingDate != null && pendingDate !== currentKey;
+
+  const formatElapsed = (value: number) => {
+    const totalSeconds = Math.floor(value / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    if (hours > 0) {
+      return `${hours}:${String(minutes).padStart(2, '0')}:${String(
+        seconds
+      ).padStart(2, '0')}`;
+    }
+    return `${minutes}:${String(seconds).padStart(2, '0')}`;
+  };
+  const hasElapsed = elapsedMs > 0;
+  const elapsedLabel = formatElapsed(elapsedMs);
 
   return (
     <Reorder.Item
@@ -150,10 +171,23 @@ const TaskItem = memo(function TaskItem({
               {task.title}
             </p>
             {!task.completed && (
-              <div className="flex items-center gap-2 mt-1.5">
+              <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                 <div className="inline-flex items-center gap-1 rounded-md bg-[var(--surface-2)] px-1.5 py-0.5 text-[11px] font-bold text-[var(--muted)]">
                   <Clock size={10} strokeWidth={2.5} /> {task.duration} мин
                 </div>
+                {(isActive || hasElapsed) && (
+                  <div
+                    className={cn(
+                      'inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-bold border',
+                      isActive
+                        ? 'bg-[var(--accent)]/10 text-[var(--accent)] border-[var(--accent)]/30'
+                        : 'bg-[var(--surface-2)] text-[var(--muted)] border-[var(--border)]'
+                    )}
+                  >
+                    <Clock size={10} strokeWidth={2.5} />
+                    {isActive ? 'В работе' : 'Факт'} {elapsedLabel}
+                  </div>
+                )}
                 {isExpanded && (
                   <motion.span
                     initial={{ opacity: 0 }}
@@ -193,7 +227,32 @@ const TaskItem = memo(function TaskItem({
             >
               <div className="px-4 pb-4 pt-1 pl-[3.5rem]">
                 {!task.completed ? (
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-2">
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        impact('light');
+                        onToggleActive(task.id);
+                      }}
+                      aria-pressed={isActive}
+                      className={cn(
+                        'w-full h-[56px] rounded-2xl flex items-center justify-center gap-2 text-[13px] font-bold transition-all active:scale-95',
+                        isActive
+                          ? 'bg-[var(--accent)] text-[var(--accent-ink)] shadow-[var(--shadow-soft)]'
+                          : 'bg-[var(--surface-2)] text-[var(--ink)] hover:bg-[var(--border)]'
+                      )}
+                    >
+                      <Clock size={18} strokeWidth={2.5} />
+                      {isActive ? 'Остановить таймер' : 'Начать таймер'}
+                      {(isActive || hasElapsed) && (
+                        <span className="text-[11px] tabular-nums">
+                          {elapsedLabel}
+                        </span>
+                      )}
+                    </button>
+
+                    <div className="grid grid-cols-2 gap-2">
                     <button
                       type="button"
                       onClick={(event) => {
@@ -278,6 +337,7 @@ const TaskItem = memo(function TaskItem({
                     >
                       <Trash2 size={18} /> Удалить
                     </button>
+                    </div>
                   </div>
                 ) : (
                   <button
