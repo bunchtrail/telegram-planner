@@ -24,12 +24,12 @@ body {
   --tg-safe-right: 0px;
   --tg-safe-bottom: 0px;
   --tg-safe-left: 0px;
-  --bg: #f2f2f7;
-  --surface: #ffffff;
-  --surface-2: #eef1f4;
+  --bg: var(--tg-theme-bg-color, #f2f2f7);
+  --surface: var(--tg-theme-secondary-bg-color, #ffffff);
+  --surface-2: var(--tg-theme-section-bg-color, #eef1f4);
   --surface-glass: rgba(255, 255, 255, 0.9);
-  --ink: #000000;
-  --muted: #8e8e93;
+  --ink: var(--tg-theme-text-color, #000000);
+  --muted: var(--tg-theme-hint-color, #8e8e93);
   --border: rgba(0, 0, 0, 0.08);
   --accent: var(--tg-theme-button-color, #ff9f0a);
   --accent-ink: var(--tg-theme-button-text-color, #ffffff);

@@ -39,102 +39,104 @@ export default function PlannerHeader({
   onToday,
 }: PlannerHeaderProps) {
   const { impact } = useHaptic();
-  const prevLabel =
-    viewMode === "month" ? "Предыдущий месяц" : "Предыдущая неделя";
-  const nextLabel =
-    viewMode === "month" ? "Следующий месяц" : "Следующая неделя";
-  const viewOptions: Array<{ id: PlannerViewMode; label: string }> = [
-    { id: "week", label: "Неделя" },
-    { id: "month", label: "Месяц" },
-  ];
+  const isToday =
+    format(selectedDate, "yyyy-MM-dd") === format(new Date(), "yyyy-MM-dd");
 
   return (
-    <header className="relative z-30 flex flex-col glass rounded-b-[36px] shadow-sm transition-all">
-      <div className="pl-[max(1.25rem,var(--tg-content-safe-area-inset-left,0px),var(--tg-safe-area-inset-left,0px),var(--tg-content-safe-left,0px),env(safe-area-inset-left))] pr-[max(1.25rem,var(--tg-content-safe-area-inset-right,0px),var(--tg-safe-area-inset-right,0px),var(--tg-content-safe-right,0px),env(safe-area-inset-right))] pt-[calc(max(var(--tg-content-safe-area-inset-top,0px),var(--tg-safe-area-inset-top,0px),var(--tg-content-safe-top,0px),var(--tg-safe-top,0px),env(safe-area-inset-top))+var(--tma-tg-controls-top,0px)+1rem)] pb-2">
-        <div className="mb-5 flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
-          <div className="flex-1 min-w-0">
-            <p className="mb-0.5 text-[11px] font-bold uppercase tracking-[0.15em] text-[var(--accent)] opacity-90">
-              {format(selectedDate, "LLLL yyyy", { locale: ru })}
-            </p>
-            <h1 className="text-[32px] font-bold capitalize text-[var(--ink)] font-[var(--font-display)] leading-[1] tracking-tight truncate">
-              {format(selectedDate, "EEEE, d", { locale: ru })}
-            </h1>
-          </div>
-
-          {(hours > 0 || minutes > 0) && (
-            <div className="flex-none flex items-center gap-1.5 rounded-full bg-[var(--surface-2)] pl-2 pr-3 py-1.5 border border-[var(--border)]">
-              <Clock size={14} className="text-[var(--accent)]" strokeWidth={2.5} />
-              <span className="text-[13px] font-bold tabular-nums text-[var(--ink)]">
-                {hours > 0 && `${hours}ч `}
-                {minutes}м
-              </span>
-            </div>
-          )}
-        </div>
-
-        <div className="flex items-center justify-between gap-3 mb-2">
-          <div className="flex gap-2">
+    <header className="relative z-30 flex flex-col glass rounded-b-[32px] shadow-[var(--shadow-soft)] transition-all">
+      <div className="pl-[max(1rem,env(safe-area-inset-left),var(--tg-content-safe-left,0px))] pr-[max(1rem,env(safe-area-inset-right),var(--tg-content-safe-right,0px))] pt-[calc(max(env(safe-area-inset-top),var(--tg-content-safe-top,0px))+var(--tma-tg-controls-top,0px)+1rem)] pb-0">
+        <div className="flex items-center justify-between gap-2 mb-3">
+          <div className="flex items-center gap-1 min-w-0">
             <button
               type="button"
               onClick={() => {
                 impact("light");
                 onPrev();
               }}
-              aria-label={prevLabel}
-              className="flex h-10 w-10 items-center justify-center rounded-[14px] bg-[var(--surface-2)] text-[var(--ink)] hover:bg-[var(--border)] transition-colors active:scale-95"
+              className="p-1.5 rounded-xl hover:bg-[var(--border)] text-[var(--muted)] active:scale-90 transition-all"
+              aria-label="Назад"
             >
-              <ChevronLeft size={20} className="opacity-60" />
+              <ChevronLeft size={22} />
             </button>
+
             <button
               type="button"
+              className="flex flex-col items-start px-1.5 cursor-pointer active:opacity-60 transition-opacity text-left min-w-0"
               onClick={() => {
                 impact("light");
                 onToday();
               }}
-              className="h-10 rounded-[14px] bg-[var(--surface-2)] px-4 text-[11px] font-bold uppercase tracking-wide text-[var(--ink)] hover:bg-[var(--border)] transition-colors active:scale-95"
             >
-              Сегодня
+              <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)] leading-none mb-0.5 ml-[1px]">
+                {format(selectedDate, "LLLL", { locale: ru })}
+              </span>
+              <div className="flex items-center gap-1.5 w-full">
+                <h1 className="text-[19px] font-bold capitalize text-[var(--ink)] font-[var(--font-display)] leading-none tracking-tight truncate">
+                  {format(selectedDate, "d, EEEE", { locale: ru })}
+                </h1>
+                {isToday && (
+                  <div className="w-1.5 h-1.5 flex-shrink-0 rounded-full bg-[var(--accent)] mt-0.5" />
+                )}
+              </div>
             </button>
+
             <button
               type="button"
               onClick={() => {
                 impact("light");
                 onNext();
               }}
-              aria-label={nextLabel}
-              className="flex h-10 w-10 items-center justify-center rounded-[14px] bg-[var(--surface-2)] text-[var(--ink)] hover:bg-[var(--border)] transition-colors active:scale-95"
+              className="p-1.5 rounded-xl hover:bg-[var(--border)] text-[var(--muted)] active:scale-90 transition-all"
+              aria-label="Вперед"
             >
-              <ChevronRight size={20} className="opacity-60" />
+              <ChevronRight size={22} />
             </button>
           </div>
 
-          <div className="relative flex rounded-[14px] bg-[var(--surface-2)] p-1">
-            {viewOptions.map((option) => (
-              <button
-                key={option.id}
-                type="button"
-                onClick={() => {
-                  impact("light");
-                  onViewModeChange(option.id);
-                }}
-                aria-pressed={viewMode === option.id}
-                className={cn(
-                  "relative z-10 px-3.5 py-1.5 text-[12px] font-bold transition-colors duration-200",
-                  viewMode === option.id
-                    ? "text-[var(--ink)]"
-                    : "text-[var(--muted)] hover:text-[var(--ink)]",
-                )}
-              >
-                {viewMode === option.id && (
-                  <motion.div
-                    layoutId="tab"
-                    className="absolute inset-0 z-[-1] rounded-[10px] bg-[var(--surface)] shadow-sm"
-                    transition={{ type: "spring", bounce: 0.2, duration: 0.5 }}
-                  />
-                )}
-                {option.label}
-              </button>
-            ))}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="flex bg-[var(--surface-2)] p-0.5 rounded-[12px] h-9 border border-[var(--border)]/50">
+              {(["week", "month"] as const).map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => {
+                    if (viewMode !== mode) {
+                      impact("light");
+                      onViewModeChange(mode);
+                    }
+                  }}
+                  className={cn(
+                    "relative px-3 text-[11px] font-bold rounded-[10px] transition-all z-10",
+                    viewMode === mode
+                      ? "text-[var(--ink)]"
+                      : "text-[var(--muted)] hover:text-[var(--ink)]",
+                  )}
+                  aria-pressed={viewMode === mode}
+                >
+                  {viewMode === mode && (
+                    <motion.div
+                      layoutId="view-tab"
+                      className="absolute inset-0 bg-[var(--surface)] shadow-sm rounded-[10px] -z-10 border border-[var(--border)]/50"
+                      transition={{ type: "spring", bounce: 0.2, duration: 0.4 }}
+                    />
+                  )}
+                  {mode === "week" ? "Нед" : "Мес"}
+                </button>
+              ))}
+            </div>
+
+            {(hours > 0 || minutes > 0) && (
+              <div className="flex items-center gap-1.5 h-9 px-2.5 rounded-[12px] bg-[var(--surface-2)] border border-[var(--border)]/50">
+                <Clock
+                  size={13}
+                  className="text-[var(--accent)]"
+                  strokeWidth={2.5}
+                />
+                <span className="text-[11px] font-bold tabular-nums text-[var(--ink)] pt-[1px]">
+                  {hours > 0 ? `${hours}ч` : `${minutes}м`}
+                </span>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -142,15 +144,15 @@ export default function PlannerHeader({
       <motion.div
         layout
         className="overflow-hidden"
-        transition={{ type: "spring", stiffness: 500, damping: 40 }}
+        transition={{ type: "spring", stiffness: 450, damping: 35 }}
       >
-        <div className="pl-[max(1rem,env(safe-area-inset-left),var(--tg-content-safe-left,0px))] pr-[max(1rem,env(safe-area-inset-right),var(--tg-content-safe-right,0px))] pb-4">
+        <div className="pl-[max(0.5rem,env(safe-area-inset-left),var(--tg-content-safe-left,0px))] pr-[max(0.5rem,env(safe-area-inset-right),var(--tg-content-safe-right,0px))] pb-3">
           <AnimatePresence mode="wait" initial={false}>
             <motion.div
               key={viewMode}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
+              initial={{ opacity: 0, height: viewMode === "week" ? 64 : 280 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
             >
               {viewMode === "week" ? (

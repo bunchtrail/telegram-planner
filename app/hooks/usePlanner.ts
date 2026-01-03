@@ -67,7 +67,19 @@ type TelegramWebApp = {
   setBackgroundColor?: (color: string) => void;
   setBottomBarColor?: (color: string) => void;
   themeParams?: {
+    bg_color?: string;
+    text_color?: string;
+    hint_color?: string;
+    link_color?: string;
+    button_color?: string;
+    button_text_color?: string;
     secondary_bg_color?: string;
+    header_bg_color?: string;
+    section_bg_color?: string;
+    section_header_text_color?: string;
+    subtitle_text_color?: string;
+    accent_text_color?: string;
+    destructive_text_color?: string;
   };
 };
 
@@ -103,6 +115,45 @@ const parseDateOnly = (value: string) => {
   const [year, month, day] = value.split('-').map(Number);
   if (!year || !month || !day) return new Date(value);
   return new Date(year, month - 1, day);
+};
+
+const normalizeHex = (value?: string | null) => {
+  if (!value) return null;
+  const trimmed = value.trim();
+  const withHash = trimmed.startsWith('#') ? trimmed : `#${trimmed}`;
+  if (!/^#([0-9a-f]{6}|[0-9a-f]{8})$/i.test(withHash)) {
+    return null;
+  }
+  return withHash;
+};
+
+const hexToRgb = (hex: string) => {
+  const normalized = normalizeHex(hex);
+  if (!normalized) return null;
+  const value = normalized.slice(1);
+  const r = parseInt(value.slice(0, 2), 16);
+  const g = parseInt(value.slice(2, 4), 16);
+  const b = parseInt(value.slice(4, 6), 16);
+  return { r, g, b };
+};
+
+const withAlpha = (hex: string, alpha: number) => {
+  const rgb = hexToRgb(hex);
+  if (!rgb) return null;
+  return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha})`;
+};
+
+const getRelativeLuminance = (hex: string) => {
+  const rgb = hexToRgb(hex);
+  if (!rgb) return null;
+  const toLinear = (value: number) => {
+    const srgb = value / 255;
+    return srgb <= 0.03928 ? srgb / 12.92 : ((srgb + 0.055) / 1.055) ** 2.4;
+  };
+  const r = toLinear(rgb.r);
+  const g = toLinear(rgb.g);
+  const b = toLinear(rgb.b);
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 };
 
 const mapTaskRow = (row: TaskRow): Task => ({
@@ -261,10 +312,52 @@ export function usePlanner() {
       webApp.disableVerticalSwipes?.();
     }
     webApp.expand?.();
-    const headerColor = webApp.themeParams?.secondary_bg_color ?? '#f2f2f7';
-    webApp.setHeaderColor?.(headerColor);
-    webApp.setBackgroundColor?.(headerColor);
-    webApp.setBottomBarColor?.(headerColor);
+
+    const applyTheme = () => {
+      const root = document.documentElement.style;
+      const params = webApp.themeParams ?? {};
+      const bgColor = normalizeHex(params.bg_color) ?? '#f2f2f7';
+      const surfaceColor = normalizeHex(params.secondary_bg_color) ?? '#ffffff';
+      const surfaceAlt =
+        normalizeHex(params.section_bg_color) ?? surfaceColor;
+      const textColor = normalizeHex(params.text_color) ?? '#000000';
+      const mutedColor = normalizeHex(params.hint_color) ?? '#8e8e93';
+      const accentColor = normalizeHex(params.button_color) ?? '#ff9f0a';
+      const accentInk = normalizeHex(params.button_text_color) ?? '#ffffff';
+      const dangerColor =
+        normalizeHex(params.destructive_text_color) ?? '#ff3b30';
+      const borderColor = withAlpha(textColor, 0.08) ?? 'rgba(0,0,0,0.08)';
+      const glassSurface = withAlpha(surfaceColor, 0.9);
+
+      root.setProperty('--bg', bgColor);
+      root.setProperty('--surface', surfaceColor);
+      root.setProperty('--surface-2', surfaceAlt);
+      if (glassSurface) {
+        root.setProperty('--surface-glass', glassSurface);
+      }
+      root.setProperty('--ink', textColor);
+      root.setProperty('--muted', mutedColor);
+      root.setProperty('--border', borderColor);
+      root.setProperty('--accent', accentColor);
+      root.setProperty('--accent-ink', accentInk);
+      root.setProperty('--danger', dangerColor);
+
+      const headerColor =
+        normalizeHex(params.header_bg_color) ??
+        normalizeHex(params.secondary_bg_color) ??
+        bgColor;
+      webApp.setHeaderColor?.(headerColor);
+      webApp.setBackgroundColor?.(bgColor);
+      webApp.setBottomBarColor?.(headerColor);
+
+      const luminance = getRelativeLuminance(bgColor);
+      if (luminance != null) {
+        document.documentElement.style.colorScheme =
+          luminance < 0.35 ? 'dark' : 'light';
+      }
+    };
+
+    applyTheme();
 
     const applyInsets = () => {
       const root = document.documentElement.style;
@@ -334,7 +427,10 @@ export function usePlanner() {
       webApp.onEvent?.('fullscreenChanged', onAny);
     }
 
+    webApp.onEvent?.('themeChanged', applyTheme);
+
     return () => {
+      webApp.offEvent?.('themeChanged', applyTheme);
       if (!onAny) return;
       webApp.offEvent?.('safeAreaChanged', onAny);
       webApp.offEvent?.('contentSafeAreaChanged', onAny);
@@ -584,7 +680,20 @@ export function usePlanner() {
   }, [userId, monthStartKey, monthEndKey, ensureSeriesInstancesForMonth]);
 
   const currentTasks = useMemo(
-    () => tasks.filter((task) => isSameDay(task.date, selectedDate)),
+    () => {
+      const dayTasks = tasks.filter((task) =>
+        isSameDay(task.date, selectedDate)
+      );
+      return dayTasks.sort((a, b) => {
+        if (a.completed !== b.completed) {
+          return a.completed ? 1 : -1;
+        }
+        const aPos = a.position ?? 0;
+        const bPos = b.position ?? 0;
+        if (aPos !== bPos) return aPos - bPos;
+        return a.id.localeCompare(b.id);
+      });
+    },
     [tasks, selectedDate]
   );
 
@@ -955,15 +1064,29 @@ export function usePlanner() {
     toggleRequestRef.current.set(id, requestId);
 
     const newStatus = !targetTask.completed;
+    const dateKey = formatDateOnly(targetTask.date);
+    const sameDayTasks = tasks.filter(
+      (task) => task.id !== id && formatDateOnly(task.date) === dateKey
+    );
+    const getMaxPosition = (list: Task[]) =>
+      list.reduce((max, task) => Math.max(max, task.position ?? 0), -1);
+    const completedTasks = sameDayTasks.filter((task) => task.completed);
+    const incompleteTasks = sameDayTasks.filter((task) => !task.completed);
+    const nextPosition = newStatus
+      ? getMaxPosition(completedTasks) + 1
+      : getMaxPosition(incompleteTasks) + 1;
+    const previousPosition = targetTask.position ?? 0;
     setTasks((prev) =>
       prev.map((task) =>
-        task.id === id ? { ...task, completed: newStatus } : task
+        task.id === id
+          ? { ...task, completed: newStatus, position: nextPosition }
+          : task
       )
     );
 
     const { error } = await supabase
       .from('tasks')
-      .update({ completed: newStatus })
+      .update({ completed: newStatus, position: nextPosition })
       .eq('id', id);
 
     if (error) {
@@ -972,7 +1095,9 @@ export function usePlanner() {
       }
       setTasks((prev) =>
         prev.map((task) =>
-          task.id === id ? { ...task, completed: !newStatus } : task
+          task.id === id
+            ? { ...task, completed: !newStatus, position: previousPosition }
+            : task
         )
       );
     }
