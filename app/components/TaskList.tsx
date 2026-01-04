@@ -36,6 +36,8 @@ export default function TaskList({
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const prevTaskIdsRef = useRef<Set<string>>(new Set());
   const [isDragging, setIsDragging] = useState(false);
+  const isIOS =
+    typeof navigator !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent);
 
   useEffect(() => {
     const prevIds = prevTaskIdsRef.current;
@@ -53,9 +55,6 @@ export default function TaskList({
         const prefersReducedMotion =
           typeof window !== 'undefined' &&
           window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-        const isIOS =
-          typeof navigator !== 'undefined' &&
-          /iPad|iPhone|iPod/.test(navigator.userAgent);
         const isScrollable = container.scrollHeight > container.clientHeight + 1;
         const nearBottom =
           container.scrollTop + container.clientHeight >=
@@ -71,8 +70,10 @@ export default function TaskList({
     prevTaskIdsRef.current = nextIds;
   }, [tasks]);
 
-  const scrollClasses =
-    'h-full w-full overflow-y-auto pb-32 pt-2 touch-pan-y overscroll-contain no-scrollbar pl-[max(1rem,env(safe-area-inset-left),var(--tg-content-safe-left,0px))] pr-[max(1rem,env(safe-area-inset-right),var(--tg-content-safe-right,0px))] [-webkit-overflow-scrolling:touch]';
+  const scrollClasses = [
+    'h-full w-full overflow-y-auto pb-32 pt-2 touch-pan-y overscroll-contain no-scrollbar pl-[max(1rem,env(safe-area-inset-left),var(--tg-content-safe-left,0px))] pr-[max(1rem,env(safe-area-inset-right),var(--tg-content-safe-right,0px))]',
+    isIOS ? '[-webkit-overflow-scrolling:auto]' : '[-webkit-overflow-scrolling:touch]',
+  ].join(' ');
 
   if (isLoading) {
     return (
@@ -118,8 +119,8 @@ export default function TaskList({
     <motion.div
       ref={scrollContainerRef}
       className={scrollClasses}
-      layoutScroll
-      layoutRoot
+      layoutScroll={!isIOS}
+      layoutRoot={!isIOS}
     >
       <Reorder.Group
         key={dateKey}
@@ -145,6 +146,7 @@ export default function TaskList({
               updateTask={updateTask}
               isDragging={isDragging}
               onDragStateChange={setIsDragging}
+              disableMotion={isIOS}
             />
           ))}
         </AnimatePresence>
