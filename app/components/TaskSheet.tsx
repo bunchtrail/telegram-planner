@@ -132,7 +132,11 @@ export default function TaskSheet({
     (definition: AnimationDefinition) => {
       const isOpening =
         definition === "visible" ||
-        (typeof definition === "object" && definition?.y === 0);
+        (typeof definition === "object" &&
+          definition !== null &&
+          !Array.isArray(definition) &&
+          "y" in definition &&
+          (definition as { y?: number | string }).y === 0);
 
       if (isOpening) {
         setIsSettled(true);
