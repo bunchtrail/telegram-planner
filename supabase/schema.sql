@@ -38,6 +38,9 @@ create table if not exists public.tasks (
   elapsed_ms bigint not null default 0,
   active_started_at timestamptz,
   series_id uuid references public.task_series(id) on delete cascade,
+  color text not null default '#ff9f0a',
+  is_pinned boolean not null default false,
+  checklist jsonb not null default '[]'::jsonb,
   is_goal boolean not null default false,
   goal_period text,
   goal_slot smallint,
@@ -65,6 +68,9 @@ create index if not exists tasks_telegram_id_created_at_idx
 
 create index if not exists tasks_position_idx
   on public.tasks (position);
+
+create index if not exists idx_tasks_pinned
+  on public.tasks (telegram_id, is_pinned desc, date, position);
 
 create unique index if not exists tasks_active_single_idx
   on public.tasks (telegram_id)
@@ -176,6 +182,38 @@ end;
 $$;
 
 grant execute on function public.toggle_task_timer(uuid) to authenticated;
+
+create or replace function public.get_user_streak(user_telegram_id text)
+returns integer as $$
+declare
+  streak integer := 0;
+  check_date date := current_date;
+  has_task boolean;
+begin
+  loop
+    select exists (
+      select 1 from public.tasks
+      where telegram_id = user_telegram_id
+        and completed = true
+        and date::date = check_date
+    ) into has_task;
+
+    if has_task then
+      streak := streak + 1;
+      check_date := check_date - 1;
+    else
+      if check_date = current_date then
+        check_date := check_date - 1;
+        continue;
+      end if;
+      exit;
+    end if;
+  end loop;
+  return streak;
+end;
+$$ language plpgsql;
+
+grant execute on function public.get_user_streak(text) to authenticated;
 
 alter table public.tasks enable row level security;
 alter table public.task_series enable row level security;

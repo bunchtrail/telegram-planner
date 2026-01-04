@@ -16,6 +16,7 @@ type TaskListProps = {
   onReorder: (tasks: Task[]) => void;
   onToggleActive: (id: string) => void;
   getElapsedMs: (id: string) => number;
+  updateTask: (id: string, updates: Partial<Task>) => void;
 };
 
 export default function TaskList({
@@ -30,6 +31,7 @@ export default function TaskList({
   onReorder,
   onToggleActive,
   getElapsedMs,
+  updateTask,
 }: TaskListProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const prevTaskIdsRef = useRef<Set<string>>(new Set());
@@ -134,6 +136,7 @@ export default function TaskList({
               isActive={Boolean(task.activeStartedAt) && !task.completed}
               elapsedMs={getElapsedMs(task.id)}
               onToggleActive={onToggleActive}
+              updateTask={updateTask}
             />
           ))}
         </AnimatePresence>

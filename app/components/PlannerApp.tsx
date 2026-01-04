@@ -3,10 +3,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { format } from 'date-fns';
 import { AnimatePresence, motion } from 'framer-motion';
+import { Clock } from 'lucide-react';
 import TaskSheet from './TaskSheet';
 import FloatingActionButton from './FloatingActionButton';
 import PlannerHeader from './PlannerHeader';
 import TaskList from './TaskList';
+import FocusOverlay from './FocusOverlay';
+import StatsModal from './StatsModal';
 import { usePlanner } from '../hooks/usePlanner';
 import { useHaptic } from '../hooks/useHaptic';
 import { useReward } from '../hooks/useReward';
@@ -20,12 +23,15 @@ export default function PlannerApp() {
     setViewMode,
     isAddOpen,
     setIsAddOpen,
+    tasks,
+    streak,
     currentTasks,
     weekDays,
     monthDays,
     taskDates,
     hours,
     minutes,
+    activeTaskId,
     toggleActiveTask,
     getTaskElapsedMs,
     goToToday,
@@ -50,6 +56,13 @@ export default function PlannerApp() {
   const { fire } = useReward();
   const [showDayComplete, setShowDayComplete] = useState(false);
   const dayCompleteTimeoutRef = useRef<number | null>(null);
+  const [showStats, setShowStats] = useState(false);
+  const [showFocus, setShowFocus] = useState(false);
+
+  const activeTaskObj = useMemo(
+    () => tasks.find((task) => task.id === activeTaskId) ?? null,
+    [tasks, activeTaskId]
+  );
 
   const { completedCount, totalCount } = useMemo(() => {
     return {
@@ -173,12 +186,13 @@ export default function PlannerApp() {
     title: string,
     duration: number,
     repeat: TaskRepeat,
-    repeatCount: number
+    repeatCount: number,
+    color: string
   ) => {
     if (sheetMode === 'create') {
-      addTask(title, duration, repeat, repeatCount);
+      addTask(title, duration, repeat, repeatCount, color);
     } else if (editingTask) {
-      updateTask(editingTask.id, { title, duration });
+      updateTask(editingTask.id, { title, duration, color });
     }
     handleCloseSheet();
   };
@@ -202,6 +216,7 @@ export default function PlannerApp() {
             onPrev={goToPreviousPeriod}
             onNext={goToNextPeriod}
             onToday={goToToday}
+            onOpenStats={() => setShowStats(true)}
           />
         </div>
 
@@ -218,6 +233,7 @@ export default function PlannerApp() {
             onReorder={handleReorder}
             onToggleActive={toggleActiveTask}
             getElapsedMs={getTaskElapsedMs}
+            updateTask={updateTask}
           />
           <div className="pointer-events-none absolute bottom-0 left-0 right-0 z-20 h-16 bg-gradient-to-t from-[var(--bg)] to-transparent" />
         </main>
@@ -245,12 +261,43 @@ export default function PlannerApp() {
               initialDuration={
                 sheetMode === 'edit' ? editingTask?.duration : 30
               }
+              initialColor={sheetMode === 'edit' ? editingTask?.color : undefined}
               initialRepeat="none"
               initialRepeatCount={7}
               onSubmit={handleSheetSubmit}
             />
           )}
         </AnimatePresence>
+
+        <AnimatePresence>
+          {showStats && (
+            <StatsModal
+              streak={streak}
+              tasks={tasks}
+              onClose={() => setShowStats(false)}
+            />
+          )}
+
+          {showFocus && activeTaskObj && (
+            <FocusOverlay
+              task={activeTaskObj}
+              isActive={activeTaskId === activeTaskObj.id}
+              elapsedMs={getTaskElapsedMs(activeTaskObj.id)}
+              onToggleTimer={() => toggleActiveTask(activeTaskObj.id)}
+              onClose={() => setShowFocus(false)}
+            />
+          )}
+        </AnimatePresence>
+
+        {activeTaskId && !showFocus && (
+          <motion.button
+            layoutId="focus-fab"
+            onClick={() => setShowFocus(true)}
+            className="fixed bottom-[calc(6rem+max(env(safe-area-inset-bottom),var(--tg-content-safe-bottom,0px)))] right-[max(1rem,env(safe-area-inset-right),var(--tg-content-safe-right,0px))] h-14 px-6 bg-[var(--accent)] text-[var(--accent-ink)] rounded-full font-bold shadow-lg z-40 flex items-center gap-2"
+          >
+            <Clock size={20} className="animate-pulse" /> В фокус
+          </motion.button>
+        )}
 
         <AnimatePresence>
           {undoTask && (

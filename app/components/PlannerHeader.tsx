@@ -1,6 +1,6 @@
 import { format } from "date-fns";
 import { ru } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, Clock } from "lucide-react";
+import { ChevronLeft, ChevronRight, Clock, Flame } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import MonthGrid from "./MonthGrid";
 import WeekStrip from "./WeekStrip";
@@ -24,6 +24,7 @@ type PlannerHeaderProps = {
   onPrev: () => void;
   onNext: () => void;
   onToday: () => void;
+  onOpenStats: () => void;
 };
 
 function ProgressRing({
@@ -87,6 +88,7 @@ export default function PlannerHeader({
   onPrev,
   onNext,
   onToday,
+  onOpenStats,
 }: PlannerHeaderProps) {
   const { impact } = useHaptic();
   const isToday =
@@ -185,7 +187,19 @@ export default function PlannerHeader({
                 </button>
               </div>
 
-              <div className="flex-shrink-0">
+              <div className="flex-shrink-0 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    impact("light");
+                    onOpenStats();
+                  }}
+                  aria-label="Открыть статистику"
+                  className="h-9 w-9 rounded-[12px] border border-[var(--border)]/50 bg-[var(--surface-2)] text-[var(--accent)] flex items-center justify-center active:scale-95 transition-transform"
+                >
+                  <Flame size={18} />
+                </button>
+
                 <div className="flex bg-[var(--surface-2)] p-0.5 rounded-[12px] h-9 border border-[var(--border)]/50">
                   {(["week", "month"] as const).map((mode) => (
                     <button

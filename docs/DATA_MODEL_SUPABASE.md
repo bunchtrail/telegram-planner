@@ -23,6 +23,9 @@
 - `elapsed_ms bigint not null default 0` — фактически затраченное время (мс)
 - `active_started_at timestamptz` — когда запущен таймер (null если не активна)
 - `series_id uuid` — связь с серией повтора (если `null` — обычная задача)
+- `color text not null default '#ff9f0a'` — цвет категории
+- `is_pinned bool not null default false` — закрепление в списке
+- `checklist jsonb not null default '[]'` — подзадачи
 - goal-поля:
   - `is_goal bool`
   - `goal_period text in ('day','week','month','year')`
@@ -39,8 +42,14 @@
 - `tasks_telegram_id_date_idx` — критичен для выборок по календарю
 - `tasks_goals_period_idx` + `tasks_goals_slot_idx` — для целей и сортировки по слоту
 - `tasks_position_idx` — упрощает сортировку задач по ручному порядку
+- `idx_tasks_pinned` — ускоряет сортировку “закреплённые выше”
 - `tasks_active_single_idx` — гарантирует одну активную задачу на пользователя
 - `tasks_series_date_unique` — защита от дублей инстанса серии на одну дату
+
+### RPC функции
+
+- `get_user_streak(user_telegram_id text) -> int` — считает текущий стрик
+  выполненных дней (считает “сегодня” как не сбрасывающий, если задач ещё нет).
 
 ## Таблица `public.task_series`
 

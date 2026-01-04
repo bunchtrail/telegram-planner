@@ -1,3 +1,8 @@
+export type TaskChecklistItem = {
+  text: string;
+  done: boolean;
+};
+
 export type TaskRepeat = "none" | "daily" | "weekly";
 
 export type Task = {
@@ -11,4 +16,7 @@ export type Task = {
   seriesId?: string | null;
   elapsedMs: number;
   activeStartedAt: Date | null;
+  color: string;
+  isPinned: boolean;
+  checklist: TaskChecklistItem[];
 };

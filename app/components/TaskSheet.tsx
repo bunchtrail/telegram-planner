@@ -11,6 +11,7 @@ import {
   useDragControls,
 } from "framer-motion";
 import { cn } from "../lib/cn";
+import { DEFAULT_TASK_COLOR, TASK_COLOR_OPTIONS } from "../lib/constants";
 import { useHaptic } from "../hooks/useHaptic";
 import type { TaskRepeat } from "../types/task";
 
@@ -35,11 +36,13 @@ type TaskSheetProps = {
   initialDuration?: number;
   initialRepeat?: TaskRepeat;
   initialRepeatCount?: number;
+  initialColor?: string;
   onSubmit: (
     title: string,
     duration: number,
     repeat: TaskRepeat,
     repeatCount: number,
+    color: string,
   ) => void;
 };
 
@@ -50,12 +53,14 @@ export default function TaskSheet({
   initialDuration = 30,
   initialRepeat = "none",
   initialRepeatCount = 7,
+  initialColor = DEFAULT_TASK_COLOR,
   onSubmit,
 }: TaskSheetProps) {
   const [title, setTitle] = useState(initialTitle);
   const [duration, setDuration] = useState(initialDuration);
   const [repeat, setRepeat] = useState<TaskRepeat>(initialRepeat);
   const [repeatCount, setRepeatCount] = useState(initialRepeatCount);
+  const [color, setColor] = useState(initialColor);
   const [showRepeatOptions, setShowRepeatOptions] = useState(
     mode === "edit" || initialRepeat !== "none",
   );
@@ -106,7 +111,7 @@ export default function TaskSheet({
     if (document.activeElement instanceof HTMLElement) {
       document.activeElement.blur();
     }
-    onSubmit(trimmed, duration, repeat, repeatCount);
+    onSubmit(trimmed, duration, repeat, repeatCount, color);
   };
 
   const clampRepeatCount = (value: number) =>
@@ -386,6 +391,33 @@ export default function TaskSheet({
                   </motion.div>
                 )}
               </AnimatePresence>
+            </div>
+
+            <div className="mb-2">
+              <div className="text-xs font-bold text-[var(--muted)] uppercase tracking-widest mb-3">
+                Категория
+              </div>
+              <div className="flex gap-4 overflow-x-auto no-scrollbar py-1">
+                {TASK_COLOR_OPTIONS.map((option) => (
+                  <button
+                    key={option}
+                    type="button"
+                    onClick={() => {
+                      impact("light");
+                      setColor(option);
+                    }}
+                    className={cn(
+                      "w-10 h-10 rounded-full border-2 transition-all active:scale-90",
+                      color === option
+                        ? "border-[var(--ink)] scale-110"
+                        : "border-transparent",
+                    )}
+                    style={{ backgroundColor: option }}
+                    aria-pressed={color === option}
+                    aria-label="Выбрать категорию"
+                  />
+                ))}
+              </div>
             </div>
           </div>
         </form>

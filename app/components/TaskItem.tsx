@@ -3,6 +3,7 @@ import {
   useLayoutEffect,
   useRef,
   useState,
+  type FormEvent,
   type KeyboardEvent as ReactKeyboardEvent,
   type MouseEvent,
 } from 'react';
@@ -14,7 +15,9 @@ import {
   ChevronDown,
   Clock,
   GripVertical,
+  Pin,
   Pencil,
+  Plus,
   Sunrise,
   Trash2,
   X,
@@ -32,6 +35,7 @@ type TaskItemProps = {
   isActive: boolean;
   elapsedMs: number;
   onToggleActive: (id: string) => void;
+  updateTask: (id: string, updates: Partial<Task>) => void;
 };
 
 const TaskItem = memo(function TaskItem({
@@ -43,11 +47,13 @@ const TaskItem = memo(function TaskItem({
   isActive,
   elapsedMs,
   onToggleActive,
+  updateTask,
 }: TaskItemProps) {
   const { impact, selection } = useHaptic();
   const dragControls = useDragControls();
   const [isExpanded, setIsExpanded] = useState(false);
   const [pendingDate, setPendingDate] = useState<string | null>(null);
+  const [newStep, setNewStep] = useState('');
   const detailsRef = useRef<HTMLDivElement>(null);
   const [detailsHeight, setDetailsHeight] = useState(0);
 
@@ -100,6 +106,28 @@ const TaskItem = memo(function TaskItem({
   };
   const hasElapsed = elapsedMs > 0;
   const elapsedLabel = formatElapsed(elapsedMs);
+  const completedSteps = task.checklist.filter((item) => item.done).length;
+  const totalSteps = task.checklist.length;
+  const progress = totalSteps > 0 ? (completedSteps / totalSteps) * 100 : 0;
+
+  const toggleSubtask = (idx: number) => {
+    impact('light');
+    const nextChecklist = task.checklist.map((item, index) =>
+      index === idx ? { ...item, done: !item.done } : item
+    );
+    updateTask(task.id, { checklist: nextChecklist });
+  };
+
+  const addSubtask = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const trimmed = newStep.trim();
+    if (!trimmed) return;
+    impact('light');
+    updateTask(task.id, {
+      checklist: [...task.checklist, { text: trimmed, done: false }],
+    });
+    setNewStep('');
+  };
 
   useLayoutEffect(() => {
     if (!isExpanded) return;
@@ -114,7 +142,15 @@ const TaskItem = memo(function TaskItem({
       observer.observe(el);
       return () => observer.disconnect();
     }
-  }, [isExpanded, pendingDate, task.completed, isActive, elapsedMs]);
+  }, [
+    isExpanded,
+    pendingDate,
+    task.completed,
+    task.checklist,
+    task.isPinned,
+    isActive,
+    elapsedMs,
+  ]);
 
   return (
     <Reorder.Item
@@ -128,14 +164,14 @@ const TaskItem = memo(function TaskItem({
       exit={{ opacity: 0, scale: 0.95 }}
       transition={{ type: 'tween', duration: 0.18, ease: 'easeOut' }}
       className={cn(
-        'relative mb-3 overflow-hidden rounded-[24px] bg-[var(--surface)] shadow-[var(--shadow-card)] border transform-gpu will-change-transform transition-colors duration-200',
+        'relative mb-3 overflow-hidden rounded-[24px] bg-[var(--surface)] shadow-[var(--shadow-card)] border border-l-[5px] transform-gpu will-change-transform transition-colors duration-200',
         isActive
           ? 'shadow-[var(--shadow-glow)] border-[var(--accent)]/50 bg-[var(--surface)] z-10'
           : isExpanded
             ? 'ring-2 ring-[var(--surface-2)] border-transparent shadow-none z-10'
             : 'border-transparent hover:border-[var(--border)]',
       )}
-      style={{ transformOrigin: 'center' }}
+      style={{ transformOrigin: 'center', borderLeftColor: task.color }}
       as="li"
     >
       <motion.div
@@ -208,15 +244,25 @@ const TaskItem = memo(function TaskItem({
             onKeyDown={handleKeyDown}
           >
             <div className="relative w-full max-w-full">
-              <p
-                className={cn(
-                  'text-[17px] font-semibold leading-tight transition-colors mb-1.5 font-[var(--font-display)]',
-                  task.completed ? 'text-[var(--muted)]' : 'text-[var(--ink)]',
-                  !isExpanded && 'truncate'
+              <div className="flex items-center gap-2 min-w-0">
+                <p
+                  className={cn(
+                    'text-[17px] font-semibold leading-tight transition-colors mb-1.5 font-[var(--font-display)]',
+                    task.completed
+                      ? 'text-[var(--muted)]'
+                      : 'text-[var(--ink)]',
+                    !isExpanded && 'truncate'
+                  )}
+                >
+                  {task.title}
+                </p>
+                {task.isPinned && (
+                  <Pin
+                    size={12}
+                    className="text-[var(--accent)] fill-current rotate-45"
+                  />
                 )}
-              >
-                {task.title}
-              </p>
+              </div>
               <motion.div
                 initial={false}
                 animate={{ scaleX: task.completed ? 1 : 0 }}
@@ -288,7 +334,10 @@ const TaskItem = memo(function TaskItem({
           className="overflow-hidden"
           style={{ pointerEvents: isExpanded ? 'auto' : 'none' }}
         >
-          <div ref={detailsRef} className="px-4 pb-4 pt-0 pl-[3.5rem] space-y-2">
+          <div
+            ref={detailsRef}
+            className="px-4 pb-4 pt-0 pl-[3.5rem] space-y-3"
+          >
             {!task.completed ? (
               <>
                 <button
@@ -374,15 +423,112 @@ const TaskItem = memo(function TaskItem({
                     )}
                   </div>
 
+                </div>
+
+                <div className="bg-[var(--surface-2)]/50 rounded-xl p-3">
+                  <div className="flex justify-between text-[10px] font-bold text-[var(--muted)] uppercase mb-2">
+                    <span>Подзадачи</span>
+                    <span>
+                      {completedSteps}/{totalSteps}
+                    </span>
+                  </div>
+
+                  {totalSteps > 0 && (
+                    <div className="h-1 w-full bg-[var(--border)] rounded-full mb-3 overflow-hidden">
+                      <div
+                        className="h-full bg-[var(--accent)] transition-all duration-300"
+                        style={{ width: `${progress}%` }}
+                      />
+                    </div>
+                  )}
+
+                  <div className="space-y-2">
+                    {task.checklist.map((item, idx) => (
+                      <button
+                        key={`${task.id}-${idx}`}
+                        type="button"
+                        onClick={() => toggleSubtask(idx)}
+                        className="flex items-center gap-2 w-full text-left group"
+                      >
+                        <div
+                          className={cn(
+                            'w-4 h-4 rounded border flex items-center justify-center transition-colors',
+                            item.done
+                              ? 'bg-[var(--ink)] border-[var(--ink)]'
+                              : 'border-[var(--muted)]'
+                          )}
+                        >
+                          {item.done && (
+                            <Check
+                              size={10}
+                              className="text-[var(--bg)]"
+                              strokeWidth={3}
+                            />
+                          )}
+                        </div>
+                        <span
+                          className={cn(
+                            'text-sm transition-all',
+                            item.done && 'line-through opacity-50'
+                          )}
+                        >
+                          {item.text}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+
+                  <form onSubmit={addSubtask} className="mt-3 flex gap-2">
+                    <input
+                      type="text"
+                      value={newStep}
+                      onChange={(event) => setNewStep(event.target.value)}
+                      placeholder="Добавить шаг..."
+                      className="flex-1 bg-transparent text-sm border-b border-[var(--border)] focus:border-[var(--accent)] outline-none py-1 placeholder:text-[var(--muted)]/50"
+                    />
+                    <button
+                      type="submit"
+                      disabled={!newStep.trim()}
+                      className="text-[var(--accent)] disabled:opacity-30"
+                      aria-label="Добавить шаг"
+                    >
+                      <Plus size={18} />
+                    </button>
+                  </form>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      impact('light');
+                      updateTask(task.id, { isPinned: !task.isPinned });
+                    }}
+                    className={cn(
+                      'col-span-1 h-10 rounded-xl flex items-center justify-center gap-2 text-xs font-bold transition-colors active:scale-95',
+                      task.isPinned
+                        ? 'bg-[var(--ink)] text-[var(--bg)]'
+                        : 'bg-[var(--surface-2)] text-[var(--ink)]'
+                    )}
+                    aria-pressed={task.isPinned}
+                  >
+                    <Pin
+                      size={14}
+                      className={task.isPinned ? 'fill-current' : ''}
+                    />
+                    {task.isPinned ? 'Открепить' : 'Закрепить'}
+                  </button>
+
                   <button
                     type="button"
                     onClick={(event) => {
                       event.stopPropagation();
                       onEdit(task);
                     }}
-                    className="col-span-1 flex items-center justify-center gap-2 h-[52px] rounded-[18px] bg-[var(--surface-2)] text-[var(--ink)] font-bold text-[13px] active:scale-95 transition-[transform,colors] duration-200 hover:bg-[var(--border)]"
+                    className="col-span-1 flex items-center justify-center gap-2 h-10 rounded-xl bg-[var(--surface-2)] text-[var(--ink)] font-bold text-[12px] active:scale-95 transition-[transform,colors] duration-200 hover:bg-[var(--border)]"
                   >
-                    <Pencil size={18} /> Изменить
+                    <Pencil size={16} /> Изменить
                   </button>
 
                   <button
@@ -391,7 +537,7 @@ const TaskItem = memo(function TaskItem({
                       event.stopPropagation();
                       onDelete(task.id);
                     }}
-                    className="col-span-1 flex items-center justify-center gap-2 h-[52px] rounded-[18px] bg-[var(--danger)]/10 text-[var(--danger)] font-bold text-[13px] active:scale-95 transition-[transform,colors] duration-200 hover:bg-[var(--danger)]/20"
+                    className="col-span-2 flex items-center justify-center gap-2 h-[52px] rounded-[18px] bg-[var(--danger)]/10 text-[var(--danger)] font-bold text-[13px] active:scale-95 transition-[transform,colors] duration-200 hover:bg-[var(--danger)]/20"
                   >
                     <Trash2 size={18} /> Удалить
                   </button>

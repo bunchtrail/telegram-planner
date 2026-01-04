@@ -13,8 +13,9 @@ import {
   subMonths,
   subWeeks,
 } from 'date-fns';
+import { DEFAULT_TASK_COLOR } from '../lib/constants';
 import { setSupabaseAccessToken, supabase } from '../lib/supabase';
-import type { Task, TaskRepeat } from '../types/task';
+import type { Task, TaskChecklistItem, TaskRepeat } from '../types/task';
 
 const DEFAULT_DURATION = 30;
 type PlannerViewMode = 'week' | 'month';
@@ -29,6 +30,9 @@ type TaskRow = {
   series_id?: string | null;
   elapsed_ms?: number | string | null;
   active_started_at?: string | null;
+  color?: string | null;
+  is_pinned?: boolean | null;
+  checklist?: unknown;
 };
 
 type TaskSeriesRow = {
@@ -132,6 +136,32 @@ const parseTimestamp = (value?: string | null) => {
   return Number.isNaN(date.getTime()) ? null : date;
 };
 
+const parseChecklist = (value: unknown): TaskChecklistItem[] => {
+  if (!Array.isArray(value)) return [];
+  const items: TaskChecklistItem[] = [];
+  value.forEach((entry) => {
+    if (!entry || typeof entry !== 'object') return;
+    const candidate = entry as { text?: unknown; done?: unknown };
+    if (typeof candidate.text !== 'string') return;
+    if (typeof candidate.done !== 'boolean') return;
+    items.push({ text: candidate.text, done: candidate.done });
+  });
+  return items;
+};
+
+const areChecklistsEqual = (
+  left: TaskChecklistItem[],
+  right: TaskChecklistItem[]
+) => {
+  if (left.length !== right.length) return false;
+  for (let i = 0; i < left.length; i += 1) {
+    if (left[i].text !== right[i].text || left[i].done !== right[i].done) {
+      return false;
+    }
+  }
+  return true;
+};
+
 const normalizeHex = (value?: string | null) => {
   if (!value) return null;
   const trimmed = value.trim();
@@ -182,6 +212,9 @@ const mapTaskRow = (row: TaskRow, clientId = row.id): Task => ({
   seriesId: row.series_id ?? null,
   elapsedMs: parseElapsedMs(row.elapsed_ms),
   activeStartedAt: parseTimestamp(row.active_started_at),
+  color: normalizeHex(row.color) ?? DEFAULT_TASK_COLOR,
+  isPinned: row.is_pinned ?? false,
+  checklist: parseChecklist(row.checklist),
 });
 
 export function usePlanner() {
@@ -190,6 +223,7 @@ export function usePlanner() {
   const [userId, setUserId] = useState<string | null>(null);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [streak, setStreak] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [refetchKey, setRefetchKey] = useState(0);
   const [timerNow, setTimerNow] = useState(() => Date.now());
@@ -621,6 +655,9 @@ export function usePlanner() {
             if (!row?.id || !isDateInActiveMonth(row.date)) return;
             const rowPosition = Number(row.position ?? 0);
             const rowSeriesId = row.series_id ?? null;
+            const rowColor = normalizeHex(row.color) ?? DEFAULT_TASK_COLOR;
+            const rowPinned = row.is_pinned ?? false;
+            const rowChecklist = parseChecklist(row.checklist);
 
             setTasks((prev) => {
               if (prev.some((task) => task.id === row.id)) {
@@ -629,18 +666,25 @@ export function usePlanner() {
 
               let pendingMatchId: string | null = null;
               for (const [tempId, pending] of pendingInsertRef.current) {
+                const pendingColor =
+                  normalizeHex(pending.color) ?? DEFAULT_TASK_COLOR;
+                const pendingPinned = pending.is_pinned ?? false;
+                const pendingChecklist = parseChecklist(pending.checklist);
                 if (
                   pending.title === row.title &&
                   pending.duration === row.duration &&
                   pending.date === row.date &&
                   pending.completed === row.completed &&
                   (pending.position ?? 0) === rowPosition &&
-                  (pending.series_id ?? null) === rowSeriesId
+                  (pending.series_id ?? null) === rowSeriesId &&
+                  pendingColor === rowColor &&
+                  pendingPinned === rowPinned &&
+                  areChecklistsEqual(pendingChecklist, rowChecklist)
                 ) {
-                pendingMatchId = tempId;
-                break;
+                  pendingMatchId = tempId;
+                  break;
+                }
               }
-            }
 
             if (pendingMatchId) {
               pendingInsertRef.current.delete(pendingMatchId);
@@ -806,6 +850,26 @@ export function usePlanner() {
 
   useEffect(() => {
     if (!userId) return;
+    let isCancelled = false;
+
+    supabase
+      .rpc('get_user_streak', { user_telegram_id: userId })
+      .then(({ data, error }) => {
+        if (isCancelled) return;
+        if (error) {
+          console.error('Fetch streak failed', error);
+          return;
+        }
+        setStreak(typeof data === 'number' ? data : 0);
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [userId, tasks]);
+
+  useEffect(() => {
+    if (!userId) return;
 
     const onVisible = () => {
       if (document.visibilityState === 'visible') {
@@ -821,12 +885,11 @@ export function usePlanner() {
 
   const currentTasks = useMemo(() => {
     const dayTasks = tasks.filter((task) => isSameDay(task.date, selectedDate));
-    const isActiveTask = (task: Task) =>
-      Boolean(task.activeStartedAt) && !task.completed;
     const getSortGroup = (task: Task) => {
-      if (isActiveTask(task)) return 0;
-      if (task.completed) return 2;
-      return 1;
+      if (task.activeStartedAt && !task.completed) return 0;
+      if (task.isPinned && !task.completed) return 1;
+      if (task.completed) return 3;
+      return 2;
     };
     return dayTasks.sort((a, b) => {
       const aGroup = getSortGroup(a);
@@ -921,7 +984,8 @@ export function usePlanner() {
     title: string,
     duration = DEFAULT_DURATION,
     repeat: TaskRepeat = 'none',
-    repeatCount = 1
+    repeatCount = 1,
+    color = DEFAULT_TASK_COLOR
   ) => {
     const trimmedTitle = title.trim();
     if (!trimmedTitle) {
@@ -930,6 +994,7 @@ export function usePlanner() {
     if (!userId) {
       return;
     }
+    const resolvedColor = normalizeHex(color) ?? DEFAULT_TASK_COLOR;
 
     const selectedDateKey = formatDateOnly(selectedDate);
     const nextPosition =
@@ -947,6 +1012,9 @@ export function usePlanner() {
         completed: false,
         position: nextPosition,
         series_id: null,
+        color: resolvedColor,
+        is_pinned: false,
+        checklist: [],
       };
       pendingInsertRef.current.set(tempId, pendingRow);
 
@@ -961,6 +1029,9 @@ export function usePlanner() {
         seriesId: null,
         elapsedMs: 0,
         activeStartedAt: null,
+        color: resolvedColor,
+        isPinned: false,
+        checklist: [],
       };
 
       setTasks((prev) => [...prev, newTask]);
@@ -975,6 +1046,9 @@ export function usePlanner() {
           telegram_id: userId,
           position: newTask.position,
           series_id: null,
+          color: resolvedColor,
+          is_pinned: false,
+          checklist: [],
         })
         .select()
         .single();
@@ -1027,6 +1101,9 @@ export function usePlanner() {
       completed: false,
       position: nextPosition,
       series_id: seriesId,
+      color: resolvedColor,
+      is_pinned: false,
+      checklist: [],
     };
     pendingInsertRef.current.set(tempId, pendingRow);
 
@@ -1041,6 +1118,9 @@ export function usePlanner() {
       seriesId,
       elapsedMs: 0,
       activeStartedAt: null,
+      color: resolvedColor,
+      isPinned: false,
+      checklist: [],
     };
 
     setTasks((prev) => [...prev, newTask]);
@@ -1055,6 +1135,9 @@ export function usePlanner() {
         telegram_id: userId,
         position: newTask.position,
         series_id: seriesId,
+        color: resolvedColor,
+        is_pinned: false,
+        checklist: [],
       })
       .select()
       .single();
@@ -1100,18 +1183,51 @@ export function usePlanner() {
     );
   };
 
-  const updateTask = async (
-    id: string,
-    updates: { title: string; duration: number }
-  ) => {
+  const updateTask = async (id: string, updates: Partial<Task>) => {
     const existingTask = tasks.find((task) => task.id === id);
     if (!existingTask) return;
 
+    const appliedUpdates: Partial<Task> = {};
+    if (updates.title !== undefined) appliedUpdates.title = updates.title;
+    if (updates.duration !== undefined) appliedUpdates.duration = updates.duration;
+    if (updates.color !== undefined) {
+      appliedUpdates.color = normalizeHex(updates.color) ?? DEFAULT_TASK_COLOR;
+    }
+    if (updates.isPinned !== undefined) {
+      appliedUpdates.isPinned = updates.isPinned;
+    }
+    if (updates.checklist !== undefined) {
+      appliedUpdates.checklist = Array.isArray(updates.checklist)
+        ? updates.checklist
+        : [];
+    }
+
+    if (Object.keys(appliedUpdates).length === 0) return;
+
     setTasks((prev) =>
-      prev.map((task) => (task.id === id ? { ...task, ...updates } : task))
+      prev.map((task) =>
+        task.id === id ? { ...task, ...appliedUpdates } : task
+      )
     );
 
-    const { error } = await supabase.from('tasks').update(updates).eq('id', id);
+    const dbUpdates: Record<string, unknown> = {};
+    if (appliedUpdates.title !== undefined) {
+      dbUpdates.title = appliedUpdates.title;
+    }
+    if (appliedUpdates.duration !== undefined) {
+      dbUpdates.duration = appliedUpdates.duration;
+    }
+    if (appliedUpdates.color !== undefined) {
+      dbUpdates.color = appliedUpdates.color;
+    }
+    if (appliedUpdates.isPinned !== undefined) {
+      dbUpdates.is_pinned = appliedUpdates.isPinned;
+    }
+    if (appliedUpdates.checklist !== undefined) {
+      dbUpdates.checklist = appliedUpdates.checklist;
+    }
+
+    const { error } = await supabase.from('tasks').update(dbUpdates).eq('id', id);
 
     if (error) {
       setTasks((prev) =>
@@ -1350,6 +1466,9 @@ export function usePlanner() {
         series_id: task.seriesId ?? null,
         elapsed_ms: task.elapsedMs ?? 0,
         active_started_at: null,
+        color: task.color,
+        is_pinned: task.isPinned,
+        checklist: task.checklist,
       })
       .select()
       .single();
@@ -1381,6 +1500,7 @@ export function usePlanner() {
     isAddOpen,
     setIsAddOpen,
     tasks,
+    streak,
     currentTasks,
     weekDays,
     monthDays,
