@@ -1,6 +1,7 @@
 export type TaskRepeat = "none" | "daily" | "weekly";
 
 export type Task = {
+  clientId: string;
   id: string;
   title: string;
   duration: number;

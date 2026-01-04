@@ -171,7 +171,8 @@ const getRelativeLuminance = (hex: string) => {
   return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 };
 
-const mapTaskRow = (row: TaskRow): Task => ({
+const mapTaskRow = (row: TaskRow, clientId = row.id): Task => ({
+  clientId,
   id: row.id,
   title: row.title,
   duration: row.duration,
@@ -636,19 +637,21 @@ export function usePlanner() {
                   (pending.position ?? 0) === rowPosition &&
                   (pending.series_id ?? null) === rowSeriesId
                 ) {
-                  pendingMatchId = tempId;
-                  break;
-                }
+                pendingMatchId = tempId;
+                break;
               }
+            }
 
-              if (pendingMatchId) {
-                pendingInsertRef.current.delete(pendingMatchId);
-                return prev.map((task) =>
-                  task.id === pendingMatchId ? mapTaskRow(row) : task
-                );
-              }
+            if (pendingMatchId) {
+              pendingInsertRef.current.delete(pendingMatchId);
+              return prev.map((task) =>
+                task.id === pendingMatchId
+                  ? mapTaskRow(row, task.clientId)
+                  : task
+              );
+            }
 
-              return [...prev, mapTaskRow(row)];
+            return [...prev, mapTaskRow(row)];
             });
           }
 
@@ -663,7 +666,7 @@ export function usePlanner() {
               if (isInMonth) {
                 if (exists) {
                   return prev.map((task) =>
-                    task.id === row.id ? mapTaskRow(row) : task
+                    task.id === row.id ? mapTaskRow(row, task.clientId) : task
                   );
                 }
                 return [...prev, mapTaskRow(row)];
@@ -948,6 +951,7 @@ export function usePlanner() {
       pendingInsertRef.current.set(tempId, pendingRow);
 
       const newTask: Task = {
+        clientId: tempId,
         id: tempId,
         title: trimmedTitle,
         duration,
@@ -1027,6 +1031,7 @@ export function usePlanner() {
     pendingInsertRef.current.set(tempId, pendingRow);
 
     const newTask: Task = {
+      clientId: tempId,
       id: tempId,
       title: trimmedTitle,
       duration,

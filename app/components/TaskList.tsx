@@ -36,7 +36,7 @@ export default function TaskList({
 
   useEffect(() => {
     const prevIds = prevTaskIdsRef.current;
-    const nextIds = new Set(tasks.map((task) => task.id));
+    const nextIds = new Set(tasks.map((task) => task.clientId));
     let isIncremental = true;
     for (const id of prevIds) {
       if (!nextIds.has(id)) {
@@ -125,7 +125,7 @@ export default function TaskList({
         <AnimatePresence initial={false}>
           {tasks.map((task) => (
             <TaskItem
-              key={task.id}
+              key={task.clientId}
               task={task}
               onToggle={onToggle}
               onDelete={onDelete}
