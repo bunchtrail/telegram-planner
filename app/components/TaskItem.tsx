@@ -204,11 +204,12 @@ const TaskItem = memo(function TaskItem({
       id={task.clientId}
       dragListener={false}
       dragControls={dragControls}
+      dragElastic={0}
+      dragMomentum={false}
       layout="position"
       initial={{ opacity: 0 }}
       animate={{
         opacity: task.completed ? 0.8 : 1,
-        y: 0,
       }}
       exit={{ opacity: 0, scale: 0.95 }}
       transition={{

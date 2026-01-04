@@ -114,7 +114,12 @@ export default function TaskList({
   }
 
   return (
-    <motion.div ref={scrollContainerRef} className={scrollClasses} layoutScroll>
+    <motion.div
+      ref={scrollContainerRef}
+      className={scrollClasses}
+      layoutScroll
+      layoutRoot
+    >
       <Reorder.Group
         key={dateKey}
         axis="y"
