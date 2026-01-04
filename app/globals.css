@@ -71,6 +71,7 @@ body {
   font-family: var(--font-body), -apple-system, BlinkMacSystemFont, sans-serif;
   overscroll-behavior: none;
   overflow: hidden;
+  transition: height 0.25s ease-out;
 }
 
 .no-scrollbar {
@@ -115,6 +116,7 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
+
   *,
   *::before,
   *::after {

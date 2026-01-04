@@ -134,7 +134,7 @@ export default function TaskSheet({
         dragConstraints={{ top: 0 }}
         dragElastic={0.05}
         onDragEnd={handleDragEnd}
-        className="pointer-events-auto relative w-full bg-[var(--surface-glass)] backdrop-blur-2xl rounded-t-[36px] shadow-[var(--shadow-pop)] flex flex-col max-h-[92dvh] border-t border-[var(--border)]"
+        className="pointer-events-auto relative w-full bg-[var(--surface)] backdrop-blur-2xl rounded-t-[36px] shadow-[var(--shadow-pop)] flex flex-col max-h-[92dvh] border-t border-[var(--border)] transition-[max-height] duration-300 ease-out"
         style={{
           paddingBottom:
             "max(env(safe-area-inset-bottom), var(--tg-content-safe-bottom, 0px), 20px)",
@@ -356,7 +356,7 @@ export default function TaskSheet({
           </div>
         </form>
 
-        <div className="p-6 pt-2 mt-auto bg-[var(--surface)]">
+        <div className="p-6 pt-2 mt-auto">
           <button
             type="button"
             onClick={() => {
