@@ -1,6 +1,13 @@
 "use client";
 
-import { type FormEvent, useCallback, useEffect, useRef, useState } from "react";
+import {
+  type FormEvent,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { Check, ChevronRight, Repeat, X, Clock, Palette } from "lucide-react";
 import {
   AnimatePresence,
@@ -67,9 +74,13 @@ export default function TaskSheet({
 
   const [isSettled, setIsSettled] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [repeatDetailsHeight, setRepeatDetailsHeight] = useState<number | "auto">(
+    "auto",
+  );
 
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
+  const repeatDetailsRef = useRef<HTMLDivElement>(null);
   const dragControls = useDragControls();
   const { impact, notification } = useHaptic();
 
@@ -128,6 +139,19 @@ export default function TaskSheet({
   useEffect(() => {
     adjustTextareaHeight();
   }, [title, adjustTextareaHeight]);
+
+  useLayoutEffect(() => {
+    if (!showRepeatOptions) return;
+    const el = repeatDetailsRef.current;
+    if (!el) return;
+
+    const updateHeight = () => setRepeatDetailsHeight(el.scrollHeight);
+    updateHeight();
+
+    const observer = new ResizeObserver(updateHeight);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [showRepeatOptions, repeat, repeatCount]);
 
   const handleAnimationComplete = useCallback(
     (definition: AnimationDefinition) => {
@@ -386,16 +410,17 @@ export default function TaskSheet({
                   />
                 </button>
 
-                <AnimatePresence>
-                  {showRepeatOptions && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: "auto", opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.3, ease: "circOut" }}
-                      className="overflow-hidden"
-                    >
-                      <div className="px-4 pb-4 space-y-4 pt-2">
+                <motion.div
+                  initial={false}
+                  animate={{
+                    height: showRepeatOptions ? repeatDetailsHeight : 0,
+                    opacity: showRepeatOptions ? 1 : 0,
+                  }}
+                  transition={{ duration: 0.18, ease: "easeOut" }}
+                  className="overflow-hidden"
+                  style={{ pointerEvents: showRepeatOptions ? "auto" : "none" }}
+                >
+                  <div ref={repeatDetailsRef} className="px-4 pb-4 space-y-4 pt-2">
                         <div className="flex bg-[var(--surface-2)] p-1 rounded-[14px] relative z-0">
                           {[
                             { id: "none", label: "Нет" },
@@ -483,9 +508,7 @@ export default function TaskSheet({
                           </motion.div>
                         )}
                       </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                </motion.div>
               </div>
             </div>
           </div>
