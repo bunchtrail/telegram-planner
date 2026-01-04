@@ -985,7 +985,7 @@ export function usePlanner() {
     duration = DEFAULT_DURATION,
     repeat: TaskRepeat = 'none',
     repeatCount = 1,
-    color = DEFAULT_TASK_COLOR
+    color: Task['color'] = DEFAULT_TASK_COLOR
   ) => {
     const trimmedTitle = title.trim();
     if (!trimmedTitle) {
