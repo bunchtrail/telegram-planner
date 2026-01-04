@@ -256,7 +256,7 @@ const TaskItem = memo(function TaskItem({
             style={{
               borderColor: task.color,
               backgroundColor: task.completed ? task.color : 'transparent',
-              opacity: task.completed ? 1 : 0.7,
+              opacity: task.completed ? 1 : 0.85,
             }}
           >
             <motion.svg
