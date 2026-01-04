@@ -42,6 +42,14 @@ export default function FocusOverlay({
   const dialogRef = useRef<HTMLDivElement>(null);
   const reduceMotion = useReducedMotion();
 
+  const targetMs = (task.duration || 30) * 60 * 1000;
+  const progress = Math.min(100, (elapsedMs / targetMs) * 100);
+  const radius = 136;
+  const stroke = 8;
+  const normalizedRadius = radius - stroke * 2;
+  const circumference = normalizedRadius * 2 * Math.PI;
+  const strokeDashoffset = circumference - (progress / 100) * circumference;
+
   useEffect(() => {
     dialogRef.current?.focus();
   }, []);
@@ -100,7 +108,7 @@ export default function FocusOverlay({
 
       <h2
         id="focus-title"
-        className="text-3xl font-bold text-center mb-8 font-[var(--font-display)]"
+        className="text-3xl font-bold text-center mb-8 font-[var(--font-display)] max-w-sm"
       >
         {task.title}
       </h2>
@@ -113,7 +121,27 @@ export default function FocusOverlay({
             className="absolute inset-0 rounded-full bg-[var(--accent)] blur-2xl"
           />
         )}
+
         <div className="absolute inset-0 rounded-full border-[8px] border-[var(--surface-2)]" />
+
+        <svg
+          className="absolute inset-0 rotate-[-90deg] w-full h-full pointer-events-none"
+          viewBox="0 0 288 288"
+        >
+          <circle
+            stroke={task.color || "var(--accent)"}
+            fill="transparent"
+            strokeWidth={stroke}
+            strokeDasharray={`${circumference} ${circumference}`}
+            style={{ strokeDashoffset }}
+            strokeLinecap="round"
+            r={normalizedRadius}
+            cx="144"
+            cy="144"
+            className="transition-all duration-1000 ease-linear"
+          />
+        </svg>
+
         <div className="text-7xl font-bold font-mono tabular-nums z-10">
           {formatTime(elapsedMs)}
         </div>

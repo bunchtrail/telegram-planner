@@ -157,7 +157,7 @@ export default function TaskSheet({
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         transition={{ duration: 0.25 }}
-        className="absolute inset-0 bg-black/30 backdrop-blur-sm pointer-events-auto"
+        className="absolute inset-0 bg-black/40 backdrop-blur-md pointer-events-auto"
         onClick={handleClose}
       />
 
@@ -178,9 +178,11 @@ export default function TaskSheet({
         transformTemplate={(_transforms, generatedTransform) =>
           isSettled && !isDragging ? "none" : generatedTransform
         }
-        className="pointer-events-auto relative w-full max-w-[96%] mx-auto mb-3 bg-[var(--surface)]/95 backdrop-blur-xl rounded-[32px] shadow-[var(--shadow-pop)] flex flex-col overflow-hidden"
+        className="pointer-events-auto relative w-full max-w-[96%] mx-auto mb-3 bg-[var(--surface)] shadow-[var(--shadow-pop)] rounded-[32px] flex flex-col overflow-hidden"
         style={{
           maxHeight: "90dvh",
+          paddingTop:
+            "calc(max(env(safe-area-inset-top), var(--tg-content-safe-top, 0px)) + 12px)",
           paddingBottom:
             "max(env(safe-area-inset-bottom), var(--tg-content-safe-bottom, 20px))",
         }}
@@ -192,11 +194,11 @@ export default function TaskSheet({
           <div className="w-12 h-1.5 bg-[var(--border)] rounded-full opacity-60" />
         </div>
 
-        <div className="flex items-center justify-between px-6 pt-5 pb-2 shrink-0 z-10">
+        <div className="flex items-center justify-between px-6 pt-8 pb-2 shrink-0 z-10">
           <button
             type="button"
             onClick={handleClose}
-            className="text-[17px] text-[var(--muted)] hover:opacity-70 transition-opacity"
+            className="text-[17px] text-[var(--muted)] hover:opacity-70 transition-opacity p-2 -ml-2"
           >
             Отмена
           </button>
@@ -206,7 +208,7 @@ export default function TaskSheet({
           <button
             type="button"
             onClick={() => formRef.current?.requestSubmit()}
-            className="text-[17px] font-bold text-[var(--accent)] hover:opacity-70 transition-opacity"
+            className="text-[17px] font-bold text-[var(--accent)] hover:opacity-70 transition-opacity p-2 -mr-2"
           >
             Готово
           </button>
@@ -435,7 +437,6 @@ export default function TaskSheet({
             </div>
           </div>
         </form>
-
       </motion.div>
     </div>
   );

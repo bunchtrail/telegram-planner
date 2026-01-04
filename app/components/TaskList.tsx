@@ -122,9 +122,10 @@ export default function TaskList({
         onReorder={onReorder}
         as="ul"
         role="list"
+        layoutScroll
         className="relative"
       >
-        <AnimatePresence initial={false}>
+      <AnimatePresence initial={false} mode="popLayout">
           {tasks.map((task) => (
             <TaskItem
               key={task.clientId}

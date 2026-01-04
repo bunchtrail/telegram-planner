@@ -205,25 +205,37 @@ const TaskItem = memo(function TaskItem({
       dragListener={false}
       dragControls={dragControls}
       layout="position"
-      initial={false}
-      animate={{ opacity: task.completed ? 0.8 : 1, y: 0 }}
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{
+        opacity: task.completed ? 0.8 : 1,
+        scale: 1,
+        y: 0,
+      }}
       exit={{ opacity: 0, scale: 0.95 }}
-      transition={{ type: 'tween', duration: 0.18, ease: 'easeOut' }}
+      transition={{
+        type: 'spring',
+        stiffness: 500,
+        damping: 30,
+        layout: { duration: 0.2 },
+      }}
       className={cn(
-        'group relative mb-4 overflow-hidden rounded-[28px] bg-[var(--surface)] transition-all duration-300',
+        'group relative mb-4 overflow-hidden rounded-[28px] bg-[var(--surface)] touch-pan-y transition-shadow duration-300',
         isActive
-          ? 'shadow-[var(--shadow-glow)] z-10 scale-[1.02]'
+          ? 'shadow-[var(--shadow-glow)] z-10'
           : isExpanded
-            ? 'shadow-[var(--shadow-pop)] z-10 scale-[1.01]'
-            : 'shadow-[var(--shadow-card)] active:scale-[0.98]'
+            ? 'shadow-[var(--shadow-pop)] z-10'
+            : 'shadow-[var(--shadow-card)]'
       )}
       style={{
         transformOrigin: 'center',
         '--task-color': task.color,
       } as CustomCSSProperties}
       as="li"
+      transformTemplate={({ y, scale }) => {
+        return `translateY(${y}) scale(${scale})`;
+      }}
     >
-      <motion.div
+      <div
         className={cn('flex flex-col relative', isExpanded && 'bg-[var(--muted)]/5')}
       >
         <div className="flex items-start gap-4 p-5 pr-3">
@@ -245,7 +257,7 @@ const TaskItem = memo(function TaskItem({
                 ? 'Отметить как невыполненную'
                 : 'Отметить как выполненную'
             }
-            className="relative flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-[1.5px] transition-all duration-300 mt-1"
+            className="relative flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-[1.5px] transition-colors duration-300 mt-1"
             style={{
               borderColor: task.completed ? task.color : 'var(--muted)',
               backgroundColor: task.completed ? task.color : 'transparent',
@@ -655,7 +667,7 @@ const TaskItem = memo(function TaskItem({
             )}
           </div>
         </motion.div>
-      </motion.div>
+      </div>
     </Reorder.Item>
   );
 });

@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useRef } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { Flame, Trophy, X } from "lucide-react";
+import { format, subDays, isSameDay } from "date-fns";
+import { ru } from "date-fns/locale";
 import type { Task } from "../types/task";
 
 type StatsModalProps = {
@@ -11,8 +13,6 @@ type StatsModalProps = {
   tasks: Task[];
 };
 
-const CHART_DATA = [20, 45, 30, 80, 50, 60, 40];
-
 export default function StatsModal({ onClose, streak, tasks }: StatsModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
   const reduceMotion = useReducedMotion();
@@ -20,6 +20,31 @@ export default function StatsModal({ onClose, streak, tasks }: StatsModalProps) 
   const totalHours = useMemo(() => {
     const totalMs = tasks.reduce((acc, task) => acc + task.elapsedMs, 0);
     return (totalMs / 3_600_000).toFixed(1);
+  }, [tasks]);
+
+  const chartData = useMemo(() => {
+    const days = Array.from({ length: 7 }, (_, i) => {
+      const date = subDays(new Date(), 6 - i);
+      return {
+        date,
+        label: format(date, "EEE", { locale: ru }),
+      };
+    });
+
+    let maxCount = 0;
+    const counts = days.map((day) => {
+      const count = tasks.filter((task) =>
+        isSameDay(task.date, day.date) && task.completed
+      ).length;
+      if (count > maxCount) maxCount = count;
+      return count;
+    });
+
+    return days.map((day, i) => ({
+      label: day.label,
+      heightPercent: maxCount > 0 ? (counts[i] / maxCount) * 100 : 0,
+      count: counts[i],
+    }));
   }, [tasks]);
 
   useEffect(() => {
@@ -94,31 +119,33 @@ export default function StatsModal({ onClose, streak, tasks }: StatsModalProps) 
 
         <div className="bg-[var(--surface-2)] p-4 rounded-2xl">
           <div className="text-xs font-bold text-[var(--muted)] mb-4 uppercase">
-            Активность
+            Активность (7 дней)
           </div>
           <div className="flex items-end justify-between h-24 gap-2">
-            {CHART_DATA.map((height, index) => (
+            {chartData.map((data, index) => (
               <div
                 key={`bar-${index}`}
-                className="w-full bg-[var(--bg)] rounded-t-lg relative overflow-hidden group"
+                className="w-full bg-[var(--bg)] rounded-t-lg relative overflow-hidden group flex items-end justify-center"
               >
+                {data.heightPercent === 0 && (
+                  <div className="w-full h-1 bg-[var(--muted)]/20 rounded-full" />
+                )}
                 <motion.div
                   initial={{ height: 0 }}
-                  animate={{ height: `${height}%` }}
+                  animate={{ height: `${data.heightPercent}%` }}
                   transition={{
                     delay: reduceMotion ? 0 : index * 0.05,
                     duration: reduceMotion ? 0 : 0.4,
                   }}
-                  className="absolute bottom-0 w-full bg-[var(--accent)] rounded-t-lg opacity-80 group-hover:opacity-100"
+                  className="w-full bg-[var(--accent)] rounded-t-lg opacity-80 group-hover:opacity-100 min-h-[4px]"
                 />
               </div>
             ))}
           </div>
-          <div className="flex justify-between mt-2 text-[10px] font-bold text-[var(--muted)] opacity-60">
-            <span>Пн</span>
-            <span>Ср</span>
-            <span>Пт</span>
-            <span>Вс</span>
+          <div className="flex justify-between mt-2 text-[10px] font-bold text-[var(--muted)] opacity-60 uppercase">
+            {chartData.map((data, idx) => (
+              <span key={idx} className="w-full text-center">{data.label}</span>
+            ))}
           </div>
         </div>
       </motion.div>
