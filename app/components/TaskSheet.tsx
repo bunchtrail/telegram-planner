@@ -1,6 +1,13 @@
 "use client";
 
-import { type FormEvent, useCallback, useEffect, useRef, useState } from "react";
+import {
+  type FormEvent,
+  useCallback,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+} from "react";
 import { Check, ChevronRight, Clock, Repeat, X } from "lucide-react";
 import {
   AnimatePresence,
@@ -11,7 +18,6 @@ import {
 } from "framer-motion";
 import { cn } from "../lib/cn";
 import { useHaptic } from "../hooks/useHaptic";
-import { useKeyboardHeight } from "../hooks/useKeyboardHeight";
 import type { TaskRepeat } from "../types/task";
 
 const DURATION_PRESETS = [15, 30, 45, 60, 90, 120];
@@ -56,11 +62,12 @@ export default function TaskSheet({
   const [showRepeatOptions, setShowRepeatOptions] = useState(
     mode === "edit" || initialRepeat !== "none",
   );
+  const titleId = useId();
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
+  const sheetRef = useRef<HTMLDivElement>(null);
   const dragControls = useDragControls();
   const { impact, notification } = useHaptic();
-  const { keyboardHeight, isKeyboardVisible } = useKeyboardHeight();
 
   const adjustTextareaHeight = useCallback(() => {
     const el = inputRef.current;
@@ -115,6 +122,50 @@ export default function TaskSheet({
     }
   }, [adjustTextareaHeight, mode]);
 
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        handleClose();
+        return;
+      }
+
+      if (event.key !== "Tab") return;
+
+      const container = sheetRef.current;
+      if (!container) return;
+
+      const focusable = Array.from(
+        container.querySelectorAll<HTMLElement>(
+          'button, [href], input, textarea, select, [tabindex]:not([tabindex="-1"])',
+        ),
+      ).filter(
+        (el) => !el.hasAttribute("disabled") && el.getAttribute("aria-hidden") !== "true",
+      );
+
+      if (focusable.length === 0) return;
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const active = document.activeElement as HTMLElement | null;
+
+      if (event.shiftKey) {
+        if (active === first || !container.contains(active)) {
+          event.preventDefault();
+          last.focus();
+        }
+      } else if (active === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [handleClose]);
+
   return (
     <div className="fixed inset-0 z-50 flex flex-col justify-end pointer-events-none">
       <motion.div
@@ -136,11 +187,15 @@ export default function TaskSheet({
         dragConstraints={{ top: 0 }}
         dragElastic={0.05}
         onDragEnd={handleDragEnd}
+        ref={sheetRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        tabIndex={-1}
         className="pointer-events-auto relative w-full bg-[var(--surface-glass)] backdrop-blur-2xl rounded-t-[36px] shadow-[var(--shadow-pop)] flex flex-col max-h-[92dvh] border-t border-[var(--border)]"
         style={{
-          paddingBottom: isKeyboardVisible
-            ? `${Math.max(keyboardHeight, 20)}px`
-            : "max(env(safe-area-inset-bottom), var(--tg-content-safe-bottom, 0px), 20px)",
+          paddingBottom:
+            "max(env(safe-area-inset-bottom), var(--tg-content-safe-bottom, 0px), 20px)",
         }}
       >
         <div
@@ -151,7 +206,10 @@ export default function TaskSheet({
         </div>
 
         <div className="px-6 flex items-center justify-between shrink-0 mb-1">
-          <h2 className="text-[13px] font-bold text-[var(--muted)] uppercase tracking-wider">
+          <h2
+            id={titleId}
+            className="text-[13px] font-bold text-[var(--muted)] uppercase tracking-wider"
+          >
             {mode === "create" ? "Новая задача" : "Редактирование"}
           </h2>
           <button
@@ -359,7 +417,7 @@ export default function TaskSheet({
           </div>
         </form>
 
-        <div className="p-6 pt-2 mt-auto bg-[var(--surface)]">
+        <div className="p-6 pt-2 mt-auto bg-transparent border-t border-[var(--border)]/60">
           <button
             type="button"
             onClick={() => {
