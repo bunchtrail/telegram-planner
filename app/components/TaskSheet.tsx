@@ -1,7 +1,7 @@
 "use client";
 
 import { type FormEvent, useCallback, useEffect, useRef, useState } from "react";
-import { Check, ChevronRight, Repeat, Palette } from "lucide-react";
+import { Check, ChevronRight, Repeat, X, Clock, Palette } from "lucide-react";
 import {
   AnimatePresence,
   motion,
@@ -20,8 +20,8 @@ const DURATION_PRESETS = [15, 30, 45, 60, 90, 120];
 const SHEET_TRANSITION = {
   type: "spring",
   damping: 28,
-  stiffness: 300,
-  mass: 0.8,
+  stiffness: 320,
+  mass: 0.6,
 } satisfies Transition;
 
 const REPEAT_COUNT_MIN = 1;
@@ -64,6 +64,7 @@ export default function TaskSheet({
   const [showRepeatOptions, setShowRepeatOptions] = useState(
     mode === "edit" || initialRepeat !== "none",
   );
+
   const [isSettled, setIsSettled] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
 
@@ -142,7 +143,9 @@ export default function TaskSheet({
         setIsSettled(true);
         if (mode === "create") {
           requestAnimationFrame(() => {
-            inputRef.current?.focus({ preventScroll: true });
+            setTimeout(() => {
+              inputRef.current?.focus({ preventScroll: true });
+            }, 50);
           });
         }
       }
@@ -178,46 +181,47 @@ export default function TaskSheet({
         transformTemplate={(_transforms, generatedTransform) =>
           isSettled && !isDragging ? "none" : generatedTransform
         }
-        className="pointer-events-auto relative w-full bg-[var(--bg)] shadow-[var(--shadow-pop)] rounded-t-[32px] flex flex-col overflow-hidden max-w-lg mx-auto"
+        className="pointer-events-auto relative w-full bg-[var(--surface)] rounded-t-[28px] flex flex-col shadow-2xl max-w-lg mx-auto overflow-hidden"
         style={{
-          maxHeight: "90dvh",
+          maxHeight: "92dvh",
         }}
       >
         <div
-          className="shrink-0 w-full pt-3 pb-2 z-20 bg-[var(--bg)] cursor-grab active:cursor-grabbing touch-none"
+          className="shrink-0 w-full pt-3 pb-0 z-20 bg-[var(--surface)] cursor-grab active:cursor-grabbing touch-none select-none"
           onPointerDown={(e) => dragControls.start(e)}
         >
-          <div className="flex justify-center mb-4">
-            <div className="w-10 h-1.5 rounded-full bg-[var(--muted)]/20" />
+          <div className="flex justify-center mb-3">
+            <div className="w-10 h-1 rounded-full bg-[var(--border)] opacity-80" />
           </div>
 
-          <div className="flex items-center justify-between px-6">
+          <div className="flex items-center justify-between px-5 pb-3">
             <button
               type="button"
               onClick={handleClose}
-              className="text-[17px] text-[var(--muted)] hover:text-[var(--ink)] transition-colors py-2 -ml-2 active:opacity-60"
+              className="w-9 h-9 flex items-center justify-center rounded-full bg-[var(--surface-2)] text-[var(--muted)] hover:text-[var(--ink)] transition-colors active:scale-90"
+              aria-label="Закрыть"
             >
-              Отмена
+              <X size={20} />
             </button>
-            <span className="font-bold text-[15px] opacity-40 uppercase tracking-widest select-none pointer-events-none font-[var(--font-display)]">
-              {mode === "create" ? "Новая" : "Правка"}
-            </span>
+
             <button
               type="button"
               onClick={() => formRef.current?.requestSubmit()}
-              className="text-[17px] font-bold text-[var(--accent)] hover:opacity-80 transition-opacity py-2 -mr-2 active:opacity-60"
+              className="px-5 py-2 bg-[var(--ink)] text-[var(--bg)] rounded-full font-bold text-[14px] shadow-md transition-all active:scale-95 hover:opacity-90 disabled:opacity-50 disabled:shadow-none disabled:active:scale-100"
+              disabled={!title.trim()}
             >
-              Готово
+              {mode === "create" ? "Создать" : "Сохранить"}
             </button>
           </div>
+          <div className="h-px w-full bg-[var(--border)] opacity-60" />
         </div>
 
         <form
           ref={formRef}
           onSubmit={handleSubmit}
-          className="flex-1 overflow-y-auto overflow-x-hidden overscroll-contain px-4 pb-[max(env(safe-area-inset-bottom),24px)] pt-2 no-scrollbar touch-pan-y gap-4 flex flex-col"
+          className="flex-1 overflow-y-auto overflow-x-hidden px-0 pb-[max(env(safe-area-inset-bottom),24px)] pt-2 no-scrollbar touch-pan-y flex flex-col min-h-0"
         >
-          <div className="bg-[var(--surface)] rounded-[24px] p-4 shadow-sm">
+          <div className="px-6 py-4 shrink-0">
             <textarea
               ref={inputRef}
               rows={1}
@@ -229,19 +233,17 @@ export default function TaskSheet({
                   formRef.current?.requestSubmit();
                 }
               }}
-              placeholder="Что нужно сделать?"
-              className="w-full bg-transparent text-[22px] font-bold text-[var(--ink)] placeholder:text-[var(--muted)]/40 resize-none outline-none leading-snug font-[var(--font-display)]"
-              style={{
-                minHeight: "40px",
-                transform: "none",
-                WebkitTransform: "none",
-              }}
+              placeholder="Новая задача..."
+              className="w-full bg-transparent text-[26px] font-bold text-[var(--ink)] placeholder:text-[var(--muted)]/40 resize-none outline-none leading-tight font-[var(--font-display)] min-h-[44px]"
             />
           </div>
 
-          <div className="bg-[var(--surface)] rounded-[24px] p-2 shadow-sm overflow-hidden">
+          <div className="mb-6 shrink-0">
+            <div className="px-6 text-[11px] font-bold text-[var(--muted)] uppercase tracking-wider mb-3 flex items-center gap-2">
+              <Clock size={14} /> Время выполнения
+            </div>
             <div
-              className="flex gap-1 overflow-x-auto no-scrollbar p-1"
+              className="flex gap-2.5 overflow-x-auto no-scrollbar px-6 pb-2"
               style={{ touchAction: "pan-x pan-y" }}
             >
               {DURATION_PRESETS.map((value) => (
@@ -253,34 +255,31 @@ export default function TaskSheet({
                     setDuration(value);
                   }}
                   className={cn(
-                    "flex-1 min-w-[50px] py-2.5 rounded-xl text-[13px] font-bold transition-all whitespace-nowrap",
+                    "flex-shrink-0 h-10 px-4 rounded-xl text-[14px] font-bold transition-all border",
                     duration === value
-                      ? "bg-[var(--bg)] text-[var(--ink)] shadow-sm scale-100 ring-1 ring-[var(--border)]"
-                      : "text-[var(--muted)] hover:bg-[var(--bg)]/50 active:scale-95",
+                      ? "bg-[var(--ink)] text-[var(--bg)] border-[var(--ink)] shadow-md transform scale-[1.02]"
+                      : "bg-[var(--surface-2)] text-[var(--ink)] border-transparent hover:border-[var(--border)] active:scale-95",
                   )}
                 >
                   {value} мин
                 </button>
               ))}
+              <div className="w-2 shrink-0" />
             </div>
           </div>
 
-          <div className="bg-[var(--surface)] rounded-[24px] py-4 shadow-sm">
-            <div className="flex items-center gap-2 mb-3 px-6 text-[var(--muted)]">
-              <Palette size={14} />
-              <span className="text-xs font-bold uppercase tracking-widest">
-                Категория
-              </span>
+          <div className="mb-6 shrink-0">
+            <div className="px-6 text-[11px] font-bold text-[var(--muted)] uppercase tracking-wider mb-3 flex items-center gap-2">
+              <Palette size={14} /> Категория
             </div>
-
             <div
-              className="flex gap-4 overflow-x-auto no-scrollbar px-6 items-center pb-1"
+              className="flex gap-4 overflow-x-auto no-scrollbar px-6 py-2 items-center"
               style={{ touchAction: "pan-x pan-y" }}
             >
               {TASK_COLOR_OPTIONS.map((option) => {
                 const isSelected = color === option;
                 return (
-                  <motion.button
+                  <button
                     key={option}
                     type="button"
                     onClick={() => {
@@ -288,83 +287,100 @@ export default function TaskSheet({
                       setColor(option);
                     }}
                     className={cn(
-                      "relative w-11 h-11 flex-shrink-0 rounded-full shadow-sm flex items-center justify-center transition-all",
+                      "relative w-12 h-12 flex-shrink-0 rounded-full flex items-center justify-center transition-transform duration-200 outline-none",
                       isSelected
-                        ? "ring-2 ring-offset-2 ring-[var(--surface)] ring-[var(--ink)]/20"
-                        : "hover:scale-105 active:scale-95",
+                        ? "scale-110"
+                        : "active:scale-95 hover:scale-105 opacity-80",
                     )}
-                    style={{ backgroundColor: option }}
-                    aria-pressed={isSelected}
-                    aria-label="Выбрать категорию"
-                    animate={{
-                      scale: isSelected ? 1.15 : 1,
+                    style={{
+                      backgroundColor: option,
+                      boxShadow: isSelected
+                        ? `0 4px 16px -4px ${option}`
+                        : "none",
                     }}
+                    aria-pressed={isSelected}
+                    aria-label="Выбрать цвет"
                   >
                     {isSelected && (
                       <motion.div
-                        initial={{ scale: 0, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
+                        initial={{ scale: 0, rotate: -45 }}
+                        animate={{ scale: 1, rotate: 0 }}
+                        transition={{ type: "spring", stiffness: 300, damping: 20 }}
                         className="text-white drop-shadow-md"
                       >
-                        <Check size={18} strokeWidth={4} />
+                        <Check size={20} strokeWidth={4} />
                       </motion.div>
                     )}
-                  </motion.button>
+                  </button>
                 );
               })}
+              <div className="w-2 shrink-0" />
             </div>
           </div>
 
-          <div className="bg-[var(--surface)] rounded-[24px] p-2 shadow-sm">
+          <div className="h-px bg-[var(--border)] mx-6 mb-2 opacity-50 shrink-0" />
+
+          <div className="px-4 shrink-0">
             <button
               type="button"
               onClick={() => setShowRepeatOptions(!showRepeatOptions)}
-              className="flex w-full items-center justify-between p-3 rounded-xl hover:bg-[var(--bg)]/50 transition-colors active:scale-[0.98]"
+              className="flex w-full items-center justify-between p-2.5 rounded-xl active:bg-[var(--surface-2)] transition-colors group"
             >
-              <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--bg)] text-[var(--ink)] shadow-sm">
-                  <Repeat size={16} strokeWidth={2.5} />
-                </div>
-                <span className="text-[15px] font-semibold text-[var(--ink)]">
-                  Повтор
-                </span>
-              </div>
-              <div className="flex items-center gap-2 text-[var(--muted)]">
-                <span className="text-[14px] font-medium">
-                  {repeat === "none"
-                    ? "Нет"
-                    : repeat === "daily"
-                      ? "Ежедневно"
-                      : "Еженедельно"}
-                </span>
-                <ChevronRight
-                  size={16}
+              <div className="flex items-center gap-4 ml-1">
+                <div
                   className={cn(
-                    "transition-transform duration-300",
-                    showRepeatOptions && "rotate-90",
+                    "flex h-9 w-9 items-center justify-center rounded-lg transition-colors",
+                    repeat !== "none"
+                      ? "bg-[var(--accent)] text-[var(--accent-ink)]"
+                      : "bg-[var(--surface-2)] text-[var(--muted)]",
                   )}
-                />
+                >
+                  <Repeat size={18} />
+                </div>
+                <div className="flex flex-col items-start">
+                  <span className="text-[15px] font-semibold text-[var(--ink)]">
+                    Повтор
+                  </span>
+                  <span
+                    className={cn(
+                      "text-[13px] font-medium transition-colors",
+                      repeat !== "none"
+                        ? "text-[var(--accent)]"
+                        : "text-[var(--muted)]",
+                    )}
+                  >
+                    {repeat === "none"
+                      ? "Не повторять"
+                      : repeat === "daily"
+                        ? "Каждый день"
+                        : "Раз в неделю"}
+                  </span>
+                </div>
               </div>
+              <ChevronRight
+                size={20}
+                className={cn(
+                  "text-[var(--muted)] transition-transform duration-300",
+                  showRepeatOptions && "rotate-90",
+                )}
+              />
             </button>
 
             <AnimatePresence>
               {showRepeatOptions && (
                 <motion.div
-                  key="repeat-options"
                   initial={{ height: 0, opacity: 0 }}
                   animate={{ height: "auto", opacity: 1 }}
                   exit={{ height: 0, opacity: 0 }}
                   transition={{ duration: 0.25, ease: "easeOut" }}
-                  className="overflow-hidden"
+                  className="overflow-hidden pl-2 pr-2"
                 >
-                  <div className="px-1 pt-0 pb-1 space-y-1">
-                    <div className="h-px bg-[var(--border)] mx-3 my-1 opacity-50" />
-
-                    <div className="flex flex-col gap-1">
+                  <div className="pt-3 pb-4 space-y-4">
+                    <div className="flex gap-2">
                       {[
-                        { id: "none", label: "Не повторять" },
-                        { id: "daily", label: "Каждый день" },
-                        { id: "weekly", label: "Раз в неделю" },
+                        { id: "none", label: "Нет" },
+                        { id: "daily", label: "День" },
+                        { id: "weekly", label: "Неделя" },
                       ].map((opt) => (
                         <button
                           key={opt.id}
@@ -381,44 +397,34 @@ export default function TaskSheet({
                             }
                           }}
                           className={cn(
-                            "w-full text-left px-3 py-2.5 text-[14px] rounded-lg transition-all flex items-center justify-between",
+                            "flex-1 py-2 text-[13px] font-bold rounded-lg transition-all border",
                             repeat === opt.id
-                              ? "bg-[var(--bg)] text-[var(--ink)] font-bold shadow-sm"
-                              : "text-[var(--ink)]/80 font-medium active:bg-[var(--border)]/50",
+                              ? "bg-[var(--surface-2)] border-[var(--ink)]/20 text-[var(--ink)] shadow-sm"
+                              : "border-transparent text-[var(--muted)] hover:bg-[var(--surface-2)]/50",
                           )}
                         >
                           {opt.label}
-                          {repeat === opt.id && (
-                            <motion.div
-                              layoutId="check"
-                              initial={{ scale: 0 }}
-                              animate={{ scale: 1 }}
-                              className="text-[var(--accent)]"
-                            >
-                              <Check size={16} strokeWidth={3} />
-                            </motion.div>
-                          )}
                         </button>
                       ))}
                     </div>
 
                     {repeat !== "none" && (
-                      <div className="mt-2 flex items-center justify-between px-3 py-2 bg-[var(--bg)] rounded-xl border border-[var(--border)]/30">
-                        <span className="text-xs font-bold text-[var(--muted)] uppercase tracking-wide">
+                      <div className="flex items-center justify-between p-3 bg-[var(--surface-2)]/50 border border-[var(--border)] rounded-xl">
+                        <span className="text-[12px] font-bold text-[var(--muted)] uppercase tracking-wide">
                           {repeatCountLabel}
                         </span>
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-3 bg-[var(--surface)] rounded-lg shadow-sm border border-[var(--border)] p-1">
                           <button
                             type="button"
                             onClick={() => {
                               impact("light");
                               setRepeatCount(clampRepeatCount(repeatCount - 1));
                             }}
-                            className="w-8 h-8 flex items-center justify-center bg-[var(--surface)] text-[var(--ink)] rounded-lg active:scale-90 transition-transform font-bold text-lg shadow-sm hover:bg-[var(--border)]"
+                            className="w-8 h-8 flex items-center justify-center text-[var(--ink)] active:bg-[var(--border)] rounded transition-colors text-lg pb-0.5"
                           >
                             -
                           </button>
-                          <span className="text-[15px] font-bold min-w-[20px] text-center tabular-nums">
+                          <span className="text-[15px] font-bold min-w-[24px] text-center tabular-nums">
                             {repeatCount}
                           </span>
                           <button
@@ -427,7 +433,7 @@ export default function TaskSheet({
                               impact("light");
                               setRepeatCount(clampRepeatCount(repeatCount + 1));
                             }}
-                            className="w-8 h-8 flex items-center justify-center bg-[var(--surface)] text-[var(--ink)] rounded-lg active:scale-90 transition-transform font-bold text-lg shadow-sm hover:bg-[var(--border)]"
+                            className="w-8 h-8 flex items-center justify-center text-[var(--ink)] active:bg-[var(--border)] rounded transition-colors text-lg pb-0.5"
                           >
                             +
                           </button>
@@ -439,6 +445,8 @@ export default function TaskSheet({
               )}
             </AnimatePresence>
           </div>
+
+          <div className="h-8 shrink-0" />
         </form>
       </motion.div>
     </div>
