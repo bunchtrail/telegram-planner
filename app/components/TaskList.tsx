@@ -36,8 +36,6 @@ export default function TaskList({
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const prevTaskIdsRef = useRef<Set<string>>(new Set());
   const [isDragging, setIsDragging] = useState(false);
-  const isIOS =
-    typeof navigator !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent);
 
   useEffect(() => {
     const prevIds = prevTaskIdsRef.current;
@@ -70,10 +68,8 @@ export default function TaskList({
     prevTaskIdsRef.current = nextIds;
   }, [tasks]);
 
-  const scrollClasses = [
-    'h-full w-full overflow-y-auto pb-32 pt-2 touch-pan-y overscroll-contain no-scrollbar pl-[max(1rem,env(safe-area-inset-left),var(--tg-content-safe-left,0px))] pr-[max(1rem,env(safe-area-inset-right),var(--tg-content-safe-right,0px))]',
-    isIOS ? '[-webkit-overflow-scrolling:auto]' : '[-webkit-overflow-scrolling:touch]',
-  ].join(' ');
+  const scrollClasses =
+    'h-full w-full overflow-y-auto pb-32 pt-2 touch-pan-y overscroll-contain no-scrollbar pl-[max(1rem,env(safe-area-inset-left),var(--tg-content-safe-left,0px))] pr-[max(1rem,env(safe-area-inset-right),var(--tg-content-safe-right,0px))] [-webkit-overflow-scrolling:touch]';
 
   if (isLoading) {
     return (
@@ -116,12 +112,7 @@ export default function TaskList({
   }
 
   return (
-    <motion.div
-      ref={scrollContainerRef}
-      className={scrollClasses}
-      layoutScroll={!isIOS}
-      layoutRoot={!isIOS}
-    >
+    <motion.div ref={scrollContainerRef} className={scrollClasses}>
       <Reorder.Group
         key={dateKey}
         axis="y"
@@ -146,7 +137,6 @@ export default function TaskList({
               updateTask={updateTask}
               isDragging={isDragging}
               onDragStateChange={setIsDragging}
-              disableMotion={isIOS}
             />
           ))}
         </AnimatePresence>

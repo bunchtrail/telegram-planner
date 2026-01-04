@@ -46,7 +46,6 @@ type TaskItemProps = {
   updateTask: (id: string, updates: Partial<Task>) => void;
   isDragging: boolean;
   onDragStateChange: (isDragging: boolean) => void;
-  disableMotion: boolean;
 };
 
 interface CustomCSSProperties extends CSSProperties {
@@ -65,7 +64,6 @@ const TaskItem = memo(function TaskItem({
   updateTask,
   isDragging,
   onDragStateChange,
-  disableMotion,
 }: TaskItemProps) {
   const { impact, selection, notification } = useHaptic();
   const dragControls = useDragControls();
@@ -210,24 +208,11 @@ const TaskItem = memo(function TaskItem({
       id={task.clientId}
       dragListener={false}
       dragControls={dragControls}
-      dragElastic={0}
-      dragMomentum={false}
-      layout={disableMotion || isDragging ? false : 'position'}
-      initial={disableMotion ? false : { opacity: 0 }}
-      animate={{
-        opacity: task.completed ? 0.8 : 1,
-      }}
+      layout={isDragging ? false : 'position'}
+      initial={false}
+      animate={{ opacity: task.completed ? 0.8 : 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95 }}
-      transition={
-        disableMotion
-          ? { duration: 0 }
-          : {
-              type: 'spring',
-              stiffness: 500,
-              damping: 30,
-              layout: { duration: 0.2 },
-            }
-      }
+      transition={{ type: 'tween', duration: 0.18, ease: 'easeOut' }}
       className={cn(
         'group relative mb-4 overflow-hidden rounded-[28px] bg-[var(--surface)] touch-pan-y transition-shadow duration-300',
         isActive
@@ -241,9 +226,7 @@ const TaskItem = memo(function TaskItem({
         '--task-color': task.color,
       } as CustomCSSProperties}
       as="li"
-      transformTemplate={({ y }) =>
-        disableMotion ? 'none' : `translate3d(0px, ${y}, 0px)`
-      }
+      transformTemplate={undefined}
       onDragStart={() => onDragStateChange(true)}
       onDragEnd={() => onDragStateChange(false)}
     >
