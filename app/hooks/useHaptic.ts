@@ -9,7 +9,6 @@ type TelegramHapticFeedback = {
   selectionChanged: () => void;
 };
 
-
 const getTelegramHaptics = () => {
   if (typeof window === 'undefined') return null;
 
