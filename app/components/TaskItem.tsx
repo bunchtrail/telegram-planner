@@ -210,12 +210,12 @@ const TaskItem = memo(function TaskItem({
       exit={{ opacity: 0, scale: 0.95 }}
       transition={{ type: 'tween', duration: 0.18, ease: 'easeOut' }}
       className={cn(
-        'relative mb-3 overflow-hidden rounded-[24px] bg-[var(--surface)] transition-all duration-300 border border-transparent',
+        'group relative mb-4 overflow-hidden rounded-[28px] bg-[var(--surface)] transition-all duration-300',
         isActive
-          ? 'shadow-[0_8px_24px_-6px_var(--task-color)] ring-1 ring-[var(--task-color)] z-10'
+          ? 'shadow-[var(--shadow-glow)] z-10 scale-[1.02]'
           : isExpanded
-            ? 'shadow-[0_4px_12px_-2px_rgba(0,0,0,0.08)] ring-1 ring-[var(--border)] z-10'
-            : 'shadow-[var(--shadow-card)] hover:shadow-md'
+            ? 'shadow-[var(--shadow-pop)] z-10 scale-[1.01]'
+            : 'shadow-[var(--shadow-card)] active:scale-[0.98]'
       )}
       style={{
         transformOrigin: 'center',
@@ -224,12 +224,9 @@ const TaskItem = memo(function TaskItem({
       as="li"
     >
       <motion.div
-        className={cn(
-          'flex flex-col relative',
-          isExpanded && 'bg-[var(--surface-2)]/30'
-        )}
+        className={cn('flex flex-col relative', isExpanded && 'bg-[var(--muted)]/5')}
       >
-        <div className="flex items-center gap-3.5 p-3.5 pl-4 pr-2">
+        <div className="flex items-start gap-4 p-5 pr-3">
           <motion.button
             type="button"
             whileTap={{ scale: 0.85 }}
@@ -248,11 +245,11 @@ const TaskItem = memo(function TaskItem({
                 ? 'Отметить как невыполненную'
                 : 'Отметить как выполненную'
             }
-            className="relative flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-full border-[2px] transition-all duration-300"
+            className="relative flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-[1.5px] transition-all duration-300 mt-1"
             style={{
-              borderColor: task.color,
+              borderColor: task.completed ? task.color : 'var(--muted)',
               backgroundColor: task.completed ? task.color : 'transparent',
-              opacity: task.completed ? 1 : 0.7,
+              opacity: task.completed ? 1 : 0.4,
             }}
           >
             <motion.svg
@@ -285,7 +282,7 @@ const TaskItem = memo(function TaskItem({
           </motion.button>
 
           <div
-            className="flex-1 min-w-0 cursor-pointer select-none touch-manipulation py-1"
+            className="flex-1 min-w-0 cursor-pointer select-none touch-manipulation"
             role="button"
             tabIndex={0}
             aria-expanded={isExpanded}
@@ -296,9 +293,9 @@ const TaskItem = memo(function TaskItem({
               <div className="flex items-center gap-2 min-w-0">
                 <p
                   className={cn(
-                    'text-[17px] font-semibold leading-tight transition-colors mb-1.5 font-[var(--font-display)]',
+                    'text-[17px] font-semibold leading-snug tracking-tight transition-colors mb-1 font-[var(--font-display)]',
                     task.completed
-                      ? 'text-[var(--muted)]'
+                      ? 'text-[var(--muted)] line-through decoration-2 decoration-[var(--border)]'
                       : 'text-[var(--ink)]',
                     !isExpanded && 'truncate'
                   )}
@@ -312,15 +309,9 @@ const TaskItem = memo(function TaskItem({
                   />
                 )}
               </div>
-              <motion.div
-                initial={false}
-                animate={{ scaleX: task.completed ? 1 : 0 }}
-                transition={{ duration: 0.18, ease: 'easeOut' }}
-                className="absolute top-[0.65em] left-0 h-[2px] w-full bg-[var(--muted)] opacity-60 pointer-events-none rounded-full origin-left"
-              />
             </div>
             {!task.completed && (
-              <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex items-center gap-3 flex-wrap opacity-70 mt-1">
                 <div className="inline-flex items-center gap-1 text-[11px] font-bold text-[var(--muted)] opacity-80 uppercase tracking-wide">
                   <Clock size={11} strokeWidth={2.5} />
                   <span>{task.duration} мин</span>
@@ -376,7 +367,7 @@ const TaskItem = memo(function TaskItem({
           <button
             type="button"
             aria-label="Перетащить"
-            className="h-10 w-10 flex items-center justify-center text-[var(--muted)] opacity-30 active:opacity-100 cursor-grab active:cursor-grabbing touch-none -mr-1"
+            className="h-8 w-8 flex items-center justify-center text-[var(--muted)] opacity-20 group-hover:opacity-50 transition-opacity cursor-grab active:cursor-grabbing touch-none -mr-1"
             onPointerDown={(event) => {
               event.preventDefault();
               event.stopPropagation();

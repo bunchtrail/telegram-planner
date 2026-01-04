@@ -56,13 +56,13 @@ export default function WeekStrip({
             aria-current={isSelected ? "date" : undefined}
             aria-label={format(day, "EEEE, d MMMM", { locale: ru })}
             className={cn(
-              "snap-center relative flex h-[56px] flex-1 min-w-[42px] max-w-[58px] flex-col items-center justify-center rounded-[18px] transition-all duration-300 outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] touch-manipulation",
+              "snap-center relative flex h-[68px] flex-1 min-w-[50px] max-w-[64px] flex-col items-center justify-center rounded-[32px] transition-all duration-300 outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] touch-manipulation",
               isSelected
-                ? "bg-[var(--accent)] text-[var(--accent-ink)] shadow-[var(--shadow-glow)] z-10 scale-100"
+                ? "bg-[var(--ink)] text-[var(--bg)] shadow-lg scale-100 z-10"
                 : "bg-transparent text-[var(--muted)] hover:bg-[var(--surface-2)] active:scale-95",
               !isSelected &&
                 isToday &&
-                "text-[var(--accent)] bg-[var(--surface)] ring-1 ring-inset ring-[var(--accent)]/40 font-medium",
+                "bg-[var(--surface-2)] text-[var(--accent)] font-semibold",
             )}
           >
             <span

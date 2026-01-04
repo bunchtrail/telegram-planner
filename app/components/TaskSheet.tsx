@@ -1,7 +1,7 @@
 "use client";
 
 import { type FormEvent, useCallback, useEffect, useRef, useState } from "react";
-import { Check, ChevronRight, Clock, Repeat, X } from "lucide-react";
+import { Check, ChevronRight, Repeat } from "lucide-react";
 import {
   AnimatePresence,
   motion,
@@ -75,8 +75,8 @@ export default function TaskSheet({
   const adjustTextareaHeight = useCallback(() => {
     const el = inputRef.current;
     if (!el) return;
-    el.style.height = "44px";
-    el.style.height = `${Math.min(el.scrollHeight, 140)}px`;
+    el.style.height = "80px";
+    el.style.height = `${Math.min(el.scrollHeight, 180)}px`;
   }, []);
 
   const handleClose = useCallback(() => {
@@ -157,7 +157,7 @@ export default function TaskSheet({
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         transition={{ duration: 0.25 }}
-        className="absolute inset-0 bg-black/40 pointer-events-auto touch-none"
+        className="absolute inset-0 bg-black/30 backdrop-blur-sm pointer-events-auto"
         onClick={handleClose}
       />
 
@@ -178,38 +178,44 @@ export default function TaskSheet({
         transformTemplate={(_transforms, generatedTransform) =>
           isSettled && !isDragging ? "none" : generatedTransform
         }
-        className="pointer-events-auto relative w-full bg-[var(--surface)] rounded-t-[32px] shadow-[var(--shadow-pop)] flex flex-col border-t border-[var(--border)]"
+        className="pointer-events-auto relative w-full max-w-[96%] mx-auto mb-3 bg-[var(--surface)]/95 backdrop-blur-xl rounded-[32px] shadow-[var(--shadow-pop)] flex flex-col overflow-hidden"
         style={{
-          maxHeight: "92dvh",
+          maxHeight: "90dvh",
           paddingBottom:
             "max(env(safe-area-inset-bottom), var(--tg-content-safe-bottom, 20px))",
         }}
       >
         <div
-          className="flex justify-center pt-4 pb-2 w-full touch-none cursor-grab active:cursor-grabbing shrink-0 z-10"
+          className="flex justify-center pt-3 pb-1 w-full touch-none cursor-grab active:cursor-grabbing shrink-0 z-10"
           onPointerDown={(event) => dragControls.start(event)}
         >
           <div className="w-12 h-1.5 bg-[var(--border)] rounded-full opacity-60" />
         </div>
 
-        <div className="px-6 flex items-center justify-between shrink-0 mb-1">
-          <h2 className="text-[13px] font-bold text-[var(--muted)] uppercase tracking-wider">
-            {mode === "create" ? "Новая задача" : "Редактирование"}
-          </h2>
+        <div className="flex items-center justify-between px-6 pt-5 pb-2 shrink-0 z-10">
           <button
             type="button"
             onClick={handleClose}
-            aria-label="Закрыть"
-            className="p-2 -mr-2 bg-[var(--surface-2)] rounded-full text-[var(--muted)] hover:text-[var(--ink)] transition-colors active:scale-95"
+            className="text-[17px] text-[var(--muted)] hover:opacity-70 transition-opacity"
           >
-            <X size={20} />
+            Отмена
+          </button>
+          <span className="font-bold text-[15px] opacity-50 uppercase tracking-widest">
+            {mode === "create" ? "Новая" : "Правка"}
+          </span>
+          <button
+            type="button"
+            onClick={() => formRef.current?.requestSubmit()}
+            className="text-[17px] font-bold text-[var(--accent)] hover:opacity-70 transition-opacity"
+          >
+            Готово
           </button>
         </div>
 
         <form
           ref={formRef}
           onSubmit={handleSubmit}
-          className="flex flex-col min-h-0 overflow-y-auto overscroll-contain px-6 no-scrollbar"
+          className="flex flex-col min-h-0 overflow-y-auto overscroll-contain px-6 pb-8 no-scrollbar"
         >
           <div className="py-4">
             <textarea
@@ -224,47 +230,38 @@ export default function TaskSheet({
                 }
               }}
               placeholder="Что нужно сделать?"
-              className="w-full bg-transparent text-[22px] font-bold text-[var(--ink)] placeholder:text-[var(--muted)]/40 resize-none outline-none leading-snug"
+              className="w-full bg-transparent text-[24px] font-bold text-[var(--ink)] placeholder:text-[var(--muted)]/30 resize-none outline-none leading-snug"
               style={{
-                minHeight: "44px",
+                minHeight: "80px",
                 transform: "none",
                 WebkitTransform: "none",
               }}
             />
           </div>
 
-          <div className="space-y-6 mb-8">
-            <div className="mt-2">
-              <div className="flex items-center gap-2 mb-3 text-[var(--muted)]">
-                <Clock size={16} />
-                <span className="text-xs font-bold uppercase tracking-widest">
-                  Длительность
-                </span>
-              </div>
-
-              <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-6 px-6 pb-2 touch-pan-x">
-                {DURATION_PRESETS.map((value) => (
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() => {
-                      if (duration !== value) impact("light");
-                      setDuration(value);
-                    }}
-                    className={cn(
-                      "flex-none h-11 min-w-[64px] px-3 rounded-xl text-[15px] font-bold transition-all active:scale-95 flex items-center justify-center border",
-                      duration === value
-                        ? "bg-[var(--accent)] text-[var(--accent-ink)] border-[var(--accent)] shadow-sm"
-                        : "bg-[var(--surface-2)] text-[var(--ink)] border-transparent",
-                    )}
-                  >
-                    {value}
-                  </button>
-                ))}
-              </div>
+          <div className="space-y-6 mt-2">
+            <div className="bg-[var(--surface-2)]/60 p-1.5 rounded-2xl flex gap-1 overflow-x-auto no-scrollbar">
+              {DURATION_PRESETS.map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => {
+                    if (duration !== value) impact("light");
+                    setDuration(value);
+                  }}
+                  className={cn(
+                    "flex-1 min-w-[50px] py-2 rounded-xl text-[13px] font-bold transition-all",
+                    duration === value
+                      ? "bg-[var(--surface)] text-[var(--ink)] shadow-sm"
+                      : "text-[var(--muted)] hover:bg-[var(--surface)]/50",
+                  )}
+                >
+                  {value}
+                </button>
+              ))}
             </div>
 
-            <div className="mb-2">
+            <div className="space-y-2">
               <div className="text-xs font-bold text-[var(--muted)] uppercase tracking-widest mb-3">
                 Категория
               </div>
@@ -439,15 +436,6 @@ export default function TaskSheet({
           </div>
         </form>
 
-        <div className="p-6 pt-2 mt-auto shrink-0">
-          <button
-            type="button"
-            onClick={() => formRef.current?.requestSubmit()}
-            className="w-full h-14 rounded-[20px] bg-[var(--ink)] text-[var(--bg)] text-[17px] font-bold shadow-lg shadow-[var(--ink)]/20 active:scale-[0.97] transition-all flex items-center justify-center gap-2"
-          >
-            {mode === "create" ? "Добавить" : "Сохранить"}
-          </button>
-        </div>
       </motion.div>
     </div>
   );

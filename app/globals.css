@@ -26,18 +26,19 @@ body {
   --tg-safe-left: 0px;
   --bg: var(--tg-theme-bg-color, #f2f2f7);
   --surface: var(--tg-theme-secondary-bg-color, #ffffff);
-  --surface-2: var(--tg-theme-section-bg-color, #eef1f4);
-  --surface-glass: rgba(255, 255, 255, 0.9);
+  --surface-2: var(--tg-theme-section-bg-color, #ffffff);
+  --surface-glass: rgba(255, 255, 255, 0.8);
   --ink: var(--tg-theme-text-color, #000000);
   --muted: var(--tg-theme-hint-color, #8e8e93);
-  --border: rgba(0, 0, 0, 0.08);
-  --accent: var(--tg-theme-button-color, #ff9f0a);
+  --border: rgba(0, 0, 0, 0.05);
+  --accent: var(--tg-theme-button-color, #007aff);
   --accent-ink: var(--tg-theme-button-text-color, #ffffff);
   --danger: var(--tg-theme-destructive-text-color, #ff3b30);
-  --shadow-soft: 0 2px 8px -2px rgba(0, 0, 0, 0.05);
-  --shadow-card: 0 4px 16px -4px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
-  --shadow-pop: 0 12px 32px -8px rgba(0, 0, 0, 0.15);
-  --shadow-glow: 0 8px 24px -6px rgba(0, 0, 0, 0.12);
+  --shadow-soft: 0 4px 12px -2px rgba(0, 0, 0, 0.03);
+  --shadow-segment: 0 2px 8px rgba(0, 0, 0, 0.12);
+  --shadow-card: 0 0.5px 1.5px rgba(0, 0, 0, 0.03), 0 4px 16px rgba(0, 0, 0, 0.06);
+  --shadow-pop: 0 0 1px rgba(0, 0, 0, 0.04), 0 16px 40px -8px rgba(0, 0, 0, 0.16);
+  --shadow-glow: 0 8px 32px -8px var(--accent);
 }
 
 button,
@@ -89,7 +90,7 @@ body {
   background: var(--surface-glass);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  border-bottom: 0.5px solid rgba(0, 0, 0, 0.05);
 }
 
 .glass-clip {

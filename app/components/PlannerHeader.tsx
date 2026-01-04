@@ -200,7 +200,7 @@ export default function PlannerHeader({
                   <Flame size={18} />
                 </button>
 
-                <div className="flex bg-[var(--surface-2)] p-0.5 rounded-[12px] h-9 border border-[var(--border)]/50">
+                <div className="flex bg-[var(--surface-2)] p-1 rounded-[12px] h-9 border-none">
                   {(["week", "month"] as const).map((mode) => (
                     <button
                       key={mode}
@@ -212,17 +212,17 @@ export default function PlannerHeader({
                         }
                       }}
                       className={cn(
-                        "relative px-3 text-[11px] font-bold rounded-[10px] transition-all z-10 w-[42px]",
+                        "relative px-3 text-[13px] font-semibold rounded-[9px] transition-all z-10 flex-1",
                         viewMode === mode
                           ? "text-[var(--ink)]"
-                          : "text-[var(--muted)] hover:text-[var(--ink)]",
+                          : "text-[var(--muted)]",
                       )}
                       aria-pressed={viewMode === mode}
                     >
                       {viewMode === mode && (
                         <motion.div
                           layoutId="view-tab"
-                          className="absolute inset-0 bg-[var(--surface)] shadow-sm rounded-[10px] -z-10 border border-[var(--border)]/50"
+                          className="absolute inset-0 bg-[var(--surface)] shadow-[var(--shadow-segment)] rounded-[9px] -z-10"
                           transition={{
                             type: "spring",
                             bounce: 0.2,
@@ -230,7 +230,7 @@ export default function PlannerHeader({
                           }}
                         />
                       )}
-                      {mode === "week" ? "Нед" : "Мес"}
+                      {mode === "week" ? "Неделя" : "Месяц"}
                     </button>
                   ))}
                 </div>
