@@ -53,6 +53,9 @@ export default function TaskList({
         const prefersReducedMotion =
           typeof window !== 'undefined' &&
           window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const isIOS =
+          typeof navigator !== 'undefined' &&
+          /iPad|iPhone|iPod/.test(navigator.userAgent);
         const isScrollable = container.scrollHeight > container.clientHeight + 1;
         const nearBottom =
           container.scrollTop + container.clientHeight >=
