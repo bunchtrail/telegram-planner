@@ -5,6 +5,7 @@ import { Check, ChevronRight, Clock, Repeat, X } from "lucide-react";
 import {
   AnimatePresence,
   motion,
+  type AnimationDefinition,
   type PanInfo,
   type Transition,
   useDragControls,
@@ -14,11 +15,14 @@ import { useHaptic } from "../hooks/useHaptic";
 import type { TaskRepeat } from "../types/task";
 
 const DURATION_PRESETS = [15, 30, 45, 60, 90, 120];
-const SHEET_TRANSITION: Transition = {
+
+const SHEET_TRANSITION = {
   type: "spring",
-  damping: 32,
-  stiffness: 400,
-};
+  damping: 30,
+  stiffness: 340,
+  mass: 0.8,
+} satisfies Transition;
+
 const REPEAT_COUNT_MIN = 1;
 const REPEAT_COUNT_MAX = 365;
 const DEFAULT_REPEAT_COUNT_DAILY = 7;
@@ -55,6 +59,9 @@ export default function TaskSheet({
   const [showRepeatOptions, setShowRepeatOptions] = useState(
     mode === "edit" || initialRepeat !== "none",
   );
+  const [isSettled, setIsSettled] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const dragControls = useDragControls();
@@ -63,22 +70,24 @@ export default function TaskSheet({
   const adjustTextareaHeight = useCallback(() => {
     const el = inputRef.current;
     if (!el) return;
-    el.style.height = "auto";
-    el.style.height = `${Math.min(el.scrollHeight, 150)}px`;
+    el.style.height = "44px";
+    el.style.height = `${Math.min(el.scrollHeight, 140)}px`;
   }, []);
 
   const handleClose = useCallback(() => {
     if (document.activeElement instanceof HTMLElement) {
       document.activeElement.blur();
     }
-    onClose();
+    setIsSettled(false);
+    setTimeout(onClose, 10);
   }, [onClose]);
 
   const handleDragEnd = (
     _event: MouseEvent | TouchEvent | PointerEvent,
     info: PanInfo,
   ) => {
-    if (info.offset.y > 100 || info.velocity.y > 500) {
+    setIsDragging(false);
+    if (info.offset.y > 100 || info.velocity.y > 400) {
       handleClose();
     }
   };
@@ -94,6 +103,9 @@ export default function TaskSheet({
     }
 
     notification("success");
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
     onSubmit(trimmed, duration, repeat, repeatCount);
   };
 
@@ -102,24 +114,45 @@ export default function TaskSheet({
 
   const repeatCountLabel =
     repeat === "weekly" ? "На сколько недель" : "На сколько дней";
-  const repeatCountUnit = repeat === "weekly" ? "нед." : "дн.";
 
   useEffect(() => {
-    setTimeout(adjustTextareaHeight, 0);
-    if (mode === "create") {
-      setTimeout(() => {
-        inputRef.current?.focus({ preventScroll: true });
-      }, 150);
-    }
-  }, [adjustTextareaHeight, mode]);
+    adjustTextareaHeight();
+  }, [title, adjustTextareaHeight]);
+
+  const handleAnimationComplete = useCallback(
+    (definition: AnimationDefinition) => {
+      const isOpening =
+        definition === "visible" ||
+        (Array.isArray(definition) && definition.includes("visible")) ||
+        (typeof definition === "object" &&
+          definition !== null &&
+          "y" in definition &&
+          (definition as { y?: number | string }).y === 0);
+
+      if (isOpening) {
+        setIsSettled(true);
+      }
+
+      if (isOpening && mode === "create") {
+        requestAnimationFrame(() => {
+          inputRef.current?.focus({ preventScroll: true });
+        });
+      }
+    },
+    [mode],
+  );
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col justify-end pointer-events-none">
+    <div
+      className="fixed inset-0 z-50 flex flex-col justify-end pointer-events-none"
+      style={{ touchAction: "none" }}
+    >
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="absolute inset-0 bg-black/40 backdrop-blur-[4px] pointer-events-auto transition-colors"
+        transition={{ duration: 0.25 }}
+        className="absolute inset-0 bg-black/40 pointer-events-auto touch-none"
         onClick={handleClose}
       />
 
@@ -128,20 +161,27 @@ export default function TaskSheet({
         animate={{ y: 0 }}
         exit={{ y: "100%" }}
         transition={SHEET_TRANSITION}
+        onAnimationStart={() => setIsSettled(false)}
+        onAnimationComplete={handleAnimationComplete}
         drag="y"
         dragControls={dragControls}
         dragListener={false}
         dragConstraints={{ top: 0 }}
         dragElastic={0.05}
+        onDragStart={() => setIsDragging(true)}
         onDragEnd={handleDragEnd}
-        className="pointer-events-auto relative w-full bg-[var(--surface-glass)] backdrop-blur-2xl rounded-t-[36px] shadow-[var(--shadow-pop)] flex flex-col max-h-[92dvh] border-t border-[var(--border)]"
+        transformTemplate={(_transforms, generatedTransform) =>
+          isSettled && !isDragging ? "none" : generatedTransform
+        }
+        className="pointer-events-auto relative w-full bg-[var(--surface)] rounded-t-[32px] shadow-[var(--shadow-pop)] flex flex-col border-t border-[var(--border)]"
         style={{
+          maxHeight: "92dvh",
           paddingBottom:
-            "max(env(safe-area-inset-bottom), var(--tg-content-safe-bottom, 0px), 20px)",
+            "max(env(safe-area-inset-bottom), var(--tg-content-safe-bottom, 20px))",
         }}
       >
         <div
-          className="flex justify-center pt-4 pb-2 w-full touch-none cursor-grab active:cursor-grabbing"
+          className="flex justify-center pt-4 pb-2 w-full touch-none cursor-grab active:cursor-grabbing shrink-0 z-10"
           onPointerDown={(event) => dragControls.start(event)}
         >
           <div className="w-12 h-1.5 bg-[var(--border)] rounded-full opacity-60" />
@@ -164,32 +204,27 @@ export default function TaskSheet({
         <form
           ref={formRef}
           onSubmit={handleSubmit}
-          className="flex flex-col min-h-0 overflow-y-auto overscroll-contain px-6"
+          className="flex flex-col min-h-0 overflow-y-auto overscroll-contain px-6 no-scrollbar"
         >
           <div className="py-4">
             <textarea
               ref={inputRef}
               rows={1}
               value={title}
-              onChange={(event) => {
-                setTitle(event.target.value);
-                adjustTextareaHeight();
-              }}
+              onChange={(event) => setTitle(event.target.value)}
               onKeyDown={(event) => {
                 if (event.key === "Enter" && !event.shiftKey) {
                   event.preventDefault();
-                  if (formRef.current?.requestSubmit) {
-                    formRef.current.requestSubmit();
-                  } else {
-                    formRef.current?.dispatchEvent(
-                      new Event("submit", { bubbles: true, cancelable: true }),
-                    );
-                  }
+                  formRef.current?.requestSubmit();
                 }
               }}
-              placeholder="Что планируете?"
-              className="w-full bg-transparent text-[24px] font-bold text-[var(--ink)] placeholder:text-[var(--muted)]/40 resize-none outline-none leading-tight"
-              style={{ minHeight: "44px" }}
+              placeholder="Что нужно сделать?"
+              className="w-full bg-transparent text-[22px] font-bold text-[var(--ink)] placeholder:text-[var(--muted)]/40 resize-none outline-none leading-snug"
+              style={{
+                minHeight: "44px",
+                transform: "none",
+                WebkitTransform: "none",
+              }}
             />
           </div>
 
@@ -202,7 +237,7 @@ export default function TaskSheet({
                 </span>
               </div>
 
-              <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-6 px-6 pb-2">
+              <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-6 px-6 pb-2 touch-pan-x">
                 {DURATION_PRESETS.map((value) => (
                   <button
                     key={value}
@@ -212,34 +247,34 @@ export default function TaskSheet({
                       setDuration(value);
                     }}
                     className={cn(
-                      "flex-none h-12 min-w-[70px] px-4 rounded-2xl text-[15px] font-bold transition-all active:scale-95 flex items-center justify-center",
+                      "flex-none h-11 min-w-[64px] px-3 rounded-xl text-[15px] font-bold transition-all active:scale-95 flex items-center justify-center border",
                       duration === value
-                        ? "bg-[var(--accent)] text-[var(--accent-ink)] shadow-[var(--shadow-soft)]"
-                        : "bg-[var(--surface-2)] text-[var(--ink)] hover:bg-[var(--border)]",
+                        ? "bg-[var(--accent)] text-[var(--accent-ink)] border-[var(--accent)] shadow-sm"
+                        : "bg-[var(--surface-2)] text-[var(--ink)] border-transparent",
                     )}
                   >
-                    {value} м
+                    {value}
                   </button>
                 ))}
               </div>
             </div>
 
-            <motion.div className="rounded-[24px] bg-[var(--surface-2)] p-2">
+            <div className="rounded-[24px] bg-[var(--surface-2)] p-2">
               <button
                 type="button"
                 onClick={() => setShowRepeatOptions(!showRepeatOptions)}
-                className="flex w-full items-center justify-between p-3 rounded-2xl hover:bg-[var(--surface)]/50 transition-colors"
+                className="flex w-full items-center justify-between p-3 rounded-2xl hover:bg-[var(--surface)]/60 transition-colors active:scale-[0.98]"
               >
-                <div className="flex items-center gap-3.5">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--bg)] text-[var(--ink)] shadow-sm">
-                    <Repeat size={18} strokeWidth={2.5} />
+                <div className="flex items-center gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--bg)] text-[var(--ink)] shadow-sm">
+                    <Repeat size={16} strokeWidth={2.5} />
                   </div>
-                  <span className="text-[16px] font-semibold text-[var(--ink)]">
+                  <span className="text-[15px] font-semibold text-[var(--ink)]">
                     Повтор
                   </span>
                 </div>
                 <div className="flex items-center gap-2 text-[var(--muted)]">
-                  <span className="text-[15px] font-medium">
+                  <span className="text-[14px] font-medium">
                     {repeat === "none"
                       ? "Нет"
                       : repeat === "daily"
@@ -247,7 +282,7 @@ export default function TaskSheet({
                         : "Еженедельно"}
                   </span>
                   <ChevronRight
-                    size={18}
+                    size={16}
                     className={cn(
                       "transition-transform duration-300",
                       showRepeatOptions && "rotate-90",
@@ -260,117 +295,108 @@ export default function TaskSheet({
                 {showRepeatOptions && (
                   <motion.div
                     key="repeat-options"
-                    initial={{ opacity: 0, y: -6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -6 }}
-                    transition={{ duration: 0.18, ease: "easeOut" }}
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.25, ease: "easeOut" }}
                     className="overflow-hidden"
                   >
-                    <div className="px-2 pt-0 pb-2 space-y-2">
+                    <div className="px-1 pt-0 pb-1 space-y-1">
                       <div className="h-px bg-[var(--border)] mx-3 my-1 opacity-50" />
 
-                      <div className="flex flex-col overflow-hidden rounded-[20px] bg-[var(--surface)]/50 border border-[var(--border)]/50">
+                      <div className="flex flex-col gap-1">
                         {[
                           { id: "none", label: "Не повторять" },
                           { id: "daily", label: "Каждый день" },
                           { id: "weekly", label: "Раз в неделю" },
-                        ].map((opt, index, arr) => (
-                          <div key={opt.id} className="relative">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                impact("light");
-                                setRepeat(opt.id as TaskRepeat);
-                                if (opt.id !== "none" && repeatCount < 1) {
-                                  setRepeatCount(
-                                    opt.id === "weekly"
-                                      ? DEFAULT_REPEAT_COUNT_WEEKLY
-                                      : DEFAULT_REPEAT_COUNT_DAILY,
-                                  );
-                                }
-                              }}
-                              className={cn(
-                                "w-full text-left px-4 py-3 text-[14px] transition-colors active:bg-[var(--border)] flex items-center justify-between",
-                                repeat === opt.id
-                                  ? "text-[var(--ink)] font-bold bg-[var(--surface)]"
-                                  : "text-[var(--ink)] font-medium",
-                              )}
-                            >
-                              {opt.label}
-                              {repeat === opt.id && (
-                                <motion.div
-                                  layoutId="check"
-                                  initial={{ scale: 0 }}
-                                  animate={{ scale: 1 }}
-                                  className="text-[var(--accent)]"
-                                >
-                                  <Check size={18} strokeWidth={3} />
-                                </motion.div>
-                              )}
-                            </button>
-                            {index < arr.length - 1 && (
-                              <div className="absolute bottom-0 left-4 right-0 h-px bg-[var(--border)]" />
+                        ].map((opt) => (
+                          <button
+                            key={opt.id}
+                            type="button"
+                            onClick={() => {
+                              impact("light");
+                              setRepeat(opt.id as TaskRepeat);
+                              if (opt.id !== "none" && repeatCount < 1) {
+                                setRepeatCount(
+                                  opt.id === "weekly"
+                                    ? DEFAULT_REPEAT_COUNT_WEEKLY
+                                    : DEFAULT_REPEAT_COUNT_DAILY,
+                                );
+                              }
+                            }}
+                            className={cn(
+                              "w-full text-left px-3 py-2.5 text-[14px] rounded-lg transition-all flex items-center justify-between",
+                              repeat === opt.id
+                                ? "bg-[var(--surface)] text-[var(--ink)] font-bold shadow-sm"
+                                : "text-[var(--ink)]/80 font-medium active:bg-[var(--border)]/50",
                             )}
-                          </div>
+                          >
+                            {opt.label}
+                            {repeat === opt.id && (
+                              <motion.div
+                                layoutId="check"
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                                className="text-[var(--accent)]"
+                              >
+                                <Check size={16} strokeWidth={3} />
+                              </motion.div>
+                            )}
+                          </button>
                         ))}
                       </div>
 
                       {repeat !== "none" && (
-                        <div className="mt-2 flex items-center justify-between px-2 py-1">
-                          <span className="text-sm font-medium text-[var(--muted)]">
+                        <div className="mt-2 flex items-center justify-between px-3 py-2 bg-[var(--surface)] rounded-xl border border-[var(--border)]/30">
+                          <span className="text-xs font-bold text-[var(--muted)] uppercase tracking-wide">
                             {repeatCountLabel}
                           </span>
-                          <div className="flex items-center gap-2 bg-[var(--bg)] rounded-xl p-1 shadow-sm border border-[var(--border)]/50">
+                          <div className="flex items-center gap-3">
                             <button
                               type="button"
-                              onClick={() =>
-                                setRepeatCount(clampRepeatCount(repeatCount - 1))
-                              }
-                              className="w-8 h-8 flex items-center justify-center text-[var(--ink)] hover:bg-[var(--surface-2)] rounded-lg active:scale-90 transition-transform"
+                              onClick={() => {
+                                impact("light");
+                                setRepeatCount(
+                                  clampRepeatCount(repeatCount - 1),
+                                );
+                              }}
+                              className="w-8 h-8 flex items-center justify-center bg-[var(--surface-2)] text-[var(--ink)] rounded-lg active:scale-90 transition-transform font-bold text-lg"
                             >
                               -
                             </button>
-                            <span className="text-sm font-bold min-w-[20px] text-center">
+                            <span className="text-[15px] font-bold min-w-[20px] text-center tabular-nums">
                               {repeatCount}
                             </span>
                             <button
                               type="button"
-                              onClick={() =>
-                                setRepeatCount(clampRepeatCount(repeatCount + 1))
-                              }
-                              className="w-8 h-8 flex items-center justify-center text-[var(--ink)] hover:bg-[var(--surface-2)] rounded-lg active:scale-90 transition-transform"
+                              onClick={() => {
+                                impact("light");
+                                setRepeatCount(
+                                  clampRepeatCount(repeatCount + 1),
+                                );
+                              }}
+                              className="w-8 h-8 flex items-center justify-center bg-[var(--surface-2)] text-[var(--ink)] rounded-lg active:scale-90 transition-transform font-bold text-lg"
                             >
                               +
                             </button>
                           </div>
-                          <span className="text-xs font-semibold text-[var(--muted)] ml-2 min-w-[30px]">
-                            {repeatCountUnit}
-                          </span>
                         </div>
                       )}
                     </div>
                   </motion.div>
                 )}
               </AnimatePresence>
-            </motion.div>
+            </div>
           </div>
         </form>
 
-        <div className="p-6 pt-2 mt-auto bg-[var(--surface)]">
+        <div className="p-6 pt-2 mt-auto shrink-0">
           <button
             type="button"
-            onClick={() => {
-              if (formRef.current?.requestSubmit) {
-                formRef.current.requestSubmit();
-              } else {
-                formRef.current?.dispatchEvent(
-                  new Event("submit", { bubbles: true, cancelable: true }),
-                );
-              }
-            }}
-            className="w-full h-14 rounded-[24px] bg-[var(--ink)] text-[var(--bg)] text-[17px] font-bold shadow-xl shadow-[var(--ink)]/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+            onClick={() => formRef.current?.requestSubmit()}
+            className="w-full h-14 rounded-[20px] bg-[var(--ink)] text-[var(--bg)] text-[17px] font-bold shadow-lg shadow-[var(--ink)]/20 active:scale-[0.97] transition-all flex items-center justify-center gap-2"
           >
-            {mode === "create" ? "Создать" : "Сохранить"}
+            {mode === "create" ? "Добавить" : "Сохранить"}
           </button>
         </div>
       </motion.div>
