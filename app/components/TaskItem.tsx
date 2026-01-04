@@ -44,6 +44,8 @@ type TaskItemProps = {
   elapsedMs: number;
   onToggleActive: (id: string) => void;
   updateTask: (id: string, updates: Partial<Task>) => void;
+  isDragging: boolean;
+  onDragStateChange: (isDragging: boolean) => void;
 };
 
 interface CustomCSSProperties extends CSSProperties {
@@ -60,6 +62,8 @@ const TaskItem = memo(function TaskItem({
   elapsedMs,
   onToggleActive,
   updateTask,
+  isDragging,
+  onDragStateChange,
 }: TaskItemProps) {
   const { impact, selection, notification } = useHaptic();
   const dragControls = useDragControls();
@@ -206,7 +210,7 @@ const TaskItem = memo(function TaskItem({
       dragControls={dragControls}
       dragElastic={0}
       dragMomentum={false}
-      layout="position"
+      layout={isDragging ? false : 'position'}
       initial={{ opacity: 0 }}
       animate={{
         opacity: task.completed ? 0.8 : 1,
@@ -232,6 +236,8 @@ const TaskItem = memo(function TaskItem({
       } as CustomCSSProperties}
       as="li"
       transformTemplate={({ y }) => `translate3d(0px, ${y}, 0px)`}
+      onDragStart={() => onDragStateChange(true)}
+      onDragEnd={() => onDragStateChange(false)}
     >
       <div
         className={cn('flex flex-col relative', isExpanded && 'bg-[var(--muted)]/5')}
