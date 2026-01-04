@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { AnimatePresence, Reorder, motion } from 'framer-motion';
 import { Calendar, Loader2 } from 'lucide-react';
 import type { Task } from '../types/task';
@@ -35,7 +35,6 @@ export default function TaskList({
 }: TaskListProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const prevTaskIdsRef = useRef<Set<string>>(new Set());
-  const [isDragging, setIsDragging] = useState(false);
 
   useEffect(() => {
     const prevIds = prevTaskIdsRef.current;
@@ -138,8 +137,6 @@ export default function TaskList({
               elapsedMs={getElapsedMs(task.id)}
               onToggleActive={onToggleActive}
               updateTask={updateTask}
-              isDragging={isDragging}
-              onDragStateChange={setIsDragging}
             />
           ))}
         </AnimatePresence>

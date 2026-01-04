@@ -39,6 +39,13 @@
   - list animations через `AnimatePresence` и `layout`
   - избегайте “тяжелых” бесконечных анимаций
 - Никогда не ломайте `prefers-reduced-motion`.
+- Стабильность анимаций списка (iOS/Telegram):
+  - Для `Reorder` держите `layout="position"` на `Reorder.Item` и **tween**-transition.
+  - Не используйте `layoutScroll/layoutRoot` и `transformTemplate` в скроллируемых списках — это часто даёт дергание.
+  - Не меняйте `scale/zIndex/box-shadow` через `animate` на элементах списка во время reorder.
+  - Любые “живые” эффекты (градиенты, glow, wave) должны быть **`position: absolute`** и не менять лэйаут.
+  - Избегайте анимации `height: auto`; для раскрывающихся блоков используйте измерение высоты через `ResizeObserver` (как в `TaskItem` и `TaskSheet`).
+  - Если появляются “рывки” раз в секунду (таймер), обновляйте только внутри абсолютных слоёв (фон/индикатор), без влияния на размер карточки.
 
 ## Клавиатура и viewport (Telegram/iOS)
 

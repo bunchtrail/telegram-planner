@@ -50,8 +50,6 @@ type TaskItemProps = {
   elapsedMs: number;
   onToggleActive: (id: string) => void;
   updateTask: (id: string, updates: Partial<Task>) => void;
-  isDragging: boolean;
-  onDragStateChange: (isDragging: boolean) => void;
 };
 
 interface CustomCSSProperties extends CSSProperties {
@@ -110,8 +108,6 @@ const TaskItem = memo(function TaskItem({
   elapsedMs,
   onToggleActive,
   updateTask,
-  isDragging,
-  onDragStateChange,
 }: TaskItemProps) {
   const { impact, selection, notification } = useHaptic();
   const dragControls = useDragControls();
@@ -261,13 +257,11 @@ const TaskItem = memo(function TaskItem({
       id={task.clientId}
       dragListener={false}
       dragControls={dragControls}
-      layout={isDragging ? undefined : 'position'}
+      layout="position"
       initial={false}
       animate={{
         opacity: task.completed ? 0.8 : 1,
         y: 0,
-        scale: isActive && !isDragging ? 1.02 : 1,
-        zIndex: isActive ? 20 : 0,
       }}
       exit={{ opacity: 0, scale: 0.95 }}
       transition={{ type: 'tween', duration: 0.18, ease: 'easeOut' }}
@@ -285,8 +279,6 @@ const TaskItem = memo(function TaskItem({
       } as CustomCSSProperties}
       as="li"
       transformTemplate={undefined}
-      onDragStart={() => onDragStateChange(true)}
-      onDragEnd={() => onDragStateChange(false)}
     >
       {isActive && (
         <>
@@ -298,14 +290,16 @@ const TaskItem = memo(function TaskItem({
 
           <ActiveBorder color={task.color} />
 
-          <div className="absolute inset-0 rounded-[28px] overflow-hidden bg-[var(--surface)] z-0">
-            <motion.div
-              className="absolute inset-0 bg-[var(--task-color)] opacity-[0.08]"
-              initial={{ width: 0 }}
-              animate={{ width: `${timeProgress}%` }}
-              transition={{ duration: 1, ease: 'linear' }}
-            />
-          </div>
+          {!isExpanded && (
+            <div className="absolute inset-0 rounded-[28px] overflow-hidden bg-[var(--surface)] z-0">
+              <motion.div
+                className="absolute inset-0 bg-[var(--task-color)] opacity-[0.08]"
+                initial={{ width: 0 }}
+                animate={{ width: `${timeProgress}%` }}
+                transition={{ duration: 1, ease: 'linear' }}
+              />
+            </div>
+          )}
         </>
       )}
 
@@ -452,30 +446,30 @@ const TaskItem = memo(function TaskItem({
             )}
           </div>
 
-          {!isExpanded && !task.completed && (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                impact('medium');
-                onToggleActive(task.id);
-              }}
-              className={cn(
-                'h-8 w-8 flex items-center justify-center rounded-full transition-all active:scale-90 relative z-20',
-                isActive
-                  ? 'bg-[var(--task-color)] text-[var(--bg)] shadow-lg'
-                  : 'bg-[var(--surface-2)] text-[var(--muted)] hover:text-[var(--ink)]'
-              )}
-            >
-              {isActive ? (
-                <Pause size={14} fill="currentColor" />
-              ) : (
-                <Play size={14} fill="currentColor" className="ml-0.5" />
-              )}
-            </button>
-          )}
+          <div className="flex items-center gap-2">
+            {!isExpanded && !task.completed && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  impact('medium');
+                  onToggleActive(task.id);
+                }}
+                className={cn(
+                  'h-8 w-8 flex items-center justify-center rounded-full transition-all active:scale-90 relative z-20',
+                  isActive
+                    ? 'bg-[var(--task-color)] text-[var(--bg)] shadow-lg'
+                    : 'bg-[var(--surface-2)] text-[var(--muted)] hover:text-[var(--ink)]'
+                )}
+              >
+                {isActive ? (
+                  <Pause size={14} fill="currentColor" />
+                ) : (
+                  <Play size={14} fill="currentColor" className="ml-0.5" />
+                )}
+              </button>
+            )}
 
-          {isExpanded && (
             <button
               type="button"
               aria-label="Перетащить"
@@ -489,7 +483,7 @@ const TaskItem = memo(function TaskItem({
             >
               <GripVertical size={20} />
             </button>
-          )}
+          </div>
         </div>
 
         <motion.div
