@@ -3,6 +3,7 @@ import {
   useLayoutEffect,
   useRef,
   useState,
+  useEffect,
   type CSSProperties,
   type FormEvent,
   type KeyboardEvent as ReactKeyboardEvent,
@@ -15,6 +16,9 @@ import {
   motion,
   useDragControls,
   AnimatePresence,
+  useMotionTemplate,
+  useMotionValue,
+  animate,
 } from 'framer-motion';
 import {
   Calendar,
@@ -29,6 +33,8 @@ import {
   Trash2,
   X,
   CornerDownLeft,
+  Play,
+  Pause,
 } from 'lucide-react';
 import type { Task } from '../types/task';
 import { cn } from '../lib/cn';
@@ -50,6 +56,48 @@ type TaskItemProps = {
 
 interface CustomCSSProperties extends CSSProperties {
   '--task-color'?: string;
+}
+
+function ActiveBorder({ color }: { color: string }) {
+  const angle = useMotionValue(0);
+
+  useEffect(() => {
+    const controls = animate(angle, 360, {
+      duration: 3,
+      ease: 'linear',
+      repeat: Infinity,
+    });
+    return controls.stop;
+  }, [angle]);
+
+  const background = useMotionTemplate`conic-gradient(from ${angle}deg, transparent 0%, ${color} 50%, transparent 100%)`;
+
+  return (
+    <motion.div
+      className="absolute inset-[-2px] rounded-[30px] z-0 opacity-60 pointer-events-none"
+      style={{ background }}
+    />
+  );
+}
+
+function ActiveWave() {
+  return (
+    <div className="flex items-end gap-[2px] h-3 pb-[1px] mx-1">
+      {[0, 1, 2].map((i) => (
+        <motion.div
+          key={i}
+          className="w-[2px] bg-current rounded-full"
+          animate={{ height: [3, 10, 3] }}
+          transition={{
+            duration: 0.8,
+            repeat: Infinity,
+            delay: i * 0.15,
+            ease: 'easeInOut',
+          }}
+        />
+      ))}
+    </div>
+  );
 }
 
 const TaskItem = memo(function TaskItem({
@@ -142,12 +190,17 @@ const TaskItem = memo(function TaskItem({
     }
     return `${minutes}:${String(seconds).padStart(2, '0')}`;
   };
+
   const hasElapsed = elapsedMs > 0;
   const elapsedLabel = formatElapsed(elapsedMs);
   const completedSteps = task.checklist.filter((item) => item.done).length;
   const totalSteps = task.checklist.length;
-  const progress = totalSteps > 0 ? (completedSteps / totalSteps) * 100 : 0;
+  const checklistProgress =
+    totalSteps > 0 ? (completedSteps / totalSteps) * 100 : 0;
   const isAllStepsDone = totalSteps > 0 && completedSteps === totalSteps;
+
+  const targetMs = (task.duration || 30) * 60 * 1000;
+  const timeProgress = Math.min(100, (elapsedMs / targetMs) * 100);
 
   const toggleSubtask = (idx: number) => {
     impact('light');
@@ -210,16 +263,21 @@ const TaskItem = memo(function TaskItem({
       dragControls={dragControls}
       layout={isDragging ? undefined : 'position'}
       initial={false}
-      animate={{ opacity: task.completed ? 0.8 : 1, y: 0 }}
+      animate={{
+        opacity: task.completed ? 0.8 : 1,
+        y: 0,
+        scale: isActive && !isDragging ? 1.02 : 1,
+        zIndex: isActive ? 20 : 0,
+      }}
       exit={{ opacity: 0, scale: 0.95 }}
       transition={{ type: 'tween', duration: 0.18, ease: 'easeOut' }}
       className={cn(
-        'group relative mb-4 overflow-hidden rounded-[28px] bg-[var(--surface)] touch-pan-y transition-shadow duration-300',
+        'group relative mb-4 rounded-[28px] touch-pan-y transition-all duration-300',
         isActive
-          ? 'shadow-[var(--shadow-glow)] z-10'
+          ? 'z-20'
           : isExpanded
-            ? 'shadow-[var(--shadow-pop)] z-10'
-            : 'shadow-[var(--shadow-card)]'
+            ? 'shadow-[var(--shadow-pop)] z-10 bg-[var(--surface)]'
+            : 'shadow-[var(--shadow-card)] bg-[var(--surface)]'
       )}
       style={{
         transformOrigin: 'center',
@@ -230,8 +288,32 @@ const TaskItem = memo(function TaskItem({
       onDragStart={() => onDragStateChange(true)}
       onDragEnd={() => onDragStateChange(false)}
     >
+      {isActive && (
+        <>
+          <motion.div
+            animate={{ opacity: [0.3, 0.5, 0.3], scale: [0.98, 1.01, 0.98] }}
+            transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+            className="absolute inset-0 rounded-[28px] bg-[var(--task-color)] blur-xl opacity-40 -z-10"
+          />
+
+          <ActiveBorder color={task.color} />
+
+          <div className="absolute inset-0 rounded-[28px] overflow-hidden bg-[var(--surface)] z-0">
+            <motion.div
+              className="absolute inset-0 bg-[var(--task-color)] opacity-[0.08]"
+              initial={{ width: 0 }}
+              animate={{ width: `${timeProgress}%` }}
+              transition={{ duration: 1, ease: 'linear' }}
+            />
+          </div>
+        </>
+      )}
+
       <div
-        className={cn('flex flex-col relative', isExpanded && 'bg-[var(--muted)]/5')}
+        className={cn(
+          'flex flex-col relative z-10 rounded-[28px]',
+          isExpanded && !isActive && 'bg-[var(--muted)]/5'
+        )}
       >
         <div className="flex items-start gap-4 p-5 pr-3">
           <motion.button
@@ -317,46 +399,45 @@ const TaskItem = memo(function TaskItem({
                 )}
               </div>
             </div>
+
             {!task.completed && (
-              <div className="flex items-center gap-3 flex-wrap opacity-70 mt-1">
-                <div className="inline-flex items-center gap-1 text-[11px] font-bold text-[var(--muted)] opacity-80 uppercase tracking-wide">
-                  <Clock size={11} strokeWidth={2.5} />
-                  <span>{task.duration} мин</span>
-                </div>
-                {(isActive || hasElapsed) && (
-                  <div
-                    className={cn(
-                      'inline-flex items-center gap-1.5 rounded-md px-1.5 py-0.5 text-[10px] font-bold border uppercase tracking-wide shadow-sm',
-                      isActive
-                        ? 'bg-[var(--task-color)] text-[var(--bg)] border-[var(--task-color)]'
-                        : 'bg-[var(--surface-2)] text-[var(--ink)] border-[var(--border)]'
+              <div className="flex items-center gap-3 flex-wrap mt-1 min-h-[20px]">
+                {isActive ? (
+                  <div className="inline-flex items-center text-[var(--task-color)] font-bold tabular-nums animate-in fade-in duration-300">
+                    <ActiveWave />
+                    <span className="text-[14px] ml-1">{elapsedLabel}</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-3 flex-wrap opacity-70">
+                    <div className="inline-flex items-center gap-1 text-[11px] font-bold text-[var(--muted)] opacity-80 uppercase tracking-wide">
+                      <Clock size={11} strokeWidth={2.5} />
+                      <span>{task.duration} мин</span>
+                    </div>
+
+                    {hasElapsed && (
+                      <div className="inline-flex items-center gap-1 text-[11px] font-bold text-[var(--muted)] opacity-80 uppercase tracking-wide">
+                        <span>Факт: {elapsedLabel}</span>
+                      </div>
                     )}
-                  >
-                    {isActive && (
-                      <span className="relative flex h-1.5 w-1.5">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75" />
-                        <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-white" />
-                      </span>
+
+                    {totalSteps > 0 && !isExpanded && (
+                      <div className="inline-flex items-center gap-1 text-[11px] font-bold text-[var(--muted)] opacity-80">
+                        <div
+                          className="w-1.5 h-1.5 rounded-full"
+                          style={{
+                            backgroundColor: isAllStepsDone
+                              ? task.color
+                              : 'var(--muted)',
+                          }}
+                        />
+                        <span>
+                          {completedSteps}/{totalSteps}
+                        </span>
+                      </div>
                     )}
-                    <Clock size={10} strokeWidth={2.5} />
-                    {isActive ? 'В работе' : 'Факт'} {elapsedLabel}
                   </div>
                 )}
-                {totalSteps > 0 && !isExpanded && (
-                  <div className="inline-flex items-center gap-1 text-[11px] font-bold text-[var(--muted)] opacity-80">
-                    <div
-                      className="w-1.5 h-1.5 rounded-full"
-                      style={{
-                        backgroundColor: isAllStepsDone
-                          ? task.color
-                          : 'var(--muted)',
-                      }}
-                    />
-                    <span>
-                      {completedSteps}/{totalSteps}
-                    </span>
-                  </div>
-                )}
+
                 {isExpanded && (
                   <motion.span
                     initial={{ opacity: 0 }}
@@ -371,19 +452,44 @@ const TaskItem = memo(function TaskItem({
             )}
           </div>
 
-          <button
-            type="button"
-            aria-label="Перетащить"
-            className="h-8 w-8 flex items-center justify-center text-[var(--muted)] opacity-20 group-hover:opacity-50 transition-opacity cursor-grab active:cursor-grabbing touch-none -mr-1"
-            onPointerDown={(event) => {
-              event.preventDefault();
-              event.stopPropagation();
-              impact('light');
-              dragControls.start(event);
-            }}
-          >
-            <GripVertical size={20} />
-          </button>
+          {!isExpanded && !task.completed && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                impact('medium');
+                onToggleActive(task.id);
+              }}
+              className={cn(
+                'h-8 w-8 flex items-center justify-center rounded-full transition-all active:scale-90 relative z-20',
+                isActive
+                  ? 'bg-[var(--task-color)] text-[var(--bg)] shadow-lg'
+                  : 'bg-[var(--surface-2)] text-[var(--muted)] hover:text-[var(--ink)]'
+              )}
+            >
+              {isActive ? (
+                <Pause size={14} fill="currentColor" />
+              ) : (
+                <Play size={14} fill="currentColor" className="ml-0.5" />
+              )}
+            </button>
+          )}
+
+          {isExpanded && (
+            <button
+              type="button"
+              aria-label="Перетащить"
+              className="h-8 w-8 flex items-center justify-center text-[var(--muted)] opacity-20 group-hover:opacity-50 transition-opacity cursor-grab active:cursor-grabbing touch-none -mr-1"
+              onPointerDown={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                impact('light');
+                dragControls.start(event);
+              }}
+            >
+              <GripVertical size={20} />
+            </button>
+          )}
         </div>
 
         <motion.div
@@ -411,19 +517,46 @@ const TaskItem = memo(function TaskItem({
                   }}
                   aria-pressed={isActive}
                   className={cn(
-                    'w-full h-[52px] rounded-[18px] flex items-center justify-center gap-2 text-[13px] font-bold transition-[transform,colors] duration-200 active:scale-[0.98]',
+                    'w-full h-[52px] rounded-[18px] flex items-center justify-center gap-2 text-[14px] font-bold transition-[transform,colors] duration-200 active:scale-[0.98] relative overflow-hidden',
                     isActive
-                      ? 'bg-[var(--task-color)] text-[var(--bg)] shadow-md'
+                      ? 'bg-[var(--task-color)] text-[var(--bg)] shadow-lg shadow-[var(--task-color)]/20'
                       : 'bg-[var(--surface-2)] text-[var(--ink)] hover:bg-[var(--border)]'
                   )}
                 >
-                  <Clock size={18} strokeWidth={2.5} />
-                  {isActive ? 'Остановить' : 'Запустить таймер'}
-                  {(isActive || hasElapsed) && (
-                    <span className="opacity-80 tabular-nums font-medium ml-1">
-                      {elapsedLabel}
-                    </span>
+                  {isActive && (
+                    <motion.div
+                      className="absolute inset-0 bg-white/20"
+                      initial={{ x: '-100%' }}
+                      animate={{ x: '100%' }}
+                      transition={{
+                        repeat: Infinity,
+                        duration: 1.5,
+                        ease: 'linear',
+                      }}
+                    />
                   )}
+
+                  <div className="relative z-10 flex items-center gap-2">
+                    {isActive ? (
+                      <>
+                        <Pause size={18} fill="currentColor" />
+                        <span>Пауза</span>
+                        <span className="tabular-nums opacity-90 ml-1">
+                          {elapsedLabel}
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <Play size={18} fill="currentColor" />
+                        <span>Запустить таймер</span>
+                        {hasElapsed && (
+                          <span className="opacity-60 text-xs font-medium">
+                            ({elapsedLabel})
+                          </span>
+                        )}
+                      </>
+                    )}
+                  </div>
                 </button>
 
                 <div className="grid grid-cols-2 gap-2">
@@ -506,7 +639,7 @@ const TaskItem = memo(function TaskItem({
                             : 'var(--ink)',
                         }}
                         initial={{ width: 0 }}
-                        animate={{ width: `${progress}%` }}
+                        animate={{ width: `${checklistProgress}%` }}
                         transition={{ duration: 0.5, ease: 'circOut' }}
                       />
                     </div>
