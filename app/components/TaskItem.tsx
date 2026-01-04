@@ -280,7 +280,7 @@ const TaskItem = memo(function TaskItem({
       as="li"
       transformTemplate={undefined}
     >
-      {isActive && (
+      {isActive && !isExpanded && (
         <>
           <motion.div
             animate={{ opacity: [0.3, 0.5, 0.3], scale: [0.98, 1.01, 0.98] }}
@@ -290,16 +290,14 @@ const TaskItem = memo(function TaskItem({
 
           <ActiveBorder color={task.color} />
 
-          {!isExpanded && (
-            <div className="absolute inset-0 rounded-[28px] overflow-hidden bg-[var(--surface)] z-0">
-              <motion.div
-                className="absolute inset-0 bg-[var(--task-color)] opacity-[0.08]"
-                initial={{ width: 0 }}
-                animate={{ width: `${timeProgress}%` }}
-                transition={{ duration: 1, ease: 'linear' }}
-              />
-            </div>
-          )}
+          <div className="absolute inset-0 rounded-[28px] overflow-hidden bg-[var(--surface)] z-0">
+            <motion.div
+              className="absolute inset-0 bg-[var(--task-color)] opacity-[0.08]"
+              initial={{ width: 0 }}
+              animate={{ width: `${timeProgress}%` }}
+              transition={{ duration: 1, ease: 'linear' }}
+            />
+          </div>
         </>
       )}
 
