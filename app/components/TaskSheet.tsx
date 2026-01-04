@@ -59,6 +59,8 @@ export default function TaskSheet({
   const [showRepeatOptions, setShowRepeatOptions] = useState(
     mode === "edit" || initialRepeat !== "none",
   );
+  const [isSettled, setIsSettled] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
 
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
@@ -76,6 +78,7 @@ export default function TaskSheet({
     if (document.activeElement instanceof HTMLElement) {
       document.activeElement.blur();
     }
+    setIsSettled(false);
     setTimeout(onClose, 10);
   }, [onClose]);
 
@@ -83,6 +86,7 @@ export default function TaskSheet({
     _event: MouseEvent | TouchEvent | PointerEvent,
     info: PanInfo,
   ) => {
+    setIsDragging(false);
     if (info.offset.y > 100 || info.velocity.y > 400) {
       handleClose();
     }
@@ -125,6 +129,10 @@ export default function TaskSheet({
           "y" in definition &&
           (definition as { y?: number | string }).y === 0);
 
+      if (isOpening) {
+        setIsSettled(true);
+      }
+
       if (isOpening && mode === "create") {
         requestAnimationFrame(() => {
           inputRef.current?.focus({ preventScroll: true });
@@ -153,14 +161,19 @@ export default function TaskSheet({
         animate={{ y: 0 }}
         exit={{ y: "100%" }}
         transition={SHEET_TRANSITION}
+        onAnimationStart={() => setIsSettled(false)}
         onAnimationComplete={handleAnimationComplete}
         drag="y"
         dragControls={dragControls}
         dragListener={false}
         dragConstraints={{ top: 0 }}
         dragElastic={0.05}
+        onDragStart={() => setIsDragging(true)}
         onDragEnd={handleDragEnd}
-        className="will-change-transform pointer-events-auto relative w-full bg-[var(--surface)] rounded-t-[32px] shadow-[var(--shadow-pop)] flex flex-col border-t border-[var(--border)]"
+        transformTemplate={(_transforms, generatedTransform) =>
+          isSettled && !isDragging ? "none" : generatedTransform
+        }
+        className="pointer-events-auto relative w-full bg-[var(--surface)] rounded-t-[32px] shadow-[var(--shadow-pop)] flex flex-col border-t border-[var(--border)]"
         style={{
           maxHeight: "92dvh",
           paddingBottom:
@@ -207,7 +220,11 @@ export default function TaskSheet({
               }}
               placeholder="Что нужно сделать?"
               className="w-full bg-transparent text-[22px] font-bold text-[var(--ink)] placeholder:text-[var(--muted)]/40 resize-none outline-none leading-snug"
-              style={{ minHeight: "44px" }}
+              style={{
+                minHeight: "44px",
+                transform: "none",
+                WebkitTransform: "none",
+              }}
             />
           </div>
 
