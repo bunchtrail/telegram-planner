@@ -1,7 +1,7 @@
-import { useCallback } from "react";
+import { useCallback } from 'react';
 
-type HapticImpactStyle = "light" | "medium" | "heavy" | "rigid" | "soft";
-type HapticNotificationType = "error" | "success" | "warning";
+type HapticImpactStyle = 'light' | 'medium' | 'heavy' | 'rigid' | 'soft';
+type HapticNotificationType = 'error' | 'success' | 'warning';
 
 type TelegramHapticFeedback = {
   impactOccurred: (style: HapticImpactStyle) => void;
@@ -9,8 +9,9 @@ type TelegramHapticFeedback = {
   selectionChanged: () => void;
 };
 
+
 const getTelegramHaptics = () => {
-  if (typeof window === "undefined") return null;
+  if (typeof window === 'undefined') return null;
 
   const telegram = (
     window as Window & {
