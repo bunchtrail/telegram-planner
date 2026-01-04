@@ -1,6 +1,6 @@
 import { format } from "date-fns";
 import { ru } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, Clock, Flame, GripVertical } from "lucide-react";
+import { ChevronLeft, ChevronRight, Clock, Flame } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import MonthGrid from "./MonthGrid";
 import WeekStrip from "./WeekStrip";
@@ -25,8 +25,6 @@ type PlannerHeaderProps = {
   onNext: () => void;
   onToday: () => void;
   onOpenStats: () => void;
-  isReorderMode: boolean;
-  onToggleReorder: () => void;
 };
 
 function ProgressRing({
@@ -91,8 +89,6 @@ export default function PlannerHeader({
   onNext,
   onToday,
   onOpenStats,
-  isReorderMode,
-  onToggleReorder,
 }: PlannerHeaderProps) {
   const { impact } = useHaptic();
   const isToday =
@@ -188,24 +184,6 @@ export default function PlannerHeader({
               </div>
 
               <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    impact("light");
-                    onToggleReorder();
-                  }}
-                  aria-label="Режим сортировки"
-                  aria-pressed={isReorderMode}
-                  className={cn(
-                    "h-9 w-9 rounded-[12px] border flex items-center justify-center active:scale-95 transition-transform",
-                    isReorderMode
-                      ? "bg-[var(--ink)] text-[var(--bg)] border-transparent"
-                      : "border-[var(--border)]/50 bg-[var(--surface-2)] text-[var(--muted)]",
-                  )}
-                >
-                  <GripVertical size={18} />
-                </button>
-
                 <button
                   type="button"
                   onClick={() => {

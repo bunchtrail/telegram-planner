@@ -57,7 +57,6 @@ export default function PlannerApp() {
   const dayCompleteTimeoutRef = useRef<number | null>(null);
   const [showStats, setShowStats] = useState(false);
   const [showFocus, setShowFocus] = useState(false);
-  const [isReorderMode, setIsReorderMode] = useState(false);
 
   const activeTaskObj = useMemo(
     () => tasks.find((task) => task.id === activeTaskId) ?? null,
@@ -160,7 +159,6 @@ export default function PlannerApp() {
 
   const handleOpenCreate = () => {
     impact('light');
-    setIsReorderMode(false);
     setSheetMode('create');
     setEditingTask(null);
     setIsAddOpen(true);
@@ -168,7 +166,6 @@ export default function PlannerApp() {
 
   const handleOpenEdit = (task: Task) => {
     impact('light');
-    setIsReorderMode(false);
     setSheetMode('edit');
     setEditingTask(task);
     setIsAddOpen(true);
@@ -219,8 +216,6 @@ export default function PlannerApp() {
             onNext={goToNextPeriod}
             onToday={goToToday}
             onOpenStats={() => setShowStats(true)}
-            isReorderMode={isReorderMode}
-            onToggleReorder={() => setIsReorderMode((prev) => !prev)}
           />
         </div>
 
@@ -237,7 +232,6 @@ export default function PlannerApp() {
             onReorder={handleReorder}
             onToggleActive={toggleActiveTask}
             updateTask={updateTask}
-            isReorderMode={isReorderMode}
           />
           <div className="pointer-events-none absolute bottom-0 left-0 right-0 z-20 h-16 bg-gradient-to-t from-[var(--bg)] to-transparent" />
         </main>

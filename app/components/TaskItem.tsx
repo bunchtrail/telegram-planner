@@ -51,11 +51,6 @@ type TaskItemProps = {
   isActive: boolean;
   onToggleActive: (id: string) => void;
   updateTask: (id: string, updates: Partial<Task>) => void;
-  isReorderMode?: boolean;
-  enableMotion?: boolean;
-  containerStyle?: CSSProperties;
-  containerRef?: (node: HTMLLIElement | null) => void;
-  containerDataIndex?: number;
 };
 
 interface CustomCSSProperties extends CSSProperties {
@@ -113,11 +108,6 @@ const TaskItem = memo(function TaskItem({
   isActive,
   onToggleActive,
   updateTask,
-  isReorderMode = false,
-  enableMotion = true,
-  containerStyle,
-  containerRef,
-  containerDataIndex,
 }: TaskItemProps) {
   const { impact, selection, notification } = useHaptic();
   const dragControls = useDragControls();
@@ -131,7 +121,6 @@ const TaskItem = memo(function TaskItem({
   const isIOS = isIOSDevice();
   const reduceEffects = prefersReducedMotion || isIOS;
   const [tickNow, setTickNow] = useState(() => Date.now());
-  const shouldAnimate = enableMotion && !reduceEffects;
 
   const focusSubtaskInput = (preventScroll = false) => {
     const input = inputRef.current;
@@ -279,22 +268,41 @@ const TaskItem = memo(function TaskItem({
     return () => observer.disconnect();
   }, [isExpanded, pendingDate, task.checklist.length, isActive]);
 
-  const itemClassName = cn(
-    'group relative mb-4 overflow-hidden rounded-[28px] bg-[var(--surface)] touch-pan-y transition-shadow duration-300',
-    isActive
-      ? 'z-20'
-      : isExpanded
-        ? 'shadow-[var(--shadow-pop)] z-10'
-        : 'shadow-[var(--shadow-card)]'
-  );
-  const itemStyle = {
-    transformOrigin: 'center',
-    '--task-color': task.color,
-    ...containerStyle,
-  } as CustomCSSProperties;
-
-  const content = (
-    <>
+  return (
+    <Reorder.Item
+      value={task}
+      id={task.clientId}
+      dragListener={false}
+      dragControls={dragControls}
+      layout={reduceEffects ? undefined : 'position'}
+      initial={false}
+      animate={{
+        opacity: task.completed ? 0.8 : 1,
+        y: 0,
+      }}
+      exit={reduceEffects ? undefined : { opacity: 0, scale: 0.95 }}
+      transition={
+        reduceEffects
+          ? { duration: 0 }
+          : { type: 'tween', duration: 0.18, ease: 'easeOut' }
+      }
+      className={cn(
+        'group relative mb-4 overflow-hidden rounded-[28px] bg-[var(--surface)] touch-pan-y transition-shadow duration-300',
+        isActive
+          ? 'z-20'
+          : isExpanded
+            ? 'shadow-[var(--shadow-pop)] z-10'
+            : 'shadow-[var(--shadow-card)]'
+      )}
+      style={
+        {
+          transformOrigin: 'center',
+          '--task-color': task.color,
+        } as CustomCSSProperties
+      }
+      as="li"
+      transformTemplate={undefined}
+    >
       {isActive && !isExpanded && (
         <>
           {!reduceEffects && (
@@ -493,21 +501,19 @@ const TaskItem = memo(function TaskItem({
               </button>
             )}
 
-            {isReorderMode && (
-              <button
-                type="button"
-                aria-label="Перетащить"
-                className="h-8 w-8 flex items-center justify-center text-[var(--muted)] opacity-20 group-hover:opacity-50 transition-opacity cursor-grab active:cursor-grabbing touch-none -mr-1"
-                onPointerDown={(event) => {
-                  event.preventDefault();
-                  event.stopPropagation();
-                  impact('light');
-                  dragControls.start(event);
-                }}
-              >
-                <GripVertical size={20} />
-              </button>
-            )}
+            <button
+              type="button"
+              aria-label="Перетащить"
+              className="h-8 w-8 flex items-center justify-center text-[var(--muted)] opacity-20 group-hover:opacity-50 transition-opacity cursor-grab active:cursor-grabbing touch-none -mr-1"
+              onPointerDown={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                impact('light');
+                dragControls.start(event);
+              }}
+            >
+              <GripVertical size={20} />
+            </button>
           </div>
         </div>
 
@@ -868,73 +874,7 @@ const TaskItem = memo(function TaskItem({
           </div>
         </motion.div>
       </div>
-    </>
-  );
-
-  if (isReorderMode) {
-    return (
-      <Reorder.Item
-        value={task}
-        id={task.clientId}
-        dragListener={false}
-        dragControls={dragControls}
-        layout={reduceEffects ? undefined : 'position'}
-        initial={false}
-        animate={
-          shouldAnimate
-            ? {
-                opacity: task.completed ? 0.8 : 1,
-                y: 0,
-              }
-            : undefined
-        }
-        exit={shouldAnimate ? { opacity: 0, scale: 0.95 } : undefined}
-        transition={
-          shouldAnimate
-            ? { type: 'tween', duration: 0.18, ease: 'easeOut' }
-            : { duration: 0 }
-        }
-        className={itemClassName}
-        style={itemStyle}
-        as="li"
-        transformTemplate={undefined}
-        ref={containerRef}
-        data-index={containerDataIndex}
-      >
-        {content}
-      </Reorder.Item>
-    );
-  }
-
-  if (!shouldAnimate) {
-    return (
-      <li
-        ref={containerRef}
-        data-index={containerDataIndex}
-        className={itemClassName}
-        style={itemStyle}
-      >
-        {content}
-      </li>
-    );
-  }
-
-  return (
-    <motion.li
-      ref={containerRef}
-      data-index={containerDataIndex}
-      className={itemClassName}
-      style={itemStyle}
-      initial={false}
-      animate={{
-        opacity: task.completed ? 0.8 : 1,
-        y: 0,
-      }}
-      exit={{ opacity: 0, scale: 0.95 }}
-      transition={{ type: 'tween', duration: 0.18, ease: 'easeOut' }}
-    >
-      {content}
-    </motion.li>
+    </Reorder.Item>
   );
 });
 

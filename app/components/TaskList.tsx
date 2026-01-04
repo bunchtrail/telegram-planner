@@ -1,6 +1,5 @@
 import { useEffect, useRef } from 'react';
 import { AnimatePresence, Reorder, useReducedMotion } from 'framer-motion';
-import { useVirtualizer } from '@tanstack/react-virtual';
 import { Calendar, Loader2 } from 'lucide-react';
 import type { Task } from '../types/task';
 import TaskItem from './TaskItem';
@@ -18,7 +17,6 @@ type TaskListProps = {
   onReorder: (tasks: Task[]) => void;
   onToggleActive: (id: string) => void;
   updateTask: (id: string, updates: Partial<Task>) => void;
-  isReorderMode: boolean;
 };
 
 export default function TaskList({
@@ -33,36 +31,12 @@ export default function TaskList({
   onReorder,
   onToggleActive,
   updateTask,
-  isReorderMode,
 }: TaskListProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const prevTaskIdsRef = useRef<Set<string>>(new Set());
   const prefersReducedMotion = useReducedMotion();
   const isIOS = isIOSDevice();
   const reduceMotion = prefersReducedMotion || isIOS;
-  const enableVirtualization = !isReorderMode && tasks.length > 18;
-  // eslint-disable-next-line react-hooks/incompatible-library
-  const virtualizer = useVirtualizer({
-    count: enableVirtualization ? tasks.length : 0,
-    getScrollElement: () => scrollContainerRef.current,
-    estimateSize: () => 110,
-    overscan: 6,
-    getItemKey: (index) => tasks[index]?.clientId ?? index,
-    measureElement: (element) => {
-      if (!(element instanceof HTMLElement)) return element.getBoundingClientRect().height;
-      const rect = element.getBoundingClientRect();
-      const style = window.getComputedStyle(element);
-      const marginTop = Number.parseFloat(style.marginTop) || 0;
-      const marginBottom = Number.parseFloat(style.marginBottom) || 0;
-      return rect.height + marginTop + marginBottom;
-    },
-  });
-
-  useEffect(() => {
-    if (enableVirtualization) {
-      virtualizer.measure();
-    }
-  }, [enableVirtualization, tasks, virtualizer]);
 
   useEffect(() => {
     const prevIds = prevTaskIdsRef.current;
@@ -135,21 +109,32 @@ export default function TaskList({
     );
   }
 
-  const shouldAnimateList = !reduceMotion && !enableVirtualization;
-  const virtualItems = enableVirtualization ? virtualizer.getVirtualItems() : [];
-
   return (
     <div ref={scrollContainerRef} className={scrollClasses}>
-      {isReorderMode ? (
-        <Reorder.Group
-          key={dateKey}
-          axis="y"
-          values={tasks}
-          onReorder={onReorder}
-          as="ul"
-          role="list"
-          className="relative"
-        >
+      <Reorder.Group
+        key={dateKey}
+        axis="y"
+        values={tasks}
+        onReorder={onReorder}
+        as="ul"
+        role="list"
+        className="relative"
+      >
+        {reduceMotion ? (
+          tasks.map((task) => (
+            <TaskItem
+              key={task.clientId}
+              task={task}
+              onToggle={onToggle}
+              onDelete={onDelete}
+              onEdit={onEdit}
+              onMove={onMove}
+              isActive={Boolean(task.activeStartedAt) && !task.completed}
+              onToggleActive={onToggleActive}
+              updateTask={updateTask}
+            />
+          ))
+        ) : (
           <AnimatePresence initial={false} mode="popLayout">
             {tasks.map((task) => (
               <TaskItem
@@ -162,84 +147,11 @@ export default function TaskList({
                 isActive={Boolean(task.activeStartedAt) && !task.completed}
                 onToggleActive={onToggleActive}
                 updateTask={updateTask}
-                isReorderMode
-                enableMotion={!reduceMotion}
               />
             ))}
           </AnimatePresence>
-        </Reorder.Group>
-      ) : enableVirtualization ? (
-        <div
-          className="relative w-full"
-          style={{ height: `${virtualizer.getTotalSize()}px` }}
-        >
-          {virtualItems.map((virtualRow) => {
-            const task = tasks[virtualRow.index];
-            if (!task) return null;
-            return (
-              <TaskItem
-                key={task.clientId}
-                task={task}
-                onToggle={onToggle}
-                onDelete={onDelete}
-                onEdit={onEdit}
-                onMove={onMove}
-                isActive={Boolean(task.activeStartedAt) && !task.completed}
-                onToggleActive={onToggleActive}
-                updateTask={updateTask}
-                enableMotion={false}
-                containerRef={(node) => {
-                  if (node) virtualizer.measureElement(node);
-                }}
-                containerDataIndex={virtualRow.index}
-                containerStyle={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  width: '100%',
-                  transform: `translateY(${virtualRow.start}px)`,
-                }}
-              />
-            );
-          })}
-        </div>
-      ) : (
-        <ul role="list" className="relative">
-          {shouldAnimateList ? (
-            <AnimatePresence initial={false} mode="popLayout">
-              {tasks.map((task) => (
-                <TaskItem
-                  key={task.clientId}
-                  task={task}
-                  onToggle={onToggle}
-                  onDelete={onDelete}
-                  onEdit={onEdit}
-                  onMove={onMove}
-                  isActive={Boolean(task.activeStartedAt) && !task.completed}
-                  onToggleActive={onToggleActive}
-                  updateTask={updateTask}
-                  enableMotion
-                />
-              ))}
-            </AnimatePresence>
-          ) : (
-            tasks.map((task) => (
-              <TaskItem
-                key={task.clientId}
-                task={task}
-                onToggle={onToggle}
-                onDelete={onDelete}
-                onEdit={onEdit}
-                onMove={onMove}
-                isActive={Boolean(task.activeStartedAt) && !task.completed}
-                onToggleActive={onToggleActive}
-                updateTask={updateTask}
-                enableMotion={false}
-              />
-            ))
-          )}
-        </ul>
-      )}
+        )}
+      </Reorder.Group>
       <div className="h-4" />
     </div>
   );
