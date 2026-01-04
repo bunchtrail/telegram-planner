@@ -226,14 +226,14 @@ const TaskItem = memo(function TaskItem({
             </div>
             {!task.completed && (
               <div className="flex items-center gap-2 flex-wrap">
-                <div className="inline-flex items-center gap-1 text-[11px] font-bold text-[var(--muted)] opacity-80 uppercase tracking-wide">
-                  <Clock size={11} strokeWidth={2.5} />
+                <div className="inline-flex items-center gap-1 text-[12px] font-bold text-[var(--muted)] opacity-80 uppercase tracking-wide">
+                  <Clock size={12} strokeWidth={2.5} />
                   <span>{task.duration} мин</span>
                 </div>
                 {(isActive || hasElapsed) && (
                   <div
                     className={cn(
-                      'inline-flex items-center gap-1.5 rounded-md px-1.5 py-0.5 text-[10px] font-bold border uppercase tracking-wide shadow-sm',
+                      'inline-flex items-center gap-1.5 rounded-md px-1.5 py-0.5 text-[11px] font-bold border uppercase tracking-wide shadow-sm',
                       isActive
                         ? 'bg-[var(--accent)] text-[var(--accent-ink)] border-[var(--accent)]'
                         : 'bg-[var(--surface-2)] text-[var(--ink)] border-[var(--border)]'

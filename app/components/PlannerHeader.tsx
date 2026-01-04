@@ -126,7 +126,7 @@ export default function PlannerHeader({
                     onToday();
                   }}
                 >
-                  <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-[var(--muted)] leading-none mb-0.5 ml-[1px] whitespace-nowrap">
+                  <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-[var(--muted)] leading-none mb-0.5 ml-[1px] whitespace-nowrap">
                     <span>{format(selectedDate, "LLLL", { locale: ru })}</span>
                     {hasTime && (
                       <motion.div
@@ -198,7 +198,7 @@ export default function PlannerHeader({
                         }
                       }}
                       className={cn(
-                        "relative px-3 text-[11px] font-bold rounded-[10px] transition-all z-10 w-[42px]",
+                        "relative px-3 text-[12px] font-bold rounded-[10px] transition-all z-10 w-[44px]",
                         viewMode === mode
                           ? "text-[var(--ink)]"
                           : "text-[var(--muted)] hover:text-[var(--ink)]",

@@ -11,6 +11,7 @@ import {
 } from "framer-motion";
 import { cn } from "../lib/cn";
 import { useHaptic } from "../hooks/useHaptic";
+import { useKeyboardHeight } from "../hooks/useKeyboardHeight";
 import type { TaskRepeat } from "../types/task";
 
 const DURATION_PRESETS = [15, 30, 45, 60, 90, 120];
@@ -59,6 +60,7 @@ export default function TaskSheet({
   const formRef = useRef<HTMLFormElement>(null);
   const dragControls = useDragControls();
   const { impact, notification } = useHaptic();
+  const { keyboardHeight, isKeyboardVisible } = useKeyboardHeight();
 
   const adjustTextareaHeight = useCallback(() => {
     const el = inputRef.current;
@@ -136,8 +138,9 @@ export default function TaskSheet({
         onDragEnd={handleDragEnd}
         className="pointer-events-auto relative w-full bg-[var(--surface-glass)] backdrop-blur-2xl rounded-t-[36px] shadow-[var(--shadow-pop)] flex flex-col max-h-[92dvh] border-t border-[var(--border)]"
         style={{
-          paddingBottom:
-            "max(env(safe-area-inset-bottom), var(--tg-content-safe-bottom, 0px), 20px)",
+          paddingBottom: isKeyboardVisible
+            ? `${Math.max(keyboardHeight, 20)}px`
+            : "max(env(safe-area-inset-bottom), var(--tg-content-safe-bottom, 0px), 20px)",
         }}
       >
         <div

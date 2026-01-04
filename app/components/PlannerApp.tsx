@@ -78,15 +78,33 @@ export default function PlannerApp() {
     };
   }, []);
 
-  useEffect(() => {
-    if (totalCount > completedCount) {
-      setShowDayComplete(false);
-      if (dayCompleteTimeoutRef.current) {
-        window.clearTimeout(dayCompleteTimeoutRef.current);
-        dayCompleteTimeoutRef.current = null;
-      }
+  const resetDayComplete = () => {
+    setShowDayComplete(false);
+    if (dayCompleteTimeoutRef.current) {
+      window.clearTimeout(dayCompleteTimeoutRef.current);
+      dayCompleteTimeoutRef.current = null;
     }
-  }, [totalCount, completedCount, selectedDate]);
+  };
+
+  const handleSelectDate = (date: Date) => {
+    resetDayComplete();
+    setSelectedDate(date);
+  };
+
+  const handleGoToPreviousPeriod = () => {
+    resetDayComplete();
+    goToPreviousPeriod();
+  };
+
+  const handleGoToNextPeriod = () => {
+    resetDayComplete();
+    goToNextPeriod();
+  };
+
+  const handleGoToToday = () => {
+    resetDayComplete();
+    goToToday();
+  };
 
   const handleDelete = async (id: string) => {
     const deletedTask = await deleteTask(id);
@@ -129,6 +147,8 @@ export default function PlannerApp() {
       } else {
         fire(window.innerWidth / 2, window.innerHeight / 2, 'light');
       }
+    } else {
+      resetDayComplete();
     }
 
     toggleTask(id);
@@ -176,6 +196,7 @@ export default function PlannerApp() {
     repeatCount: number
   ) => {
     if (sheetMode === 'create') {
+      resetDayComplete();
       addTask(title, duration, repeat, repeatCount);
     } else if (editingTask) {
       updateTask(editingTask.id, { title, duration });
@@ -197,11 +218,11 @@ export default function PlannerApp() {
             minutes={minutes}
             completedCount={completedCount}
             totalCount={totalCount}
-            onSelectDate={setSelectedDate}
+            onSelectDate={handleSelectDate}
             onViewModeChange={setViewMode}
-            onPrev={goToPreviousPeriod}
-            onNext={goToNextPeriod}
-            onToday={goToToday}
+            onPrev={handleGoToPreviousPeriod}
+            onNext={handleGoToNextPeriod}
+            onToday={handleGoToToday}
           />
         </div>
 

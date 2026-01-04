@@ -31,7 +31,7 @@ export default function MonthGrid({
 
   return (
     <div className="p-1">
-      <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold uppercase tracking-[0.15em] text-[var(--muted)] mb-3 opacity-70">
+      <div className="grid grid-cols-7 gap-1 text-center text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--muted)] mb-3 opacity-70">
         {Array.from({ length: 7 }).map((_, i) => {
           const day = addDays(weekStart, i);
           return (
@@ -64,8 +64,8 @@ export default function MonthGrid({
                   : "text-[var(--ink)] hover:bg-[var(--surface-2)] font-medium",
                 isOutside && !isSelected && "text-[var(--muted)] opacity-30",
                 !isSelected &&
-                  isToday &&
-                  "text-[var(--accent)] ring-2 ring-inset ring-[var(--accent)]/30 bg-[var(--surface)]",
+                isToday &&
+                "text-[var(--accent)] ring-2 ring-inset ring-[var(--accent)]/30 bg-[var(--surface)]",
               )}
             >
               <span>{format(day, "d")}</span>

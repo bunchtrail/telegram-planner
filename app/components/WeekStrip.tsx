@@ -61,13 +61,13 @@ export default function WeekStrip({
                 ? "bg-[var(--accent)] text-[var(--accent-ink)] shadow-[var(--shadow-glow)] z-10 scale-100"
                 : "bg-transparent text-[var(--muted)] hover:bg-[var(--surface-2)] active:scale-95",
               !isSelected &&
-                isToday &&
-                "text-[var(--accent)] bg-[var(--surface)] ring-1 ring-inset ring-[var(--accent)]/40 font-medium",
+              isToday &&
+              "text-[var(--accent)] bg-[var(--surface)] ring-1 ring-inset ring-[var(--accent)]/40 font-medium",
             )}
           >
             <span
               className={cn(
-                "text-[9px] font-bold uppercase tracking-wider mb-0.5 transition-opacity",
+                "text-[11px] font-bold uppercase tracking-wider mb-0.5 transition-opacity",
                 isSelected ? "opacity-100" : "opacity-60",
               )}
             >
@@ -82,16 +82,20 @@ export default function WeekStrip({
               {format(day, "d")}
             </span>
 
-            {!isSelected && isToday && (
-              <div className="absolute bottom-1.5 h-1 w-1 rounded-full bg-[var(--accent)]" />
-            )}
+            {
+              !isSelected && isToday && (
+                <div className="absolute bottom-1.5 h-1 w-1 rounded-full bg-[var(--accent)]" />
+              )
+            }
 
-            {isSelected && isToday && (
-              <div className="absolute bottom-1 h-0.5 w-3 rounded-full bg-white/60" />
-            )}
+            {
+              isSelected && isToday && (
+                <div className="absolute bottom-1 h-0.5 w-3 rounded-full bg-white/60" />
+              )
+            }
           </button>
         );
       })}
-    </div>
+    </div >
   );
 }
