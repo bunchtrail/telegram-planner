@@ -205,10 +205,9 @@ const TaskItem = memo(function TaskItem({
       dragListener={false}
       dragControls={dragControls}
       layout="position"
-      initial={{ opacity: 0, scale: 0.9 }}
+      initial={{ opacity: 0 }}
       animate={{
         opacity: task.completed ? 0.8 : 1,
-        scale: 1,
         y: 0,
       }}
       exit={{ opacity: 0, scale: 0.95 }}
@@ -231,9 +230,7 @@ const TaskItem = memo(function TaskItem({
         '--task-color': task.color,
       } as CustomCSSProperties}
       as="li"
-      transformTemplate={({ y, scale }) => {
-        return `translateY(${y}) scale(${scale})`;
-      }}
+      transformTemplate={({ y }) => `translate3d(0px, ${y}, 0px)`}
     >
       <div
         className={cn('flex flex-col relative', isExpanded && 'bg-[var(--muted)]/5')}
