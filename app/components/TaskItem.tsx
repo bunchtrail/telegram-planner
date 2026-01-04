@@ -266,12 +266,12 @@ const TaskItem = memo(function TaskItem({
       exit={{ opacity: 0, scale: 0.95 }}
       transition={{ type: 'tween', duration: 0.18, ease: 'easeOut' }}
       className={cn(
-        'group relative mb-4 rounded-[28px] touch-pan-y transition-all duration-300',
+        'group relative mb-4 overflow-hidden rounded-[28px] bg-[var(--surface)] touch-pan-y transition-shadow duration-300',
         isActive
           ? 'z-20'
           : isExpanded
-            ? 'shadow-[var(--shadow-pop)] z-10 bg-[var(--surface)]'
-            : 'shadow-[var(--shadow-card)] bg-[var(--surface)]'
+            ? 'shadow-[var(--shadow-pop)] z-10'
+            : 'shadow-[var(--shadow-card)]'
       )}
       style={{
         transformOrigin: 'center',
