@@ -3,7 +3,13 @@
 import { useEffect, useMemo, useRef } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { Flame, Trophy, X } from "lucide-react";
-import { format, subDays, isSameDay, startOfDay, isWithinInterval } from "date-fns";
+import {
+  format,
+  subDays,
+  isSameDay,
+  startOfDay,
+  isWithinInterval,
+} from "date-fns";
 import { ru } from "date-fns/locale";
 import type { Task } from "../types/task";
 import { cn } from "../lib/cn";
@@ -95,7 +101,10 @@ export default function StatsModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
         className="absolute inset-0 bg-black/40 backdrop-blur-sm"
         onClick={onClose}
         aria-hidden
@@ -106,112 +115,120 @@ export default function StatsModal({
         aria-modal="true"
         aria-labelledby="stats-title"
         tabIndex={-1}
-        initial={{ scale: reduceMotion ? 1 : 0.9, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: reduceMotion ? 1 : 0.95, opacity: 0 }}
-        className="relative bg-[var(--surface)] w-full max-w-sm rounded-[32px] p-6 shadow-2xl overflow-hidden"
+        initial={{ scale: reduceMotion ? 1 : 0.95, opacity: 0, y: 10 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        exit={{ scale: reduceMotion ? 1 : 0.95, opacity: 0, y: 10 }}
+        transition={{ type: "spring", duration: 0.4, bounce: 0.3 }}
+        className="relative bg-[var(--surface)] w-full max-w-sm rounded-[32px] p-6 shadow-2xl overflow-hidden ring-1 ring-[var(--border)]"
       >
-        <div className="flex justify-between items-center">
-          <h2
-            id="stats-title"
-            className="text-xl font-bold font-[var(--font-display)]"
-          >
-            Статистика
-          </h2>
+        <div className="flex justify-between items-start mb-6">
+          <div>
+            <h2
+              id="stats-title"
+              className="text-2xl font-bold font-[var(--font-display)] text-[var(--ink)]"
+            >
+              Прогресс
+            </h2>
+            <p className="text-[13px] font-medium text-[var(--muted)] mt-1">
+              {stats.rangeLabel}
+            </p>
+          </div>
           <button
             onClick={onClose}
-            className="p-2 bg-[var(--surface-2)] rounded-full"
+            className="p-2 bg-[var(--surface-2)] rounded-full text-[var(--muted)] hover:text-[var(--ink)] transition-colors active:scale-95"
             aria-label="Закрыть статистику"
           >
             <X size={20} />
           </button>
         </div>
-        <p className="text-[11px] font-semibold text-[var(--muted)] mt-1">
-          Неделя: {stats.rangeLabel}
-        </p>
 
-        <div className="grid grid-cols-2 gap-3 mt-5 mb-5">
-          <div className="bg-orange-500/10 p-5 rounded-2xl flex flex-col items-center border border-orange-500/20">
-            <Flame className="text-orange-500 mb-2" size={32} fill="currentColor" />
-            <div className="text-3xl font-black text-[var(--ink)]">
+        <div className="grid grid-cols-2 gap-3 mb-6">
+          <div className="bg-gradient-to-br from-orange-500/10 to-orange-500/5 p-5 rounded-[24px] flex flex-col items-center border border-orange-500/10 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:scale-110 transition-transform duration-500">
+              <Flame size={48} />
+            </div>
+            <Flame
+              className="text-orange-500 mb-2 drop-shadow-sm relative z-10"
+              size={32}
+              fill="currentColor"
+            />
+            <div className="text-3xl font-black text-[var(--ink)] tabular-nums relative z-10">
               {streak}
             </div>
-            <div className="text-[10px] font-bold uppercase text-[var(--muted)]">
+            <div className="text-[10px] font-bold uppercase text-[var(--muted)] tracking-wider relative z-10">
               Серия дней
             </div>
           </div>
 
-          <div className="bg-blue-500/10 p-5 rounded-2xl flex flex-col items-center border border-blue-500/20">
-            <Trophy className="text-blue-500 mb-2" size={32} fill="currentColor" />
-            <div className="text-3xl font-black text-[var(--ink)]">
-              {rangeHours}ч
+          <div className="bg-gradient-to-br from-blue-500/10 to-blue-500/5 p-5 rounded-[24px] flex flex-col items-center border border-blue-500/10 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:scale-110 transition-transform duration-500">
+              <Trophy size={48} />
             </div>
-            <div className="text-[10px] font-bold uppercase text-[var(--muted)]">
-              Фокус (7 дней)
+            <Trophy
+              className="text-blue-500 mb-2 drop-shadow-sm relative z-10"
+              size={32}
+              fill="currentColor"
+            />
+            <div className="text-3xl font-black text-[var(--ink)] tabular-nums relative z-10">
+              {rangeHours}
+            </div>
+            <div className="text-[10px] font-bold uppercase text-[var(--muted)] tracking-wider relative z-10">
+              Часов фокуса
             </div>
           </div>
         </div>
 
-        <div className="bg-[var(--surface-2)] p-4 rounded-2xl">
-          <div className="text-xs font-bold text-[var(--muted)] mb-4 uppercase">
-            Завершено: {stats.rangeCompleted}
-            {stats.rangeTotal > 0 ? ` из ${stats.rangeTotal}` : ""}
+        <div className="bg-[var(--surface-2)]/50 p-5 rounded-[24px] border border-[var(--border)]">
+          <div className="flex justify-between items-center mb-6">
+            <div className="text-xs font-bold text-[var(--muted)] uppercase tracking-wider">
+              Выполнено
+            </div>
+            <div className="text-xs font-bold text-[var(--ink)] bg-[var(--surface)] px-2 py-1 rounded-lg border border-[var(--border)] shadow-sm">
+              {stats.rangeCompleted} / {stats.rangeTotal}
+            </div>
           </div>
-          <div className="flex items-end justify-between h-28 gap-2">
+
+          <div className="flex items-end justify-between h-32 gap-2">
             {stats.chartData.map((data, index) => (
-              <div key={`bar-${index}`} className="flex-1 flex flex-col items-center gap-1">
-                <span
-                  className={cn(
-                    "text-[10px] font-semibold text-[var(--ink)]",
-                    data.count === 0 && "opacity-30",
-                    data.isToday && "text-[var(--accent)]",
-                  )}
-                >
-                  {data.count > 0 ? data.count : "•"}
-                </span>
-                <div className="w-full bg-[var(--bg)] rounded-t-lg relative overflow-hidden flex items-end">
-                  {data.heightPercent === 0 && (
-                    <div className="w-full h-1 bg-[var(--muted)]/20 rounded-full" />
-                  )}
+              <div
+                key={`bar-${index}`}
+                className="flex-1 flex flex-col items-center gap-2 group"
+              >
+                <div className="w-full h-full flex items-end relative">
+                  <div className="absolute inset-x-1 bottom-0 top-0 bg-[var(--border)]/40 rounded-full" />
+
                   <motion.div
                     initial={{ height: 0 }}
                     animate={{ height: `${data.heightPercent}%` }}
                     transition={{
+                      type: "spring",
+                      stiffness: 150,
+                      damping: 18,
                       delay: reduceMotion ? 0 : index * 0.05,
-                      duration: reduceMotion ? 0 : 0.4,
                     }}
                     className={cn(
-                      "w-full rounded-t-lg min-h-[4px]",
+                      "w-full mx-1 rounded-full relative min-h-[6px] transition-colors duration-300",
                       data.isToday
-                        ? "bg-[var(--accent)] opacity-100"
-                        : "bg-[var(--accent)] opacity-70",
+                        ? "bg-[var(--accent)] shadow-[0_0_12px_-2px_var(--accent)]"
+                        : "bg-[var(--ink)]/80 opacity-60 group-hover:opacity-80",
+                      data.count === 0 && "bg-transparent",
                     )}
                   />
                 </div>
+
+                <span
+                  className={cn(
+                    "text-[10px] font-bold uppercase tracking-wide transition-colors",
+                    data.isToday
+                      ? "text-[var(--accent)]"
+                      : "text-[var(--muted)]",
+                  )}
+                >
+                  {data.weekday}
+                </span>
               </div>
             ))}
           </div>
-          <div className="flex justify-between mt-2 text-[10px] font-bold text-[var(--muted)] opacity-70 uppercase">
-            {stats.chartData.map((data, idx) => (
-              <span
-                key={idx}
-                className={cn(
-                  "w-full text-center flex flex-col items-center",
-                  data.isToday && "text-[var(--accent)] opacity-100",
-                )}
-              >
-                <span>{data.weekday}</span>
-                <span className="text-[9px] opacity-60">{data.dayLabel}</span>
-              </span>
-            ))}
-          </div>
-          <ul className="sr-only">
-            {stats.chartData.map((data) => (
-              <li key={data.date.toISOString()}>
-                {format(data.date, "d MMM", { locale: ru })}: {data.count}
-              </li>
-            ))}
-          </ul>
         </div>
       </motion.div>
     </div>
