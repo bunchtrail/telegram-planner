@@ -8,7 +8,7 @@ import {
   type MouseEvent,
 } from 'react';
 import { addDays, format } from 'date-fns';
-import { Reorder, motion, useDragControls } from 'framer-motion';
+import { Reorder, motion, useDragControls, AnimatePresence } from 'framer-motion';
 import {
   Calendar,
   Check,
@@ -21,6 +21,7 @@ import {
   Sunrise,
   Trash2,
   X,
+  CornerDownLeft,
 } from 'lucide-react';
 import type { Task } from '../types/task';
 import { cn } from '../lib/cn';
@@ -49,13 +50,14 @@ const TaskItem = memo(function TaskItem({
   onToggleActive,
   updateTask,
 }: TaskItemProps) {
-  const { impact, selection } = useHaptic();
+  const { impact, selection, notification } = useHaptic();
   const dragControls = useDragControls();
   const [isExpanded, setIsExpanded] = useState(false);
   const [pendingDate, setPendingDate] = useState<string | null>(null);
   const [newStep, setNewStep] = useState('');
   const detailsRef = useRef<HTMLDivElement>(null);
-  const [detailsHeight, setDetailsHeight] = useState(0);
+  const [detailsHeight, setDetailsHeight] = useState<number | 'auto'>('auto');
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const toggleExpand = () => {
     selection();
@@ -70,6 +72,12 @@ const TaskItem = memo(function TaskItem({
 
   const handleKeyDown = (event: ReactKeyboardEvent) => {
     if (event.key === 'Enter' || event.key === ' ') {
+      if (
+        document.activeElement?.tagName === 'INPUT' ||
+        document.activeElement?.tagName === 'TEXTAREA'
+      ) {
+        return;
+      }
       event.preventDefault();
       toggleExpand();
     }
@@ -109,6 +117,7 @@ const TaskItem = memo(function TaskItem({
   const completedSteps = task.checklist.filter((item) => item.done).length;
   const totalSteps = task.checklist.length;
   const progress = totalSteps > 0 ? (completedSteps / totalSteps) * 100 : 0;
+  const isAllStepsDone = totalSteps > 0 && completedSteps === totalSteps;
 
   const toggleSubtask = (idx: number) => {
     impact('light');
@@ -118,38 +127,43 @@ const TaskItem = memo(function TaskItem({
     updateTask(task.id, { checklist: nextChecklist });
   };
 
+  const deleteSubtask = (idx: number) => {
+    notification('warning');
+    const nextChecklist = task.checklist.filter((_, index) => index !== idx);
+    updateTask(task.id, { checklist: nextChecklist });
+  };
+
   const addSubtask = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const trimmed = newStep.trim();
     if (!trimmed) return;
-    impact('light');
+    impact('medium');
     updateTask(task.id, {
       checklist: [...task.checklist, { text: trimmed, done: false }],
     });
     setNewStep('');
+
+    requestAnimationFrame(() => {
+      inputRef.current?.focus();
+    });
   };
 
   useLayoutEffect(() => {
     if (!isExpanded) return;
     const el = detailsRef.current;
     if (!el) return;
-    const update = () => {
-      setDetailsHeight(el.scrollHeight);
-    };
-    update();
-    if (typeof ResizeObserver !== 'undefined') {
-      const observer = new ResizeObserver(update);
-      observer.observe(el);
-      return () => observer.disconnect();
-    }
+
+    const updateHeight = () => setDetailsHeight(el.scrollHeight);
+    updateHeight();
+
+    const observer = new ResizeObserver(updateHeight);
+    observer.observe(el);
+    return () => observer.disconnect();
   }, [
     isExpanded,
     pendingDate,
-    task.completed,
-    task.checklist,
-    task.isPinned,
+    task.checklist.length,
     isActive,
-    elapsedMs,
   ]);
 
   return (
@@ -259,7 +273,7 @@ const TaskItem = memo(function TaskItem({
                 {task.isPinned && (
                   <Pin
                     size={12}
-                    className="text-[var(--accent)] fill-current rotate-45"
+                    className="text-[var(--accent)] fill-current rotate-45 flex-shrink-0"
                   />
                 )}
               </div>
@@ -293,6 +307,19 @@ const TaskItem = memo(function TaskItem({
                     )}
                     <Clock size={10} strokeWidth={2.5} />
                     {isActive ? 'В работе' : 'Факт'} {elapsedLabel}
+                  </div>
+                )}
+                {totalSteps > 0 && !isExpanded && (
+                  <div className="inline-flex items-center gap-1 text-[11px] font-bold text-[var(--muted)] opacity-80">
+                    <div
+                      className={cn(
+                        'w-1.5 h-1.5 rounded-full',
+                        isAllStepsDone ? 'bg-[var(--accent)]' : 'bg-[var(--muted)]'
+                      )}
+                    />
+                    <span>
+                      {completedSteps}/{totalSteps}
+                    </span>
                   </div>
                 )}
                 {isExpanded && (
@@ -422,78 +449,118 @@ const TaskItem = memo(function TaskItem({
                       </>
                     )}
                   </div>
-
                 </div>
 
-                <div className="bg-[var(--surface-2)]/50 rounded-xl p-3">
-                  <div className="flex justify-between text-[10px] font-bold text-[var(--muted)] uppercase mb-2">
-                    <span>Подзадачи</span>
-                    <span>
-                      {completedSteps}/{totalSteps}
-                    </span>
+                <div className="bg-[var(--surface-2)]/30 rounded-[20px] p-3 border border-[var(--border)]/50">
+                  <div className="flex items-center justify-between mb-3 pl-1 pr-1">
+                    <div className="text-[11px] font-bold text-[var(--muted)] uppercase tracking-wider flex items-center gap-2">
+                      <span>Подзадачи</span>
+                      <span className="bg-[var(--surface-2)] px-1.5 py-0.5 rounded text-[var(--ink)] tabular-nums">
+                        {completedSteps}/{totalSteps}
+                      </span>
+                    </div>
                   </div>
 
                   {totalSteps > 0 && (
-                    <div className="h-1 w-full bg-[var(--border)] rounded-full mb-3 overflow-hidden">
-                      <div
-                        className="h-full bg-[var(--accent)] transition-all duration-300"
-                        style={{ width: `${progress}%` }}
+                    <div className="h-1.5 w-full bg-[var(--surface-2)] rounded-full mb-4 overflow-hidden">
+                      <motion.div
+                        className={cn(
+                          'h-full transition-colors duration-500',
+                          isAllStepsDone ? 'bg-[var(--accent)]' : 'bg-[var(--ink)]'
+                        )}
+                        initial={{ width: 0 }}
+                        animate={{ width: `${progress}%` }}
+                        transition={{ duration: 0.5, ease: 'circOut' }}
                       />
                     </div>
                   )}
 
-                  <div className="space-y-2">
-                    {task.checklist.map((item, idx) => (
-                      <button
-                        key={`${task.id}-${idx}`}
-                        type="button"
-                        onClick={() => toggleSubtask(idx)}
-                        className="flex items-center gap-2 w-full text-left group"
-                      >
-                        <div
-                          className={cn(
-                            'w-4 h-4 rounded border flex items-center justify-center transition-colors',
-                            item.done
-                              ? 'bg-[var(--ink)] border-[var(--ink)]'
-                              : 'border-[var(--muted)]'
-                          )}
+                  <ul className="space-y-1">
+                    <AnimatePresence initial={false}>
+                      {task.checklist.map((item, idx) => (
+                        <motion.li
+                          key={`${task.id}-subtask-${idx}`}
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          exit={{ opacity: 0, height: 0, overflow: 'hidden' }}
+                          transition={{ duration: 0.2 }}
                         >
-                          {item.done && (
-                            <Check
-                              size={10}
-                              className="text-[var(--bg)]"
-                              strokeWidth={3}
-                            />
-                          )}
-                        </div>
-                        <span
-                          className={cn(
-                            'text-sm transition-all',
-                            item.done && 'line-through opacity-50'
-                          )}
-                        >
-                          {item.text}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
+                          <div className="group flex items-center gap-3 w-full bg-[var(--surface)] hover:bg-[var(--surface-2)] rounded-xl px-2.5 py-2 transition-colors border border-transparent hover:border-[var(--border)]/50 shadow-sm">
+                            <button
+                              type="button"
+                              onClick={() => toggleSubtask(idx)}
+                              className={cn(
+                                'flex-shrink-0 w-5 h-5 rounded-md border-[1.5px] flex items-center justify-center transition-colors duration-200',
+                                item.done
+                                  ? 'bg-[var(--ink)] border-[var(--ink)]'
+                                  : 'border-[var(--muted)]/40 hover:border-[var(--accent)]'
+                              )}
+                            >
+                              {item.done && (
+                                <motion.div
+                                  initial={{ scale: 0 }}
+                                  animate={{ scale: 1 }}
+                                  transition={{
+                                    type: 'spring',
+                                    stiffness: 400,
+                                    damping: 25,
+                                  }}
+                                >
+                                  <Check
+                                    size={12}
+                                    className="text-[var(--bg)]"
+                                    strokeWidth={3.5}
+                                  />
+                                </motion.div>
+                              )}
+                            </button>
 
-                  <form onSubmit={addSubtask} className="mt-3 flex gap-2">
-                    <input
-                      type="text"
-                      value={newStep}
-                      onChange={(event) => setNewStep(event.target.value)}
-                      placeholder="Добавить шаг..."
-                      className="flex-1 bg-transparent text-sm border-b border-[var(--border)] focus:border-[var(--accent)] outline-none py-1 placeholder:text-[var(--muted)]/50"
-                    />
-                    <button
-                      type="submit"
-                      disabled={!newStep.trim()}
-                      className="text-[var(--accent)] disabled:opacity-30"
-                      aria-label="Добавить шаг"
-                    >
-                      <Plus size={18} />
-                    </button>
+                            <span
+                              className={cn(
+                                'text-[14px] flex-1 leading-snug break-words transition-all duration-300 select-none cursor-pointer font-medium',
+                                item.done
+                                  ? 'text-[var(--muted)] line-through decoration-[var(--muted)] decoration-2'
+                                  : 'text-[var(--ink)]'
+                              )}
+                              onClick={() => toggleSubtask(idx)}
+                            >
+                              {item.text}
+                            </span>
+
+                            <button
+                              type="button"
+                              onClick={() => deleteSubtask(idx)}
+                              className="w-6 h-6 flex items-center justify-center rounded-full text-[var(--muted)]/40 hover:text-[var(--danger)] hover:bg-[var(--danger)]/10 transition-all active:scale-90 opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
+                            >
+                              <X size={14} />
+                            </button>
+                          </div>
+                        </motion.li>
+                      ))}
+                    </AnimatePresence>
+                  </ul>
+
+                  <form onSubmit={addSubtask} className="mt-2 relative group">
+                    <div className="flex items-center gap-3 w-full bg-transparent rounded-xl px-2.5 py-1.5 border border-dashed border-[var(--border)] hover:border-[var(--accent)] hover:bg-[var(--surface)] transition-all focus-within:border-[var(--accent)] focus-within:bg-[var(--surface)] focus-within:shadow-sm">
+                      <div className="flex-shrink-0 w-5 h-5 flex items-center justify-center text-[var(--muted)]">
+                        <Plus size={16} />
+                      </div>
+                      <input
+                        ref={inputRef}
+                        type="text"
+                        value={newStep}
+                        onChange={(event) => setNewStep(event.target.value)}
+                        placeholder="Добавить шаг..."
+                        className="flex-1 bg-transparent text-[14px] outline-none placeholder:text-[var(--muted)]/60 text-[var(--ink)] min-w-0"
+                      />
+                      <button
+                        type="submit"
+                        disabled={!newStep.trim()}
+                        className="w-6 h-6 flex items-center justify-center rounded-md bg-[var(--ink)] text-[var(--bg)] opacity-0 scale-75 transition-all disabled:opacity-0 group-focus-within:opacity-100 group-focus-within:scale-100 disabled:group-focus-within:opacity-30 disabled:group-focus-within:scale-90"
+                      >
+                        <CornerDownLeft size={12} strokeWidth={3} />
+                      </button>
+                    </div>
                   </form>
                 </div>
 
