@@ -264,6 +264,50 @@ export default function TaskSheet({
               </div>
             </div>
 
+            <div className="mb-2">
+              <div className="text-xs font-bold text-[var(--muted)] uppercase tracking-widest mb-3">
+                Категория
+              </div>
+              <div className="flex gap-4 overflow-x-auto no-scrollbar -mx-6 px-6 py-4 touch-pan-x items-center">
+                {TASK_COLOR_OPTIONS.map((option) => {
+                  const isSelected = color === option;
+                  return (
+                    <motion.button
+                      key={option}
+                      type="button"
+                      onClick={() => {
+                        impact("light");
+                        setColor(option);
+                      }}
+                      className={cn(
+                        "relative w-11 h-11 rounded-full shadow-[var(--shadow-soft)] flex items-center justify-center transition-all",
+                        isSelected
+                          ? "ring-2 ring-offset-2 ring-[var(--surface)] ring-[var(--ink)]/20"
+                          : "hover:scale-105",
+                      )}
+                      style={{ backgroundColor: option }}
+                      aria-pressed={isSelected}
+                      aria-label="Выбрать категорию"
+                      animate={{
+                        scale: isSelected ? 1.15 : 1,
+                      }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      {isSelected && (
+                        <motion.div
+                          initial={{ scale: 0, opacity: 0 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          className="text-white drop-shadow-md"
+                        >
+                          <Check size={18} strokeWidth={4} />
+                        </motion.div>
+                      )}
+                    </motion.button>
+                  );
+                })}
+              </div>
+            </div>
+
             <div className="rounded-[24px] bg-[var(--surface-2)] p-2">
               <button
                 type="button"
@@ -391,33 +435,6 @@ export default function TaskSheet({
                   </motion.div>
                 )}
               </AnimatePresence>
-            </div>
-
-            <div className="mb-2">
-              <div className="text-xs font-bold text-[var(--muted)] uppercase tracking-widest mb-3">
-                Категория
-              </div>
-              <div className="flex gap-4 overflow-x-auto no-scrollbar py-1">
-                {TASK_COLOR_OPTIONS.map((option) => (
-                  <button
-                    key={option}
-                    type="button"
-                    onClick={() => {
-                      impact("light");
-                      setColor(option);
-                    }}
-                    className={cn(
-                      "w-10 h-10 rounded-full border-2 transition-all active:scale-90",
-                      color === option
-                        ? "border-[var(--ink)] scale-110"
-                        : "border-transparent",
-                    )}
-                    style={{ backgroundColor: option }}
-                    aria-pressed={color === option}
-                    aria-label="Выбрать категорию"
-                  />
-                ))}
-              </div>
             </div>
           </div>
         </form>

@@ -3,13 +3,19 @@ import {
   useLayoutEffect,
   useRef,
   useState,
+  type CSSProperties,
   type FormEvent,
   type KeyboardEvent as ReactKeyboardEvent,
   type MouseEvent,
   type PointerEvent as ReactPointerEvent,
 } from 'react';
 import { addDays, format } from 'date-fns';
-import { Reorder, motion, useDragControls, AnimatePresence } from 'framer-motion';
+import {
+  Reorder,
+  motion,
+  useDragControls,
+  AnimatePresence,
+} from 'framer-motion';
 import {
   Calendar,
   Check,
@@ -39,6 +45,10 @@ type TaskItemProps = {
   onToggleActive: (id: string) => void;
   updateTask: (id: string, updates: Partial<Task>) => void;
 };
+
+interface CustomCSSProperties extends CSSProperties {
+  '--task-color'?: string;
+}
 
 const TaskItem = memo(function TaskItem({
   task,
@@ -186,12 +196,7 @@ const TaskItem = memo(function TaskItem({
     const observer = new ResizeObserver(updateHeight);
     observer.observe(el);
     return () => observer.disconnect();
-  }, [
-    isExpanded,
-    pendingDate,
-    task.checklist.length,
-    isActive,
-  ]);
+  }, [isExpanded, pendingDate, task.checklist.length, isActive]);
 
   return (
     <Reorder.Item
@@ -205,14 +210,17 @@ const TaskItem = memo(function TaskItem({
       exit={{ opacity: 0, scale: 0.95 }}
       transition={{ type: 'tween', duration: 0.18, ease: 'easeOut' }}
       className={cn(
-        'relative mb-3 overflow-hidden rounded-[24px] bg-[var(--surface)] shadow-[var(--shadow-card)] border border-l-[5px] transform-gpu will-change-transform transition-colors duration-200',
+        'relative mb-3 overflow-hidden rounded-[24px] bg-[var(--surface)] transition-all duration-300 border border-transparent',
         isActive
-          ? 'shadow-[var(--shadow-glow)] border-[var(--accent)]/50 bg-[var(--surface)] z-10'
+          ? 'shadow-[0_8px_24px_-6px_var(--task-color)] ring-1 ring-[var(--task-color)] z-10'
           : isExpanded
-            ? 'ring-2 ring-[var(--surface-2)] border-transparent shadow-none z-10'
-            : 'border-transparent hover:border-[var(--border)]',
+            ? 'shadow-[0_4px_12px_-2px_rgba(0,0,0,0.08)] ring-1 ring-[var(--border)] z-10'
+            : 'shadow-[var(--shadow-card)] hover:shadow-md'
       )}
-      style={{ transformOrigin: 'center', borderLeftColor: task.color }}
+      style={{
+        transformOrigin: 'center',
+        '--task-color': task.color,
+      } as CustomCSSProperties}
       as="li"
     >
       <motion.div
@@ -240,16 +248,16 @@ const TaskItem = memo(function TaskItem({
                 ? 'Отметить как невыполненную'
                 : 'Отметить как выполненную'
             }
-            className={cn(
-              'relative flex h-[28px] w-[28px] shrink-0 items-center justify-center rounded-full border-[2px] transition-colors duration-300',
-              task.completed
-                ? 'border-[var(--accent)] bg-[var(--accent)]'
-                : 'border-[var(--muted)]/30 hover:border-[var(--accent)] bg-[var(--surface-2)]'
-            )}
+            className="relative flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-full border-[2px] transition-all duration-300"
+            style={{
+              borderColor: task.color,
+              backgroundColor: task.completed ? task.color : 'transparent',
+              opacity: task.completed ? 1 : 0.7,
+            }}
           >
             <motion.svg
               viewBox="0 0 24 24"
-              className="absolute inset-0 h-full w-full p-1 text-[var(--accent-ink)]"
+              className="absolute inset-0 h-full w-full p-0.5 text-[var(--surface)]"
               initial={false}
               animate={task.completed ? 'checked' : 'unchecked'}
             >
@@ -322,7 +330,7 @@ const TaskItem = memo(function TaskItem({
                     className={cn(
                       'inline-flex items-center gap-1.5 rounded-md px-1.5 py-0.5 text-[10px] font-bold border uppercase tracking-wide shadow-sm',
                       isActive
-                        ? 'bg-[var(--accent)] text-[var(--accent-ink)] border-[var(--accent)]'
+                        ? 'bg-[var(--task-color)] text-[var(--bg)] border-[var(--task-color)]'
                         : 'bg-[var(--surface-2)] text-[var(--ink)] border-[var(--border)]'
                     )}
                   >
@@ -339,10 +347,12 @@ const TaskItem = memo(function TaskItem({
                 {totalSteps > 0 && !isExpanded && (
                   <div className="inline-flex items-center gap-1 text-[11px] font-bold text-[var(--muted)] opacity-80">
                     <div
-                      className={cn(
-                        'w-1.5 h-1.5 rounded-full',
-                        isAllStepsDone ? 'bg-[var(--accent)]' : 'bg-[var(--muted)]'
-                      )}
+                      className="w-1.5 h-1.5 rounded-full"
+                      style={{
+                        backgroundColor: isAllStepsDone
+                          ? task.color
+                          : 'var(--muted)',
+                      }}
                     />
                     <span>
                       {completedSteps}/{totalSteps}
@@ -353,7 +363,7 @@ const TaskItem = memo(function TaskItem({
                   <motion.span
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="text-[11px] font-semibold text-[var(--accent)] flex items-center ml-auto mr-2"
+                    className="text-[11px] font-semibold text-[var(--muted)] flex items-center ml-auto mr-2"
                   >
                     Опции
                     <ChevronDown size={10} className="rotate-180 ml-0.5" />
@@ -405,7 +415,7 @@ const TaskItem = memo(function TaskItem({
                   className={cn(
                     'w-full h-[52px] rounded-[18px] flex items-center justify-center gap-2 text-[13px] font-bold transition-[transform,colors] duration-200 active:scale-[0.98]',
                     isActive
-                      ? 'bg-[var(--accent)] text-[var(--accent-ink)] shadow-[var(--shadow-soft)]'
+                      ? 'bg-[var(--task-color)] text-[var(--bg)] shadow-md'
                       : 'bg-[var(--surface-2)] text-[var(--ink)] hover:bg-[var(--border)]'
                   )}
                 >
@@ -491,10 +501,12 @@ const TaskItem = memo(function TaskItem({
                   {totalSteps > 0 && (
                     <div className="h-1.5 w-full bg-[var(--surface-2)] rounded-full mb-4 overflow-hidden">
                       <motion.div
-                        className={cn(
-                          'h-full transition-colors duration-500',
-                          isAllStepsDone ? 'bg-[var(--accent)]' : 'bg-[var(--ink)]'
-                        )}
+                        className="h-full transition-colors duration-500"
+                        style={{
+                          backgroundColor: isAllStepsDone
+                            ? task.color
+                            : 'var(--ink)',
+                        }}
                         initial={{ width: 0 }}
                         animate={{ width: `${progress}%` }}
                         transition={{ duration: 0.5, ease: 'circOut' }}
