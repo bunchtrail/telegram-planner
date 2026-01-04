@@ -54,7 +54,7 @@ export default function PlannerApp() {
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const { impact, notification } = useHaptic();
   const { fire } = useReward();
-  const [showDayComplete, setShowDayComplete] = useState(false);
+  const [dayCompleteKey, setDayCompleteKey] = useState<string | null>(null);
   const dayCompleteTimeoutRef = useRef<number | null>(null);
   const [showStats, setShowStats] = useState(false);
   const [showFocus, setShowFocus] = useState(false);
@@ -64,12 +64,22 @@ export default function PlannerApp() {
     [tasks, activeTaskId]
   );
 
+  const selectedDateKey = useMemo(
+    () => format(selectedDate, 'yyyy-MM-dd'),
+    [selectedDate]
+  );
+
   const { completedCount, totalCount } = useMemo(() => {
     return {
       completedCount: currentTasks.filter((task) => task.completed).length,
       totalCount: currentTasks.length,
     };
   }, [currentTasks]);
+
+  const showDayComplete =
+    dayCompleteKey === selectedDateKey &&
+    totalCount > 0 &&
+    completedCount === totalCount;
 
   useEffect(() => {
     if (prevIsAddOpenRef.current && !isAddOpen) {
@@ -90,16 +100,6 @@ export default function PlannerApp() {
       }
     };
   }, []);
-
-  useEffect(() => {
-    if (totalCount > completedCount) {
-      setShowDayComplete(false);
-      if (dayCompleteTimeoutRef.current) {
-        window.clearTimeout(dayCompleteTimeoutRef.current);
-        dayCompleteTimeoutRef.current = null;
-      }
-    }
-  }, [totalCount, completedCount, selectedDate]);
 
   const handleDelete = async (id: string) => {
     const deletedTask = await deleteTask(id);
@@ -129,12 +129,12 @@ export default function PlannerApp() {
       if (isLastOne && totalCount > 1) {
         fire(window.innerWidth / 2, window.innerHeight, 'climax');
         notification('success');
-        setShowDayComplete(true);
+        setDayCompleteKey(selectedDateKey);
         if (dayCompleteTimeoutRef.current) {
           window.clearTimeout(dayCompleteTimeoutRef.current);
         }
         dayCompleteTimeoutRef.current = window.setTimeout(() => {
-          setShowDayComplete(false);
+          setDayCompleteKey(null);
           dayCompleteTimeoutRef.current = null;
         }, 3000);
       } else if (coords) {
