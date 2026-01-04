@@ -274,6 +274,7 @@ export default function PlannerApp() {
             <StatsModal
               streak={streak}
               tasks={tasks}
+              selectedDate={selectedDate}
               onClose={() => setShowStats(false)}
             />
           )}
