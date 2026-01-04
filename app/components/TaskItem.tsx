@@ -6,6 +6,7 @@ import {
   type FormEvent,
   type KeyboardEvent as ReactKeyboardEvent,
   type MouseEvent,
+  type PointerEvent as ReactPointerEvent,
 } from 'react';
 import { addDays, format } from 'date-fns';
 import { Reorder, motion, useDragControls, AnimatePresence } from 'framer-motion';
@@ -58,6 +59,21 @@ const TaskItem = memo(function TaskItem({
   const detailsRef = useRef<HTMLDivElement>(null);
   const [detailsHeight, setDetailsHeight] = useState<number | 'auto'>('auto');
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const focusSubtaskInput = (preventScroll = false) => {
+    const input = inputRef.current;
+    if (!input) return;
+    if (preventScroll) {
+      try {
+        input.focus({ preventScroll: true });
+        return;
+      } catch {
+        input.focus();
+        return;
+      }
+    }
+    input.focus();
+  };
 
   const toggleExpand = () => {
     selection();
@@ -144,8 +160,19 @@ const TaskItem = memo(function TaskItem({
     setNewStep('');
 
     requestAnimationFrame(() => {
-      inputRef.current?.focus();
+      focusSubtaskInput(true);
     });
+  };
+
+  const handleSubtaskPointerDown = (
+    event: ReactPointerEvent<HTMLInputElement>
+  ) => {
+    event.stopPropagation();
+    if (event.pointerType !== 'touch' && event.pointerType !== 'pen') {
+      return;
+    }
+    event.preventDefault();
+    focusSubtaskInput(true);
   };
 
   useLayoutEffect(() => {
@@ -550,6 +577,7 @@ const TaskItem = memo(function TaskItem({
                         type="text"
                         value={newStep}
                         onChange={(event) => setNewStep(event.target.value)}
+                        onPointerDown={handleSubtaskPointerDown}
                         placeholder="Добавить шаг..."
                         className="flex-1 bg-transparent text-[14px] outline-none placeholder:text-[var(--muted)]/60 text-[var(--ink)] min-w-0"
                       />
