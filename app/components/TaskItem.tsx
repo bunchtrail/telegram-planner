@@ -19,6 +19,7 @@ import {
   useMotionTemplate,
   useMotionValue,
   animate,
+  useReducedMotion,
 } from 'framer-motion';
 import {
   Calendar,
@@ -39,6 +40,7 @@ import {
 import type { Task } from '../types/task';
 import { cn } from '../lib/cn';
 import { useHaptic } from '../hooks/useHaptic';
+import { isIOSDevice } from '../lib/platform';
 
 type TaskItemProps = {
   task: Task;
@@ -47,9 +49,13 @@ type TaskItemProps = {
   onEdit: (task: Task) => void;
   onMove: (id: string, nextDateKey: string) => void;
   isActive: boolean;
-  elapsedMs: number;
   onToggleActive: (id: string) => void;
   updateTask: (id: string, updates: Partial<Task>) => void;
+  isReorderMode?: boolean;
+  enableMotion?: boolean;
+  containerStyle?: CSSProperties;
+  containerRef?: (node: HTMLLIElement | null) => void;
+  containerDataIndex?: number;
 };
 
 interface CustomCSSProperties extends CSSProperties {
@@ -105,9 +111,13 @@ const TaskItem = memo(function TaskItem({
   onEdit,
   onMove,
   isActive,
-  elapsedMs,
   onToggleActive,
   updateTask,
+  isReorderMode = false,
+  enableMotion = true,
+  containerStyle,
+  containerRef,
+  containerDataIndex,
 }: TaskItemProps) {
   const { impact, selection, notification } = useHaptic();
   const dragControls = useDragControls();
@@ -117,6 +127,11 @@ const TaskItem = memo(function TaskItem({
   const detailsRef = useRef<HTMLDivElement>(null);
   const [detailsHeight, setDetailsHeight] = useState<number | 'auto'>('auto');
   const inputRef = useRef<HTMLInputElement>(null);
+  const prefersReducedMotion = useReducedMotion();
+  const isIOS = isIOSDevice();
+  const reduceEffects = prefersReducedMotion || isIOS;
+  const [tickNow, setTickNow] = useState(() => Date.now());
+  const shouldAnimate = enableMotion && !reduceEffects;
 
   const focusSubtaskInput = (preventScroll = false) => {
     const input = inputRef.current;
@@ -187,6 +202,19 @@ const TaskItem = memo(function TaskItem({
     return `${minutes}:${String(seconds).padStart(2, '0')}`;
   };
 
+  useEffect(() => {
+    if (!isActive || !task.activeStartedAt) return;
+    const interval = window.setInterval(() => {
+      setTickNow(Date.now());
+    }, 1000);
+    return () => window.clearInterval(interval);
+  }, [isActive, task.activeStartedAt]);
+
+  const elapsedMs =
+    isActive && task.activeStartedAt
+      ? (task.elapsedMs ?? 0) +
+        Math.max(0, tickNow - task.activeStartedAt.getTime())
+      : task.elapsedMs ?? 0;
   const hasElapsed = elapsedMs > 0;
   const elapsedLabel = formatElapsed(elapsedMs);
   const completedSteps = task.checklist.filter((item) => item.done).length;
@@ -251,51 +279,42 @@ const TaskItem = memo(function TaskItem({
     return () => observer.disconnect();
   }, [isExpanded, pendingDate, task.checklist.length, isActive]);
 
-  return (
-    <Reorder.Item
-      value={task}
-      id={task.clientId}
-      dragListener={false}
-      dragControls={dragControls}
-      layout="position"
-      initial={false}
-      animate={{
-        opacity: task.completed ? 0.8 : 1,
-        y: 0,
-      }}
-      exit={{ opacity: 0, scale: 0.95 }}
-      transition={{ type: 'tween', duration: 0.18, ease: 'easeOut' }}
-      className={cn(
-        'group relative mb-4 overflow-hidden rounded-[28px] bg-[var(--surface)] touch-pan-y transition-shadow duration-300',
-        isActive
-          ? 'z-20'
-          : isExpanded
-            ? 'shadow-[var(--shadow-pop)] z-10'
-            : 'shadow-[var(--shadow-card)]'
-      )}
-      style={{
-        transformOrigin: 'center',
-        '--task-color': task.color,
-      } as CustomCSSProperties}
-      as="li"
-      transformTemplate={undefined}
-    >
+  const itemClassName = cn(
+    'group relative mb-4 overflow-hidden rounded-[28px] bg-[var(--surface)] touch-pan-y transition-shadow duration-300',
+    isActive
+      ? 'z-20'
+      : isExpanded
+        ? 'shadow-[var(--shadow-pop)] z-10'
+        : 'shadow-[var(--shadow-card)]'
+  );
+  const itemStyle = {
+    transformOrigin: 'center',
+    '--task-color': task.color,
+    ...containerStyle,
+  } as CustomCSSProperties;
+
+  const content = (
+    <>
       {isActive && !isExpanded && (
         <>
-          <motion.div
-            animate={{ opacity: [0.3, 0.5, 0.3], scale: [0.98, 1.01, 0.98] }}
-            transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-            className="absolute inset-0 rounded-[28px] bg-[var(--task-color)] blur-xl opacity-40 -z-10"
-          />
+          {!reduceEffects && (
+            <motion.div
+              animate={{ opacity: [0.3, 0.5, 0.3], scale: [0.98, 1.01, 0.98] }}
+              transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+              className="absolute inset-0 rounded-[28px] bg-[var(--task-color)] blur-xl opacity-40 -z-10"
+            />
+          )}
 
-          <ActiveBorder color={task.color} />
+          {!reduceEffects && <ActiveBorder color={task.color} />}
 
           <div className="absolute inset-0 rounded-[28px] overflow-hidden bg-[var(--surface)] z-0">
             <motion.div
               className="absolute inset-0 bg-[var(--task-color)] opacity-[0.08]"
-              initial={{ width: 0 }}
+              initial={reduceEffects ? false : { width: 0 }}
               animate={{ width: `${timeProgress}%` }}
-              transition={{ duration: 1, ease: 'linear' }}
+              transition={
+                reduceEffects ? { duration: 0 } : { duration: 1, ease: 'linear' }
+              }
             />
           </div>
         </>
@@ -395,10 +414,16 @@ const TaskItem = memo(function TaskItem({
             {!task.completed && (
               <div className="flex items-center gap-3 flex-wrap mt-1 min-h-[20px]">
                 {isActive ? (
-                  <div className="inline-flex items-center text-[var(--task-color)] font-bold tabular-nums animate-in fade-in duration-300">
-                    <ActiveWave />
-                    <span className="text-[14px] ml-1">{elapsedLabel}</span>
-                  </div>
+                  reduceEffects ? (
+                    <div className="inline-flex items-center text-[var(--task-color)] font-bold tabular-nums">
+                      <span className="text-[14px]">{elapsedLabel}</span>
+                    </div>
+                  ) : (
+                    <div className="inline-flex items-center text-[var(--task-color)] font-bold tabular-nums animate-in fade-in duration-300">
+                      <ActiveWave />
+                      <span className="text-[14px] ml-1">{elapsedLabel}</span>
+                    </div>
+                  )
                 ) : (
                   <div className="flex items-center gap-3 flex-wrap opacity-70">
                     <div className="inline-flex items-center gap-1 text-[11px] font-bold text-[var(--muted)] opacity-80 uppercase tracking-wide">
@@ -441,8 +466,8 @@ const TaskItem = memo(function TaskItem({
                   </motion.span>
                 )}
               </div>
-            )}
-          </div>
+                )}
+              </div>
 
           <div className="flex items-center gap-2">
             {!isExpanded && !task.completed && (
@@ -468,19 +493,21 @@ const TaskItem = memo(function TaskItem({
               </button>
             )}
 
-            <button
-              type="button"
-              aria-label="Перетащить"
-              className="h-8 w-8 flex items-center justify-center text-[var(--muted)] opacity-20 group-hover:opacity-50 transition-opacity cursor-grab active:cursor-grabbing touch-none -mr-1"
-              onPointerDown={(event) => {
-                event.preventDefault();
-                event.stopPropagation();
-                impact('light');
-                dragControls.start(event);
-              }}
-            >
-              <GripVertical size={20} />
-            </button>
+            {isReorderMode && (
+              <button
+                type="button"
+                aria-label="Перетащить"
+                className="h-8 w-8 flex items-center justify-center text-[var(--muted)] opacity-20 group-hover:opacity-50 transition-opacity cursor-grab active:cursor-grabbing touch-none -mr-1"
+                onPointerDown={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  impact('light');
+                  dragControls.start(event);
+                }}
+              >
+                <GripVertical size={20} />
+              </button>
+            )}
           </div>
         </div>
 
@@ -490,7 +517,9 @@ const TaskItem = memo(function TaskItem({
             height: isExpanded ? detailsHeight : 0,
             opacity: isExpanded ? 1 : 0,
           }}
-          transition={{ duration: 0.18, ease: 'easeOut' }}
+          transition={
+            reduceEffects ? { duration: 0 } : { duration: 0.18, ease: 'easeOut' }
+          }
           className="overflow-hidden"
           style={{ pointerEvents: isExpanded ? 'auto' : 'none' }}
         >
@@ -630,56 +659,44 @@ const TaskItem = memo(function TaskItem({
                             ? task.color
                             : 'var(--ink)',
                         }}
-                        initial={{ width: 0 }}
+                        initial={reduceEffects ? false : { width: 0 }}
                         animate={{ width: `${checklistProgress}%` }}
-                        transition={{ duration: 0.5, ease: 'circOut' }}
+                        transition={
+                          reduceEffects
+                            ? { duration: 0 }
+                            : { duration: 0.5, ease: 'circOut' }
+                        }
                       />
                     </div>
                   )}
 
                   <ul className="space-y-1">
-                    <AnimatePresence initial={false}>
-                      {task.checklist.map((item, idx) => (
-                        <motion.li
-                          key={`${task.id}-subtask-${idx}`}
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: 'auto' }}
-                          exit={{ opacity: 0, height: 0, overflow: 'hidden' }}
-                          transition={{ duration: 0.2 }}
-                        >
-                          <div className="group flex items-center gap-3 w-full bg-[var(--surface)] hover:bg-[var(--surface-2)] rounded-xl px-2.5 py-2 transition-colors border border-transparent hover:border-[var(--border)]/50 shadow-sm">
+                    {reduceEffects ? (
+                      task.checklist.map((item, idx) => (
+                        <li key={`${task.id}-subtask-${idx}`}>
+                          <div className="group flex items-center gap-3 w-full bg-[var(--surface)] rounded-xl px-2.5 py-2 border border-transparent shadow-sm">
                             <button
                               type="button"
                               onClick={() => toggleSubtask(idx)}
                               className={cn(
-                                'flex-shrink-0 w-5 h-5 rounded-md border-[1.5px] flex items-center justify-center transition-colors duration-200',
+                                'flex-shrink-0 w-5 h-5 rounded-md border-[1.5px] flex items-center justify-center',
                                 item.done
                                   ? 'bg-[var(--ink)] border-[var(--ink)]'
-                                  : 'border-[var(--muted)]/40 hover:border-[var(--accent)]'
+                                  : 'border-[var(--muted)]/40'
                               )}
                             >
                               {item.done && (
-                                <motion.div
-                                  initial={{ scale: 0 }}
-                                  animate={{ scale: 1 }}
-                                  transition={{
-                                    type: 'spring',
-                                    stiffness: 400,
-                                    damping: 25,
-                                  }}
-                                >
-                                  <Check
-                                    size={12}
-                                    className="text-[var(--bg)]"
-                                    strokeWidth={3.5}
-                                  />
-                                </motion.div>
+                                <Check
+                                  size={12}
+                                  className="text-[var(--bg)]"
+                                  strokeWidth={3.5}
+                                />
                               )}
                             </button>
 
                             <span
                               className={cn(
-                                'text-[14px] flex-1 leading-snug break-words transition-all duration-300 select-none cursor-pointer font-medium',
+                                'text-[14px] flex-1 leading-snug break-words select-none cursor-pointer font-medium',
                                 item.done
                                   ? 'text-[var(--muted)] line-through decoration-[var(--muted)] decoration-2'
                                   : 'text-[var(--ink)]'
@@ -692,14 +709,77 @@ const TaskItem = memo(function TaskItem({
                             <button
                               type="button"
                               onClick={() => deleteSubtask(idx)}
-                              className="w-6 h-6 flex items-center justify-center rounded-full text-[var(--muted)]/40 hover:text-[var(--danger)] hover:bg-[var(--danger)]/10 transition-all active:scale-90 opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
+                              className="w-6 h-6 flex items-center justify-center rounded-full text-[var(--muted)]/40 hover:text-[var(--danger)] hover:bg-[var(--danger)]/10 active:scale-90 opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
                             >
                               <X size={14} />
                             </button>
                           </div>
-                        </motion.li>
-                      ))}
-                    </AnimatePresence>
+                        </li>
+                      ))
+                    ) : (
+                      <AnimatePresence initial={false}>
+                        {task.checklist.map((item, idx) => (
+                          <motion.li
+                            key={`${task.id}-subtask-${idx}`}
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0, overflow: 'hidden' }}
+                            transition={{ duration: 0.2 }}
+                          >
+                            <div className="group flex items-center gap-3 w-full bg-[var(--surface)] hover:bg-[var(--surface-2)] rounded-xl px-2.5 py-2 transition-colors border border-transparent hover:border-[var(--border)]/50 shadow-sm">
+                              <button
+                                type="button"
+                                onClick={() => toggleSubtask(idx)}
+                                className={cn(
+                                  'flex-shrink-0 w-5 h-5 rounded-md border-[1.5px] flex items-center justify-center transition-colors duration-200',
+                                  item.done
+                                    ? 'bg-[var(--ink)] border-[var(--ink)]'
+                                    : 'border-[var(--muted)]/40 hover:border-[var(--accent)]'
+                                )}
+                              >
+                                {item.done && (
+                                  <motion.div
+                                    initial={{ scale: 0 }}
+                                    animate={{ scale: 1 }}
+                                    transition={{
+                                      type: 'spring',
+                                      stiffness: 400,
+                                      damping: 25,
+                                    }}
+                                  >
+                                    <Check
+                                      size={12}
+                                      className="text-[var(--bg)]"
+                                      strokeWidth={3.5}
+                                    />
+                                  </motion.div>
+                                )}
+                              </button>
+
+                              <span
+                                className={cn(
+                                  'text-[14px] flex-1 leading-snug break-words transition-all duration-300 select-none cursor-pointer font-medium',
+                                  item.done
+                                    ? 'text-[var(--muted)] line-through decoration-[var(--muted)] decoration-2'
+                                    : 'text-[var(--ink)]'
+                                )}
+                                onClick={() => toggleSubtask(idx)}
+                              >
+                                {item.text}
+                              </span>
+
+                              <button
+                                type="button"
+                                onClick={() => deleteSubtask(idx)}
+                                className="w-6 h-6 flex items-center justify-center rounded-full text-[var(--muted)]/40 hover:text-[var(--danger)] hover:bg-[var(--danger)]/10 transition-all active:scale-90 opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
+                              >
+                                <X size={14} />
+                              </button>
+                            </div>
+                          </motion.li>
+                        ))}
+                      </AnimatePresence>
+                    )}
                   </ul>
 
                   <form onSubmit={addSubtask} className="mt-2 relative group">
@@ -788,7 +868,73 @@ const TaskItem = memo(function TaskItem({
           </div>
         </motion.div>
       </div>
-    </Reorder.Item>
+    </>
+  );
+
+  if (isReorderMode) {
+    return (
+      <Reorder.Item
+        value={task}
+        id={task.clientId}
+        dragListener={false}
+        dragControls={dragControls}
+        layout={reduceEffects ? undefined : 'position'}
+        initial={false}
+        animate={
+          shouldAnimate
+            ? {
+                opacity: task.completed ? 0.8 : 1,
+                y: 0,
+              }
+            : undefined
+        }
+        exit={shouldAnimate ? { opacity: 0, scale: 0.95 } : undefined}
+        transition={
+          shouldAnimate
+            ? { type: 'tween', duration: 0.18, ease: 'easeOut' }
+            : { duration: 0 }
+        }
+        className={itemClassName}
+        style={itemStyle}
+        as="li"
+        transformTemplate={undefined}
+        ref={containerRef}
+        data-index={containerDataIndex}
+      >
+        {content}
+      </Reorder.Item>
+    );
+  }
+
+  if (!shouldAnimate) {
+    return (
+      <li
+        ref={containerRef}
+        data-index={containerDataIndex}
+        className={itemClassName}
+        style={itemStyle}
+      >
+        {content}
+      </li>
+    );
+  }
+
+  return (
+    <motion.li
+      ref={containerRef}
+      data-index={containerDataIndex}
+      className={itemClassName}
+      style={itemStyle}
+      initial={false}
+      animate={{
+        opacity: task.completed ? 0.8 : 1,
+        y: 0,
+      }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      transition={{ type: 'tween', duration: 0.18, ease: 'easeOut' }}
+    >
+      {content}
+    </motion.li>
   );
 });
 

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { Minimize2, Volume2 } from "lucide-react";
 import type { Task } from "../types/task";
+import { isIOSDevice } from "../lib/platform";
 
 const SOUNDS = [
   {
@@ -19,7 +20,6 @@ const SOUNDS = [
 type FocusOverlayProps = {
   task: Task;
   isActive: boolean;
-  elapsedMs: number;
   onToggleTimer: () => void;
   onClose: () => void;
 };
@@ -34,13 +34,29 @@ const formatTime = (ms: number) => {
 export default function FocusOverlay({
   task,
   isActive,
-  elapsedMs,
   onToggleTimer,
   onClose,
 }: FocusOverlayProps) {
   const [soundIdx, setSoundIdx] = useState<number | null>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
-  const reduceMotion = useReducedMotion();
+  const prefersReducedMotion = useReducedMotion();
+  const isIOS = isIOSDevice();
+  const reduceMotion = prefersReducedMotion || isIOS;
+  const [tickNow, setTickNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    if (!isActive || !task.activeStartedAt) return;
+    const interval = window.setInterval(() => {
+      setTickNow(Date.now());
+    }, 1000);
+    return () => window.clearInterval(interval);
+  }, [isActive, task.activeStartedAt]);
+
+  const elapsedMs =
+    isActive && task.activeStartedAt
+      ? (task.elapsedMs ?? 0) +
+        Math.max(0, tickNow - task.activeStartedAt.getTime())
+      : task.elapsedMs ?? 0;
 
   const targetMs = (task.duration || 30) * 60 * 1000;
   const progress = Math.min(100, (elapsedMs / targetMs) * 100);

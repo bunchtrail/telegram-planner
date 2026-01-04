@@ -13,6 +13,7 @@ import {
 import { ru } from "date-fns/locale";
 import type { Task } from "../types/task";
 import { cn } from "../lib/cn";
+import { isIOSDevice } from "../lib/platform";
 
 type StatsModalProps = {
   onClose: () => void;
@@ -28,7 +29,9 @@ export default function StatsModal({
   selectedDate,
 }: StatsModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
-  const reduceMotion = useReducedMotion();
+  const prefersReducedMotion = useReducedMotion();
+  const isIOS = isIOSDevice();
+  const reduceMotion = prefersReducedMotion || isIOS;
 
   const stats = useMemo(() => {
     const rangeEnd = startOfDay(selectedDate);

@@ -3,6 +3,8 @@ import { format, isSameDay } from "date-fns";
 import { ru } from "date-fns/locale";
 import { cn } from "../lib/cn";
 import { useHaptic } from "../hooks/useHaptic";
+import { useReducedMotion } from "framer-motion";
+import { isIOSDevice } from "../lib/platform";
 
 type WeekStripProps = {
   weekDays: Date[];
@@ -17,6 +19,9 @@ export default function WeekStrip({
 }: WeekStripProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const { selection } = useHaptic();
+  const prefersReducedMotion = useReducedMotion();
+  const isIOS = isIOSDevice();
+  const reduceMotion = prefersReducedMotion || isIOS;
 
   useEffect(() => {
     const selectedButton = scrollContainerRef.current?.querySelector(
@@ -24,12 +29,12 @@ export default function WeekStrip({
     );
     if (selectedButton) {
       selectedButton.scrollIntoView({
-        behavior: "smooth",
+        behavior: reduceMotion ? "auto" : "smooth",
         block: "nearest",
         inline: "center",
       });
     }
-  }, [selectedDate]);
+  }, [selectedDate, reduceMotion]);
 
   const handleDateClick = (day: Date) => {
     if (!isSameDay(day, selectedDate)) {

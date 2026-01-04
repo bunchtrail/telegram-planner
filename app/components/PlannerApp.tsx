@@ -33,7 +33,6 @@ export default function PlannerApp() {
     minutes,
     activeTaskId,
     toggleActiveTask,
-    getTaskElapsedMs,
     goToToday,
     goToPreviousPeriod,
     goToNextPeriod,
@@ -58,6 +57,7 @@ export default function PlannerApp() {
   const dayCompleteTimeoutRef = useRef<number | null>(null);
   const [showStats, setShowStats] = useState(false);
   const [showFocus, setShowFocus] = useState(false);
+  const [isReorderMode, setIsReorderMode] = useState(false);
 
   const activeTaskObj = useMemo(
     () => tasks.find((task) => task.id === activeTaskId) ?? null,
@@ -160,6 +160,7 @@ export default function PlannerApp() {
 
   const handleOpenCreate = () => {
     impact('light');
+    setIsReorderMode(false);
     setSheetMode('create');
     setEditingTask(null);
     setIsAddOpen(true);
@@ -167,6 +168,7 @@ export default function PlannerApp() {
 
   const handleOpenEdit = (task: Task) => {
     impact('light');
+    setIsReorderMode(false);
     setSheetMode('edit');
     setEditingTask(task);
     setIsAddOpen(true);
@@ -217,6 +219,8 @@ export default function PlannerApp() {
             onNext={goToNextPeriod}
             onToday={goToToday}
             onOpenStats={() => setShowStats(true)}
+            isReorderMode={isReorderMode}
+            onToggleReorder={() => setIsReorderMode((prev) => !prev)}
           />
         </div>
 
@@ -232,8 +236,8 @@ export default function PlannerApp() {
             onAdd={handleOpenCreate}
             onReorder={handleReorder}
             onToggleActive={toggleActiveTask}
-            getElapsedMs={getTaskElapsedMs}
             updateTask={updateTask}
+            isReorderMode={isReorderMode}
           />
           <div className="pointer-events-none absolute bottom-0 left-0 right-0 z-20 h-16 bg-gradient-to-t from-[var(--bg)] to-transparent" />
         </main>
@@ -261,7 +265,9 @@ export default function PlannerApp() {
               initialDuration={
                 sheetMode === 'edit' ? editingTask?.duration : 30
               }
-              initialColor={sheetMode === 'edit' ? editingTask?.color : undefined}
+              initialColor={
+                sheetMode === 'edit' ? editingTask?.color : undefined
+              }
               initialRepeat="none"
               initialRepeatCount={7}
               onSubmit={handleSheetSubmit}
@@ -283,7 +289,6 @@ export default function PlannerApp() {
             <FocusOverlay
               task={activeTaskObj}
               isActive={activeTaskId === activeTaskObj.id}
-              elapsedMs={getTaskElapsedMs(activeTaskObj.id)}
               onToggleTimer={() => toggleActiveTask(activeTaskObj.id)}
               onClose={() => setShowFocus(false)}
             />

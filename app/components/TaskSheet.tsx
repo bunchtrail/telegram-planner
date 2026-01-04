@@ -10,17 +10,18 @@ import {
 } from "react";
 import { Check, ChevronRight, Repeat, X, Clock, Palette } from "lucide-react";
 import {
-  AnimatePresence,
   motion,
   type AnimationDefinition,
   type PanInfo,
   type Transition,
   useDragControls,
+  useReducedMotion,
 } from "framer-motion";
 import { cn } from "../lib/cn";
 import { DEFAULT_TASK_COLOR, TASK_COLOR_OPTIONS } from "../lib/constants";
 import { useHaptic } from "../hooks/useHaptic";
 import type { TaskRepeat } from "../types/task";
+import { isIOSDevice } from "../lib/platform";
 
 const DURATION_PRESETS = [15, 30, 45, 60, 90, 120];
 
@@ -83,6 +84,9 @@ export default function TaskSheet({
   const repeatDetailsRef = useRef<HTMLDivElement>(null);
   const dragControls = useDragControls();
   const { impact, notification } = useHaptic();
+  const prefersReducedMotion = useReducedMotion();
+  const isIOS = isIOSDevice();
+  const reduceMotion = prefersReducedMotion || isIOS;
 
   const adjustTextareaHeight = useCallback(() => {
     const el = inputRef.current;
@@ -183,7 +187,7 @@ export default function TaskSheet({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        transition={{ duration: 0.3 }}
+        transition={{ duration: reduceMotion ? 0 : 0.3 }}
         className="absolute inset-0 bg-black/40 backdrop-blur-md pointer-events-auto"
         onClick={handleClose}
       />
@@ -192,14 +196,14 @@ export default function TaskSheet({
         initial={{ y: "100%" }}
         animate={{ y: 0 }}
         exit={{ y: "100%" }}
-        transition={SHEET_TRANSITION}
+        transition={reduceMotion ? { duration: 0 } : SHEET_TRANSITION}
         onAnimationStart={() => setIsSettled(false)}
         onAnimationComplete={handleAnimationComplete}
         drag="y"
         dragControls={dragControls}
         dragListener={false}
         dragConstraints={{ top: 0 }}
-        dragElastic={0.05}
+        dragElastic={reduceMotion ? 0 : 0.05}
         onDragStart={() => setIsDragging(true)}
         onDragEnd={handleDragEnd}
         transformTemplate={(_transforms, generatedTransform) =>
@@ -416,7 +420,11 @@ export default function TaskSheet({
                     height: showRepeatOptions ? repeatDetailsHeight : 0,
                     opacity: showRepeatOptions ? 1 : 0,
                   }}
-                  transition={{ duration: 0.18, ease: "easeOut" }}
+                  transition={
+                    reduceMotion
+                      ? { duration: 0 }
+                      : { duration: 0.18, ease: "easeOut" }
+                  }
                   className="overflow-hidden"
                   style={{ pointerEvents: showRepeatOptions ? "auto" : "none" }}
                 >
@@ -456,8 +464,8 @@ export default function TaskSheet({
                                     className="absolute inset-0 bg-[var(--surface)] shadow-[0_2px_8px_rgba(0,0,0,0.08)] rounded-[10px] -z-10 border border-[var(--border)]"
                                     transition={{
                                       type: "spring",
-                                      bounce: 0.2,
-                                      duration: 0.4,
+                                      bounce: reduceMotion ? 0 : 0.2,
+                                      duration: reduceMotion ? 0 : 0.4,
                                     }}
                                   />
                                 )}

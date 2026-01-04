@@ -1,8 +1,10 @@
 import { useEffect, useRef } from 'react';
-import { AnimatePresence, Reorder, motion } from 'framer-motion';
+import { AnimatePresence, Reorder, useReducedMotion } from 'framer-motion';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { Calendar, Loader2 } from 'lucide-react';
 import type { Task } from '../types/task';
 import TaskItem from './TaskItem';
+import { isIOSDevice } from '../lib/platform';
 
 type TaskListProps = {
   dateKey: string;
@@ -15,8 +17,8 @@ type TaskListProps = {
   onAdd: () => void;
   onReorder: (tasks: Task[]) => void;
   onToggleActive: (id: string) => void;
-  getElapsedMs: (id: string) => number;
   updateTask: (id: string, updates: Partial<Task>) => void;
+  isReorderMode: boolean;
 };
 
 export default function TaskList({
@@ -30,11 +32,37 @@ export default function TaskList({
   onAdd,
   onReorder,
   onToggleActive,
-  getElapsedMs,
   updateTask,
+  isReorderMode,
 }: TaskListProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const prevTaskIdsRef = useRef<Set<string>>(new Set());
+  const prefersReducedMotion = useReducedMotion();
+  const isIOS = isIOSDevice();
+  const reduceMotion = prefersReducedMotion || isIOS;
+  const enableVirtualization = !isReorderMode && tasks.length > 18;
+  // eslint-disable-next-line react-hooks/incompatible-library
+  const virtualizer = useVirtualizer({
+    count: enableVirtualization ? tasks.length : 0,
+    getScrollElement: () => scrollContainerRef.current,
+    estimateSize: () => 110,
+    overscan: 6,
+    getItemKey: (index) => tasks[index]?.clientId ?? index,
+    measureElement: (element) => {
+      if (!(element instanceof HTMLElement)) return element.getBoundingClientRect().height;
+      const rect = element.getBoundingClientRect();
+      const style = window.getComputedStyle(element);
+      const marginTop = Number.parseFloat(style.marginTop) || 0;
+      const marginBottom = Number.parseFloat(style.marginBottom) || 0;
+      return rect.height + marginTop + marginBottom;
+    },
+  });
+
+  useEffect(() => {
+    if (enableVirtualization) {
+      virtualizer.measure();
+    }
+  }, [enableVirtualization, tasks, virtualizer]);
 
   useEffect(() => {
     const prevIds = prevTaskIdsRef.current;
@@ -49,12 +77,6 @@ export default function TaskList({
     if (isIncremental && nextIds.size > prevIds.size) {
       const container = scrollContainerRef.current;
       if (container) {
-        const prefersReducedMotion =
-          typeof window !== 'undefined' &&
-          window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-        const isIOS =
-          typeof navigator !== 'undefined' &&
-          /iPad|iPhone|iPod/.test(navigator.userAgent);
         const isScrollable = container.scrollHeight > container.clientHeight + 1;
         const nearBottom =
           container.scrollTop + container.clientHeight >=
@@ -62,13 +84,13 @@ export default function TaskList({
         if (isScrollable && nearBottom) {
           container.scrollTo({
             top: container.scrollHeight,
-            behavior: prefersReducedMotion || isIOS ? 'auto' : 'smooth',
+            behavior: reduceMotion ? 'auto' : 'smooth',
           });
         }
       }
     }
     prevTaskIdsRef.current = nextIds;
-  }, [tasks]);
+  }, [tasks, reduceMotion]);
 
   const scrollClasses =
     'h-full w-full overflow-y-auto pb-32 pt-2 touch-pan-y overscroll-contain no-scrollbar pl-[max(1rem,env(safe-area-inset-left),var(--tg-content-safe-left,0px))] pr-[max(1rem,env(safe-area-inset-right),var(--tg-content-safe-right,0px))] [-webkit-overflow-scrolling:touch]';
@@ -113,35 +135,112 @@ export default function TaskList({
     );
   }
 
+  const shouldAnimateList = !reduceMotion && !enableVirtualization;
+  const virtualItems = enableVirtualization ? virtualizer.getVirtualItems() : [];
+
   return (
-    <motion.div ref={scrollContainerRef} className={scrollClasses}>
-      <Reorder.Group
-        key={dateKey}
-        axis="y"
-        values={tasks}
-        onReorder={onReorder}
-        as="ul"
-        role="list"
-        className="relative"
-      >
-      <AnimatePresence initial={false} mode="popLayout">
-          {tasks.map((task) => (
-            <TaskItem
-              key={task.clientId}
-              task={task}
-              onToggle={onToggle}
-              onDelete={onDelete}
-              onEdit={onEdit}
-              onMove={onMove}
-              isActive={Boolean(task.activeStartedAt) && !task.completed}
-              elapsedMs={getElapsedMs(task.id)}
-              onToggleActive={onToggleActive}
-              updateTask={updateTask}
-            />
-          ))}
-        </AnimatePresence>
-      </Reorder.Group>
+    <div ref={scrollContainerRef} className={scrollClasses}>
+      {isReorderMode ? (
+        <Reorder.Group
+          key={dateKey}
+          axis="y"
+          values={tasks}
+          onReorder={onReorder}
+          as="ul"
+          role="list"
+          className="relative"
+        >
+          <AnimatePresence initial={false} mode="popLayout">
+            {tasks.map((task) => (
+              <TaskItem
+                key={task.clientId}
+                task={task}
+                onToggle={onToggle}
+                onDelete={onDelete}
+                onEdit={onEdit}
+                onMove={onMove}
+                isActive={Boolean(task.activeStartedAt) && !task.completed}
+                onToggleActive={onToggleActive}
+                updateTask={updateTask}
+                isReorderMode
+                enableMotion={!reduceMotion}
+              />
+            ))}
+          </AnimatePresence>
+        </Reorder.Group>
+      ) : enableVirtualization ? (
+        <div
+          className="relative w-full"
+          style={{ height: `${virtualizer.getTotalSize()}px` }}
+        >
+          {virtualItems.map((virtualRow) => {
+            const task = tasks[virtualRow.index];
+            if (!task) return null;
+            return (
+              <TaskItem
+                key={task.clientId}
+                task={task}
+                onToggle={onToggle}
+                onDelete={onDelete}
+                onEdit={onEdit}
+                onMove={onMove}
+                isActive={Boolean(task.activeStartedAt) && !task.completed}
+                onToggleActive={onToggleActive}
+                updateTask={updateTask}
+                enableMotion={false}
+                containerRef={(node) => {
+                  if (node) virtualizer.measureElement(node);
+                }}
+                containerDataIndex={virtualRow.index}
+                containerStyle={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  transform: `translateY(${virtualRow.start}px)`,
+                }}
+              />
+            );
+          })}
+        </div>
+      ) : (
+        <ul role="list" className="relative">
+          {shouldAnimateList ? (
+            <AnimatePresence initial={false} mode="popLayout">
+              {tasks.map((task) => (
+                <TaskItem
+                  key={task.clientId}
+                  task={task}
+                  onToggle={onToggle}
+                  onDelete={onDelete}
+                  onEdit={onEdit}
+                  onMove={onMove}
+                  isActive={Boolean(task.activeStartedAt) && !task.completed}
+                  onToggleActive={onToggleActive}
+                  updateTask={updateTask}
+                  enableMotion
+                />
+              ))}
+            </AnimatePresence>
+          ) : (
+            tasks.map((task) => (
+              <TaskItem
+                key={task.clientId}
+                task={task}
+                onToggle={onToggle}
+                onDelete={onDelete}
+                onEdit={onEdit}
+                onMove={onMove}
+                isActive={Boolean(task.activeStartedAt) && !task.completed}
+                onToggleActive={onToggleActive}
+                updateTask={updateTask}
+                enableMotion={false}
+              />
+            ))
+          )}
+        </ul>
+      )}
       <div className="h-4" />
-    </motion.div>
+    </div>
   );
 }

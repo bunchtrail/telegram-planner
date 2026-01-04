@@ -226,7 +226,6 @@ export function usePlanner() {
   const [streak, setStreak] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [refetchKey, setRefetchKey] = useState(0);
-  const [timerNow, setTimerNow] = useState(() => Date.now());
   const toggleRequestRef = useRef(new Map<string, number>());
   const pendingInsertRef = useRef(new Map<string, TaskRow>());
 
@@ -315,8 +314,6 @@ export function usePlanner() {
           return task;
         })
       );
-      setTimerNow(now);
-
       const { error } = await supabase.rpc('toggle_task_timer', {
         task_id: id,
       });
@@ -328,27 +325,6 @@ export function usePlanner() {
     },
     [tasksById, tasks, userId]
   );
-
-  const getTaskElapsedMs = useCallback(
-    (id: string) => {
-      const task = tasksById.get(id);
-      if (!task) return 0;
-      const base = task.elapsedMs ?? 0;
-      if (task.activeStartedAt) {
-        return base + Math.max(0, timerNow - task.activeStartedAt.getTime());
-      }
-      return base;
-    },
-    [tasksById, timerNow]
-  );
-
-  useEffect(() => {
-    if (!activeTaskId) return;
-    const interval = window.setInterval(() => {
-      setTimerNow(Date.now());
-    }, 1000);
-    return () => window.clearInterval(interval);
-  }, [activeTaskId]);
 
   const isDateInActiveMonth = useCallback(
     (value: string | Date | null | undefined) => {
@@ -1509,7 +1485,6 @@ export function usePlanner() {
     minutes,
     activeTaskId,
     toggleActiveTask,
-    getTaskElapsedMs,
     goToToday,
     goToPreviousPeriod,
     goToNextPeriod,
