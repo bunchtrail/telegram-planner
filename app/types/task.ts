@@ -19,4 +19,6 @@ export type Task = {
   color: string;
   isPinned: boolean;
   checklist: TaskChecklistItem[];
+  startMinutes: number | null;
+  remindBeforeMinutes: number;
 };

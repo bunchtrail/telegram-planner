@@ -8,7 +8,15 @@ import {
   useRef,
   useState,
 } from "react";
-import { Check, ChevronRight, Repeat, X, Clock, Palette } from "lucide-react";
+import {
+  Bell,
+  Check,
+  ChevronRight,
+  Clock,
+  Palette,
+  Repeat,
+  X,
+} from "lucide-react";
 import {
   motion,
   type AnimationDefinition,
@@ -22,6 +30,7 @@ import { DEFAULT_TASK_COLOR, TASK_COLOR_OPTIONS } from "../lib/constants";
 import { useHaptic } from "../hooks/useHaptic";
 import type { TaskRepeat } from "../types/task";
 import { isIOSDevice } from "../lib/platform";
+import TimeGridPicker from "./TimeGridPicker";
 
 const DURATION_PRESETS = [15, 30, 45, 60, 90, 120];
 
@@ -45,12 +54,16 @@ type TaskSheetProps = {
   initialRepeat?: TaskRepeat;
   initialRepeatCount?: number;
   initialColor?: string;
+  initialStartMinutes?: number | null;
+  initialRemindBeforeMinutes?: number;
   onSubmit: (
     title: string,
     duration: number,
     repeat: TaskRepeat,
     repeatCount: number,
     color: string,
+    startMinutes: number | null,
+    remindBeforeMinutes: number,
   ) => void;
 };
 
@@ -62,6 +75,8 @@ export default function TaskSheet({
   initialRepeat = "none",
   initialRepeatCount = 7,
   initialColor = DEFAULT_TASK_COLOR,
+  initialStartMinutes = null,
+  initialRemindBeforeMinutes = 0,
   onSubmit,
 }: TaskSheetProps) {
   const [title, setTitle] = useState(initialTitle);
@@ -69,24 +84,39 @@ export default function TaskSheet({
   const [repeat, setRepeat] = useState<TaskRepeat>(initialRepeat);
   const [repeatCount, setRepeatCount] = useState(initialRepeatCount);
   const [color, setColor] = useState(initialColor);
+  const [startMinutes, setStartMinutes] = useState<number | null>(
+    initialStartMinutes,
+  );
+  const [remindBeforeMinutes, setRemindBeforeMinutes] = useState(
+    initialRemindBeforeMinutes,
+  );
+  const [showTimePicker, setShowTimePicker] = useState(false);
   const [showRepeatOptions, setShowRepeatOptions] = useState(
     mode === "edit" || initialRepeat !== "none",
   );
 
   const [isSettled, setIsSettled] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [timeDetailsHeight, setTimeDetailsHeight] = useState<number | "auto">(
+    "auto",
+  );
   const [repeatDetailsHeight, setRepeatDetailsHeight] = useState<number | "auto">(
     "auto",
   );
 
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
+  const timeDetailsRef = useRef<HTMLDivElement>(null);
   const repeatDetailsRef = useRef<HTMLDivElement>(null);
   const dragControls = useDragControls();
   const { impact, notification } = useHaptic();
   const prefersReducedMotion = useReducedMotion();
   const isIOS = isIOSDevice();
   const reduceMotion = prefersReducedMotion || isIOS;
+  const formatMinutes = (value: number) =>
+    `${String(Math.floor(value / 60)).padStart(2, "0")}:${String(
+      value % 60,
+    ).padStart(2, "0")}`;
 
   const adjustTextareaHeight = useCallback(() => {
     const el = inputRef.current;
@@ -131,7 +161,17 @@ export default function TaskSheet({
     if (document.activeElement instanceof HTMLElement) {
       document.activeElement.blur();
     }
-    onSubmit(trimmed, duration, repeat, repeatCount, color);
+    const effectiveRemindBefore =
+      startMinutes == null ? 0 : remindBeforeMinutes;
+    onSubmit(
+      trimmed,
+      duration,
+      repeat,
+      repeatCount,
+      color,
+      startMinutes,
+      effectiveRemindBefore,
+    );
   };
 
   const clampRepeatCount = (value: number) =>
@@ -143,6 +183,19 @@ export default function TaskSheet({
   useEffect(() => {
     adjustTextareaHeight();
   }, [title, adjustTextareaHeight]);
+
+  useLayoutEffect(() => {
+    if (!showTimePicker) return;
+    const el = timeDetailsRef.current;
+    if (!el) return;
+
+    const updateHeight = () => setTimeDetailsHeight(el.scrollHeight);
+    updateHeight();
+
+    const observer = new ResizeObserver(updateHeight);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [showTimePicker, duration]);
 
   useLayoutEffect(() => {
     if (!showRepeatOptions) return;
@@ -272,6 +325,114 @@ export default function TaskSheet({
           </div>
 
           <div className="flex flex-col gap-8 mt-4">
+            <div className="shrink-0 px-6">
+              <div className="flex items-center justify-between mb-3">
+                <div className="text-[11px] font-bold text-[var(--muted)] uppercase tracking-widest flex items-center gap-2 opacity-80">
+                  <Clock size={12} strokeWidth={3} /> Время начала
+                </div>
+                {startMinutes != null && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      impact("medium");
+                      setStartMinutes(null);
+                      setRemindBeforeMinutes(0);
+                      setShowTimePicker(false);
+                    }}
+                    className="text-[11px] font-bold text-[var(--danger)] uppercase active:scale-95 transition-transform"
+                  >
+                    Сбросить
+                  </button>
+                )}
+              </div>
+
+              <div className="bg-[var(--surface-2)]/50 rounded-[24px] border border-[var(--border)]/50 overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => setShowTimePicker((prev) => !prev)}
+                  className={cn(
+                    "w-full flex items-center justify-between p-4 transition-colors",
+                    showTimePicker
+                      ? "bg-[var(--surface-2)]"
+                      : "active:bg-[var(--surface-2)]",
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "text-[17px] font-bold tabular-nums",
+                      startMinutes != null
+                        ? "text-[var(--ink)]"
+                        : "text-[var(--muted)]",
+                    )}
+                  >
+                    {startMinutes != null
+                      ? formatMinutes(startMinutes)
+                      : "Без времени"}
+                  </span>
+                  <div
+                    className={cn(
+                      "text-[13px] font-bold text-[var(--accent)] transition-transform flex items-center gap-1",
+                      showTimePicker && "rotate-180",
+                    )}
+                  >
+                    {showTimePicker ? "Свернуть" : "Изменить"}
+                    <ChevronRight size={16} className="rotate-90" />
+                  </div>
+                </button>
+
+                <motion.div
+                  initial={false}
+                  animate={{ height: showTimePicker ? timeDetailsHeight : 0 }}
+                  transition={reduceMotion ? { duration: 0 } : { duration: 0.2 }}
+                  className="overflow-hidden"
+                >
+                  <div
+                    ref={timeDetailsRef}
+                    className="p-4 pt-0 border-t border-[var(--border)]/30"
+                    onPointerDown={() => impact("light")}
+                  >
+                    <TimeGridPicker
+                      valueMinutes={startMinutes}
+                      durationMinutes={duration}
+                      onChange={(value) => {
+                        setStartMinutes(value);
+                      }}
+                    />
+                  </div>
+                </motion.div>
+              </div>
+            </div>
+
+            {startMinutes != null && (
+              <div className="shrink-0 px-6">
+                <div className="text-[11px] font-bold text-[var(--muted)] uppercase tracking-widest mb-3 flex items-center gap-2 opacity-80">
+                  <Bell size={12} strokeWidth={3} /> Напомнить
+                </div>
+                <div className="flex gap-2 flex-wrap">
+                  {[0, 5, 10, 30, 60].map((value) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => {
+                        impact("light");
+                        setRemindBeforeMinutes(value);
+                      }}
+                      className={cn(
+                        "h-9 px-4 rounded-2xl text-[13px] font-bold border transition-all",
+                        remindBeforeMinutes === value
+                          ? "bg-[var(--accent)] text-[var(--accent-ink)] border-[var(--accent)] shadow-sm"
+                          : "bg-[var(--surface-2)] text-[var(--ink)] border-transparent",
+                      )}
+                    >
+                      {value === 0 ? "В момент" : `За ${value} мин`}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="h-px bg-[var(--border)] mx-6 opacity-60 shrink-0" />
+
             <div className="shrink-0 relative">
               <div className="px-6 text-[11px] font-bold text-[var(--muted)] uppercase tracking-widest mb-4 flex items-center gap-2 opacity-80">
                 <Clock size={12} strokeWidth={3} /> Длительность

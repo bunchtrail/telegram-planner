@@ -121,6 +121,12 @@ const TaskItem = memo(function TaskItem({
   const isIOS = isIOSDevice();
   const reduceEffects = prefersReducedMotion || isIOS;
   const [tickNow, setTickNow] = useState(() => Date.now());
+  const startTimeLabel =
+    task.startMinutes != null
+      ? `${String(Math.floor(task.startMinutes / 60)).padStart(2, '0')}:${String(
+          task.startMinutes % 60
+        ).padStart(2, '0')}`
+      : null;
 
   const focusSubtaskInput = (preventScroll = false) => {
     const input = inputRef.current;
@@ -434,6 +440,11 @@ const TaskItem = memo(function TaskItem({
                   )
                 ) : (
                   <div className="flex items-center gap-3 flex-wrap opacity-70">
+                    {startTimeLabel && (
+                      <div className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-[var(--surface-2)] border border-[var(--border)] text-[12px] font-bold tabular-nums text-[var(--ink)] opacity-90">
+                        {startTimeLabel}
+                      </div>
+                    )}
                     <div className="inline-flex items-center gap-1 text-[11px] font-bold text-[var(--muted)] opacity-80 uppercase tracking-wide">
                       <Clock size={11} strokeWidth={2.5} />
                       <span>{task.duration} мин</span>

@@ -186,12 +186,28 @@ export default function PlannerApp() {
     duration: number,
     repeat: TaskRepeat,
     repeatCount: number,
-    color: string
+    color: string,
+    startMinutes: number | null,
+    remindBeforeMinutes: number
   ) => {
     if (sheetMode === 'create') {
-      addTask(title, duration, repeat, repeatCount, color);
+      addTask(
+        title,
+        duration,
+        repeat,
+        repeatCount,
+        color,
+        startMinutes,
+        remindBeforeMinutes
+      );
     } else if (editingTask) {
-      updateTask(editingTask.id, { title, duration, color });
+      updateTask(editingTask.id, {
+        title,
+        duration,
+        color,
+        startMinutes,
+        remindBeforeMinutes,
+      });
     }
     handleCloseSheet();
   };
@@ -264,6 +280,12 @@ export default function PlannerApp() {
               }
               initialRepeat="none"
               initialRepeatCount={7}
+              initialStartMinutes={
+                sheetMode === 'edit' ? editingTask?.startMinutes : null
+              }
+              initialRemindBeforeMinutes={
+                sheetMode === 'edit' ? editingTask?.remindBeforeMinutes : 0
+              }
               onSubmit={handleSheetSubmit}
             />
           )}

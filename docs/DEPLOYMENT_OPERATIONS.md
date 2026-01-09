@@ -20,12 +20,20 @@
 
 - `TELEGRAM_BOT_TOKEN`
 - `SUPABASE_JWT_SECRET`
+- `SUPABASE_SERVICE_ROLE_KEY` (для рассылки напоминаний)
+- `REMINDERS_CRON_SECRET` (ключ для защиты cron endpoint)
 
 ## Supabase настройки
 
 1. Применить `supabase/schema.sql`
 2. Убедиться, что JWT secret совпадает с `SUPABASE_JWT_SECRET`
 3. Realtime включен для таблицы (по умолчанию — обычно да, но зависит от проекта)
+
+## Напоминания (cron)
+
+- Endpoint: `POST /api/reminders/run?key=...`
+- Защита: `REMINDERS_CRON_SECRET`
+- Рекомендуемый интервал: 1–5 минут (в зависимости от лимитов и нужной точности)
 
 ## Деплой
 

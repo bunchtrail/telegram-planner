@@ -26,6 +26,11 @@
 - `color text not null default '#ff9f0a'` — цвет категории
 - `is_pinned bool not null default false` — закрепление в списке
 - `checklist jsonb not null default '[]'` — подзадачи
+- время/напоминания:
+  - `start_minutes smallint` — минуты от начала дня (0..1439)
+  - `remind_before_minutes smallint not null default 0` — за сколько минут напомнить (0..1440)
+  - `remind_at timestamptz` — фактическое время напоминания (UTC)
+  - `reminder_sent_at timestamptz` — когда напоминание было отправлено
 - goal-поля:
   - `is_goal bool`
   - `goal_period text in ('day','week','month','year')`
@@ -45,6 +50,7 @@
 - `idx_tasks_pinned` — ускоряет сортировку “закреплённые выше”
 - `tasks_active_single_idx` — гарантирует одну активную задачу на пользователя
 - `tasks_series_date_unique` — защита от дублей инстанса серии на одну дату
+- `tasks_remind_due_idx` — ускоряет выборку задач, по которым надо отправить напоминание
 
 ### RPC функции
 
@@ -65,6 +71,8 @@
 - `duration int not null` (1..1440)
 - `repeat text in ('daily','weekly')`
 - `weekday smallint` — для weekly (0..6)
+- `start_minutes smallint` — минуты от начала дня (0..1439)
+- `remind_before_minutes smallint not null default 0` — за сколько минут напомнить
 - `start_date date not null`
 - `end_date date` — конец серии (по выбору «на сколько дней/недель»)
 

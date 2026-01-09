@@ -8,6 +8,8 @@ create table if not exists public.task_series (
   duration integer not null default 30,
   repeat text not null check (repeat in ('daily','weekly')),
   weekday smallint,
+  start_minutes int2,
+  remind_before_minutes int2 not null default 0,
   start_date date not null,
   end_date date,
   created_at timestamptz not null default now(),
@@ -16,7 +18,9 @@ create table if not exists public.task_series (
   constraint task_series_weekday_valid check (
     (repeat = 'weekly' and weekday between 0 and 6)
     or (repeat = 'daily' and weekday is null)
-  )
+  ),
+  constraint task_series_start_minutes_valid check (start_minutes is null or start_minutes between 0 and 1439),
+  constraint task_series_remind_before_valid check (remind_before_minutes between 0 and 1440)
 );
 
 create table if not exists public.task_series_skips (
@@ -41,6 +45,10 @@ create table if not exists public.tasks (
   color text not null default '#ff9f0a',
   is_pinned boolean not null default false,
   checklist jsonb not null default '[]'::jsonb,
+  start_minutes int2,
+  remind_before_minutes int2 not null default 0,
+  remind_at timestamptz,
+  reminder_sent_at timestamptz,
   is_goal boolean not null default false,
   goal_period text,
   goal_slot smallint,
@@ -49,6 +57,8 @@ create table if not exists public.tasks (
   constraint tasks_title_length check (char_length(title) > 0 and char_length(title) <= 160),
   constraint tasks_duration_range check (duration > 0 and duration <= 24 * 60),
   constraint tasks_elapsed_nonnegative check (elapsed_ms >= 0),
+  constraint tasks_start_minutes_valid check (start_minutes is null or start_minutes between 0 and 1439),
+  constraint tasks_remind_before_valid check (remind_before_minutes between 0 and 1440),
   constraint tasks_goal_fields check (
     (is_goal = false and goal_period is null and goal_slot is null)
     or
@@ -65,6 +75,10 @@ create index if not exists tasks_telegram_id_date_idx
 
 create index if not exists tasks_telegram_id_created_at_idx
   on public.tasks (telegram_id, created_at);
+
+create index if not exists tasks_remind_due_idx
+  on public.tasks (remind_at)
+  where reminder_sent_at is null and remind_at is not null;
 
 create index if not exists tasks_position_idx
   on public.tasks (position);

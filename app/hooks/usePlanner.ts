@@ -33,6 +33,9 @@ type TaskRow = {
   color?: string | null;
   is_pinned?: boolean | null;
   checklist?: unknown;
+  start_minutes?: number | string | null;
+  remind_before_minutes?: number | string | null;
+  remind_at?: string | null;
 };
 
 type TaskSeriesRow = {
@@ -41,6 +44,8 @@ type TaskSeriesRow = {
   duration: number;
   repeat: 'daily' | 'weekly';
   weekday: number | null;
+  start_minutes?: number | string | null;
+  remind_before_minutes?: number | string | null;
   start_date: string;
   end_date: string | null;
 };
@@ -149,6 +154,34 @@ const parseChecklist = (value: unknown): TaskChecklistItem[] => {
   return items;
 };
 
+const parseSmallInt = (value?: number | string | null) => {
+  if (value == null) return null;
+  const numeric = typeof value === 'string' ? Number(value) : value;
+  if (!Number.isFinite(numeric)) return null;
+  return Math.max(0, Math.min(1439, Math.floor(numeric)));
+};
+
+const parseRemindBefore = (value?: number | string | null) => {
+  if (value == null) return 0;
+  const numeric = typeof value === 'string' ? Number(value) : value;
+  if (!Number.isFinite(numeric)) return 0;
+  return Math.max(0, Math.min(1440, Math.floor(numeric)));
+};
+
+const computeRemindAtIso = (
+  date: Date,
+  startMinutes: number | null,
+  remindBeforeMinutes: number
+) => {
+  if (startMinutes == null) return null;
+  if (remindBeforeMinutes < 0) return null;
+  const start = new Date(date);
+  start.setHours(0, 0, 0, 0);
+  start.setMinutes(startMinutes);
+  const remindAt = new Date(start.getTime() - remindBeforeMinutes * 60_000);
+  return remindAt.toISOString();
+};
+
 const areChecklistsEqual = (
   left: TaskChecklistItem[],
   right: TaskChecklistItem[]
@@ -215,6 +248,8 @@ const mapTaskRow = (row: TaskRow, clientId = row.id): Task => ({
   color: normalizeHex(row.color) ?? DEFAULT_TASK_COLOR,
   isPinned: row.is_pinned ?? false,
   checklist: parseChecklist(row.checklist),
+  startMinutes: parseSmallInt(row.start_minutes),
+  remindBeforeMinutes: parseRemindBefore(row.remind_before_minutes),
 });
 
 export function usePlanner() {
@@ -370,6 +405,10 @@ export function usePlanner() {
           : null;
 
       const rows: Array<Record<string, unknown>> = [];
+      const seriesStartMinutes = parseSmallInt(series.start_minutes ?? null);
+      const seriesRemindBefore = parseRemindBefore(
+        series.remind_before_minutes ?? 0
+      );
       for (
         let cursor = rangeStart;
         cursor <= rangeEnd;
@@ -394,6 +433,13 @@ export function usePlanner() {
           telegram_id: userId,
           series_id: series.id,
           position: nextPosition,
+          start_minutes: seriesStartMinutes,
+          remind_before_minutes: seriesRemindBefore,
+          remind_at: computeRemindAtIso(
+            cursor,
+            seriesStartMinutes,
+            seriesRemindBefore
+          ),
         });
       }
 
@@ -634,6 +680,8 @@ export function usePlanner() {
             const rowColor = normalizeHex(row.color) ?? DEFAULT_TASK_COLOR;
             const rowPinned = row.is_pinned ?? false;
             const rowChecklist = parseChecklist(row.checklist);
+            const rowStartMinutes = parseSmallInt(row.start_minutes);
+            const rowRemindBefore = parseRemindBefore(row.remind_before_minutes);
 
             setTasks((prev) => {
               if (prev.some((task) => task.id === row.id)) {
@@ -646,6 +694,10 @@ export function usePlanner() {
                   normalizeHex(pending.color) ?? DEFAULT_TASK_COLOR;
                 const pendingPinned = pending.is_pinned ?? false;
                 const pendingChecklist = parseChecklist(pending.checklist);
+                const pendingStartMinutes = parseSmallInt(pending.start_minutes);
+                const pendingRemindBefore = parseRemindBefore(
+                  pending.remind_before_minutes
+                );
                 if (
                   pending.title === row.title &&
                   pending.duration === row.duration &&
@@ -655,7 +707,9 @@ export function usePlanner() {
                   (pending.series_id ?? null) === rowSeriesId &&
                   pendingColor === rowColor &&
                   pendingPinned === rowPinned &&
-                  areChecklistsEqual(pendingChecklist, rowChecklist)
+                  areChecklistsEqual(pendingChecklist, rowChecklist) &&
+                  pendingStartMinutes === rowStartMinutes &&
+                  pendingRemindBefore === rowRemindBefore
                 ) {
                   pendingMatchId = tempId;
                   break;
@@ -798,7 +852,9 @@ export function usePlanner() {
 
       const { data: seriesData } = await supabase
         .from('task_series')
-        .select('id,title,duration,repeat,weekday,start_date,end_date')
+        .select(
+          'id,title,duration,repeat,weekday,start_minutes,remind_before_minutes,start_date,end_date'
+        )
         .lte('start_date', monthEndKey)
         .or(`end_date.is.null,end_date.gte.${monthStartKey}`);
 
@@ -872,6 +928,13 @@ export function usePlanner() {
       const bGroup = getSortGroup(b);
       if (aGroup !== bGroup) {
         return aGroup - bGroup;
+      }
+      if (a.startMinutes != null || b.startMinutes != null) {
+        if (a.startMinutes == null) return 1;
+        if (b.startMinutes == null) return -1;
+        if (a.startMinutes !== b.startMinutes) {
+          return a.startMinutes - b.startMinutes;
+        }
       }
       const aPos = a.position ?? 0;
       const bPos = b.position ?? 0;
@@ -961,7 +1024,9 @@ export function usePlanner() {
     duration = DEFAULT_DURATION,
     repeat: TaskRepeat = 'none',
     repeatCount = 1,
-    color: Task['color'] = DEFAULT_TASK_COLOR
+    color: Task['color'] = DEFAULT_TASK_COLOR,
+    startMinutes: number | null = null,
+    remindBeforeMinutes = 0
   ) => {
     const trimmedTitle = title.trim();
     if (!trimmedTitle) {
@@ -971,6 +1036,13 @@ export function usePlanner() {
       return;
     }
     const resolvedColor = normalizeHex(color) ?? DEFAULT_TASK_COLOR;
+    const normalizedStartMinutes = parseSmallInt(startMinutes);
+    const normalizedRemindBefore = parseRemindBefore(remindBeforeMinutes);
+    const remindAt = computeRemindAtIso(
+      selectedDate,
+      normalizedStartMinutes,
+      normalizedRemindBefore
+    );
 
     const selectedDateKey = formatDateOnly(selectedDate);
     const nextPosition =
@@ -991,6 +1063,9 @@ export function usePlanner() {
         color: resolvedColor,
         is_pinned: false,
         checklist: [],
+        start_minutes: normalizedStartMinutes,
+        remind_before_minutes: normalizedRemindBefore,
+        remind_at: remindAt,
       };
       pendingInsertRef.current.set(tempId, pendingRow);
 
@@ -1008,6 +1083,8 @@ export function usePlanner() {
         color: resolvedColor,
         isPinned: false,
         checklist: [],
+        startMinutes: normalizedStartMinutes,
+        remindBeforeMinutes: normalizedRemindBefore,
       };
 
       setTasks((prev) => [...prev, newTask]);
@@ -1025,6 +1102,9 @@ export function usePlanner() {
           color: resolvedColor,
           is_pinned: false,
           checklist: [],
+          start_minutes: normalizedStartMinutes,
+          remind_before_minutes: normalizedRemindBefore,
+          remind_at: remindAt,
         })
         .select()
         .single();
@@ -1058,6 +1138,8 @@ export function usePlanner() {
         weekday: repeat === 'weekly' ? getDay(selectedDate) : null,
         start_date: selectedDateKey,
         end_date: endDateKey,
+        start_minutes: normalizedStartMinutes,
+        remind_before_minutes: normalizedRemindBefore,
       })
       .select()
       .single();
@@ -1080,6 +1162,9 @@ export function usePlanner() {
       color: resolvedColor,
       is_pinned: false,
       checklist: [],
+      start_minutes: normalizedStartMinutes,
+      remind_before_minutes: normalizedRemindBefore,
+      remind_at: remindAt,
     };
     pendingInsertRef.current.set(tempId, pendingRow);
 
@@ -1097,6 +1182,8 @@ export function usePlanner() {
       color: resolvedColor,
       isPinned: false,
       checklist: [],
+      startMinutes: normalizedStartMinutes,
+      remindBeforeMinutes: normalizedRemindBefore,
     };
 
     setTasks((prev) => [...prev, newTask]);
@@ -1114,6 +1201,9 @@ export function usePlanner() {
         color: resolvedColor,
         is_pinned: false,
         checklist: [],
+        start_minutes: normalizedStartMinutes,
+        remind_before_minutes: normalizedRemindBefore,
+        remind_at: remindAt,
       })
       .select()
       .single();
@@ -1177,6 +1267,17 @@ export function usePlanner() {
         ? updates.checklist
         : [];
     }
+    if (updates.startMinutes !== undefined) {
+      appliedUpdates.startMinutes = parseSmallInt(updates.startMinutes);
+    }
+    if (updates.remindBeforeMinutes !== undefined) {
+      appliedUpdates.remindBeforeMinutes = parseRemindBefore(
+        updates.remindBeforeMinutes
+      );
+    }
+    if (updates.date !== undefined) {
+      appliedUpdates.date = updates.date;
+    }
 
     if (Object.keys(appliedUpdates).length === 0) return;
 
@@ -1201,6 +1302,33 @@ export function usePlanner() {
     }
     if (appliedUpdates.checklist !== undefined) {
       dbUpdates.checklist = appliedUpdates.checklist;
+    }
+    if (appliedUpdates.startMinutes !== undefined) {
+      dbUpdates.start_minutes = appliedUpdates.startMinutes;
+    }
+    if (appliedUpdates.remindBeforeMinutes !== undefined) {
+      dbUpdates.remind_before_minutes = appliedUpdates.remindBeforeMinutes;
+    }
+    if (appliedUpdates.date !== undefined) {
+      dbUpdates.date = formatDateOnly(appliedUpdates.date);
+    }
+
+    if (
+      appliedUpdates.startMinutes !== undefined ||
+      appliedUpdates.remindBeforeMinutes !== undefined ||
+      appliedUpdates.date !== undefined
+    ) {
+      const nextDate = appliedUpdates.date ?? existingTask.date;
+      const nextStart =
+        appliedUpdates.startMinutes ?? existingTask.startMinutes;
+      const nextBefore =
+        appliedUpdates.remindBeforeMinutes ?? existingTask.remindBeforeMinutes;
+      dbUpdates.remind_at = computeRemindAtIso(
+        nextDate,
+        nextStart,
+        nextBefore
+      );
+      dbUpdates.reminder_sent_at = null;
     }
 
     const { error } = await supabase.from('tasks').update(dbUpdates).eq('id', id);
@@ -1228,6 +1356,11 @@ export function usePlanner() {
 
     const nextDate = parseDateOnly(nextDateKey);
     const isNextInMonth = isDateInActiveMonth(nextDateKey);
+    const remindAt = computeRemindAtIso(
+      nextDate,
+      taskToMove.startMinutes,
+      taskToMove.remindBeforeMinutes
+    );
     const updatedTask: Task = {
       ...taskToMove,
       date: nextDate,
@@ -1277,6 +1410,8 @@ export function usePlanner() {
         date: nextDateKey,
         position: nextPosition,
         series_id: taskToMove.seriesId ? null : taskToMove.seriesId ?? null,
+        remind_at: remindAt,
+        reminder_sent_at: null,
       })
       .eq('id', id);
 
@@ -1430,6 +1565,12 @@ export function usePlanner() {
       skipRemoved = !skipError;
     }
 
+    const remindAt = computeRemindAtIso(
+      task.date,
+      task.startMinutes,
+      task.remindBeforeMinutes
+    );
+
     const { data, error } = await supabase
       .from('tasks')
       .insert({
@@ -1445,6 +1586,10 @@ export function usePlanner() {
         color: task.color,
         is_pinned: task.isPinned,
         checklist: task.checklist,
+        start_minutes: task.startMinutes,
+        remind_before_minutes: task.remindBeforeMinutes,
+        remind_at: remindAt,
+        reminder_sent_at: null,
       })
       .select()
       .single();
