@@ -10,12 +10,16 @@ import PlannerHeader from './PlannerHeader';
 import TaskList from './TaskList';
 import FocusOverlay from './FocusOverlay';
 import StatsModal from './StatsModal';
+import DesktopPlanner from './DesktopPlanner';
 import { usePlanner } from '../hooks/usePlanner';
 import { useHaptic } from '../hooks/useHaptic';
 import { useReward } from '../hooks/useReward';
 import type { Task, TaskRepeat } from '../types/task';
 
 export default function PlannerApp() {
+  const planner = usePlanner();
+  const { isDesktop } = planner;
+
   const {
     selectedDate,
     setSelectedDate,
@@ -44,7 +48,7 @@ export default function PlannerApp() {
     updateTask,
     moveTask,
     isLoading,
-  } = usePlanner();
+  } = planner;
   const fabRef = useRef<HTMLButtonElement>(null);
   const [undoTask, setUndoTask] = useState<Task | null>(null);
   const undoTimeoutRef = useRef<number | null>(null);
@@ -211,6 +215,10 @@ export default function PlannerApp() {
     }
     handleCloseSheet();
   };
+
+  if (isDesktop) {
+    return <DesktopPlanner planner={planner} />;
+  }
 
   return (
     <>

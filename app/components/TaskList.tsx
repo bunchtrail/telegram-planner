@@ -17,6 +17,7 @@ type TaskListProps = {
   onReorder: (tasks: Task[]) => void;
   onToggleActive: (id: string) => void;
   updateTask: (id: string, updates: Partial<Task>) => void;
+  className?: string;
 };
 
 export default function TaskList({
@@ -31,6 +32,7 @@ export default function TaskList({
   onReorder,
   onToggleActive,
   updateTask,
+  className,
 }: TaskListProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const prevTaskIdsRef = useRef<Set<string>>(new Set());
@@ -80,10 +82,14 @@ export default function TaskList({
     );
   }
 
+  const containerClassName = className
+    ? `${scrollClasses} ${className}`
+    : scrollClasses;
+
   if (tasks.length === 0) {
     return (
       <div
-        className={`${scrollClasses} flex flex-col items-center justify-center`}
+        className={`${containerClassName} flex flex-col items-center justify-center`}
       >
         <div className="mb-6 rounded-[28px] bg-[var(--surface)] p-8 shadow-[var(--shadow-card)]">
           <Calendar
@@ -110,7 +116,7 @@ export default function TaskList({
   }
 
   return (
-    <div ref={scrollContainerRef} className={scrollClasses}>
+    <div ref={scrollContainerRef} className={containerClassName}>
       <Reorder.Group
         key={dateKey}
         axis="y"

@@ -14,6 +14,7 @@ import {
   subWeeks,
 } from 'date-fns';
 import { DEFAULT_TASK_COLOR } from '../lib/constants';
+import { isDesktop as checkIsDesktop } from '../lib/platform';
 import { setSupabaseAccessToken, supabase } from '../lib/supabase';
 import type { Task, TaskChecklistItem, TaskRepeat } from '../types/task';
 
@@ -260,6 +261,7 @@ export function usePlanner() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [streak, setStreak] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [isDesktop, setIsDesktop] = useState(false);
   const [refetchKey, setRefetchKey] = useState(0);
   const toggleRequestRef = useRef(new Map<string, number>());
   const pendingInsertRef = useRef(new Map<string, TaskRow>());
@@ -458,7 +460,29 @@ export function usePlanner() {
 
   useEffect(() => {
     const webApp = getTelegramWebApp();
-    if (!webApp) return;
+    const root = document.documentElement;
+
+    const applyPlatform = () => {
+      const platform = webApp?.platform;
+      if (platform) {
+        root.dataset.tgPlatform = platform;
+      } else {
+        delete root.dataset.tgPlatform;
+      }
+
+      const desktop = checkIsDesktop();
+      setIsDesktop(desktop);
+      root.classList.toggle('tg-desktop', desktop);
+    };
+
+    applyPlatform();
+
+    if (!webApp) {
+      return () => {
+        delete root.dataset.tgPlatform;
+        root.classList.remove('tg-desktop');
+      };
+    }
 
     webApp.ready?.();
     if (webApp.isVersionAtLeast?.('7.7')) {
@@ -466,23 +490,8 @@ export function usePlanner() {
     }
     webApp.expand?.();
 
-    const applyPlatform = () => {
-      const root = document.documentElement;
-      const platform = webApp.platform;
-      if (platform) {
-        root.dataset.tgPlatform = platform;
-      } else {
-        delete root.dataset.tgPlatform;
-      }
-
-      const isDesktop = platform === 'tdesktop' || platform === 'macos';
-      root.classList.toggle('tg-desktop', isDesktop);
-    };
-
-    applyPlatform();
-
     const applyTheme = () => {
-      const root = document.documentElement.style;
+      const styleRoot = document.documentElement.style;
       const params = webApp.themeParams ?? {};
       const bgColor = normalizeHex(params.bg_color) ?? '#f2f2f7';
       const surfaceColor = normalizeHex(params.secondary_bg_color) ?? '#ffffff';
@@ -497,18 +506,18 @@ export function usePlanner() {
       const borderColor = withAlpha(textColor, 0.08) ?? 'rgba(0,0,0,0.08)';
       const glassSurface = withAlpha(surfaceColor, 0.9);
 
-      root.setProperty('--bg', bgColor);
-      root.setProperty('--surface', surfaceColor);
-      root.setProperty('--surface-2', surfaceAlt);
+      styleRoot.setProperty('--bg', bgColor);
+      styleRoot.setProperty('--surface', surfaceColor);
+      styleRoot.setProperty('--surface-2', surfaceAlt);
       if (glassSurface) {
-        root.setProperty('--surface-glass', glassSurface);
+        styleRoot.setProperty('--surface-glass', glassSurface);
       }
-      root.setProperty('--ink', textColor);
-      root.setProperty('--muted', mutedColor);
-      root.setProperty('--border', borderColor);
-      root.setProperty('--accent', accentColor);
-      root.setProperty('--accent-ink', accentInk);
-      root.setProperty('--danger', dangerColor);
+      styleRoot.setProperty('--ink', textColor);
+      styleRoot.setProperty('--muted', mutedColor);
+      styleRoot.setProperty('--border', borderColor);
+      styleRoot.setProperty('--accent', accentColor);
+      styleRoot.setProperty('--accent-ink', accentInk);
+      styleRoot.setProperty('--danger', dangerColor);
 
       const headerColor =
         normalizeHex(params.header_bg_color) ??
@@ -528,59 +537,71 @@ export function usePlanner() {
     applyTheme();
 
     const applyInsets = () => {
-      const root = document.documentElement.style;
+      const styleRoot = document.documentElement.style;
       const contentInsets = webApp.contentSafeAreaInset;
       const safeInsets = webApp.safeAreaInset;
 
       if (contentInsets) {
-        root.setProperty(
+        styleRoot.setProperty(
           '--tg-content-safe-area-inset-top',
           `${contentInsets.top}px`
         );
-        root.setProperty(
+        styleRoot.setProperty(
           '--tg-content-safe-area-inset-right',
           `${contentInsets.right}px`
         );
-        root.setProperty(
+        styleRoot.setProperty(
           '--tg-content-safe-area-inset-bottom',
           `${contentInsets.bottom}px`
         );
-        root.setProperty(
+        styleRoot.setProperty(
           '--tg-content-safe-area-inset-left',
           `${contentInsets.left}px`
         );
-        root.setProperty('--tg-content-safe-top', `${contentInsets.top}px`);
-        root.setProperty('--tg-content-safe-right', `${contentInsets.right}px`);
-        root.setProperty(
+        styleRoot.setProperty('--tg-content-safe-top', `${contentInsets.top}px`);
+        styleRoot.setProperty(
+          '--tg-content-safe-right',
+          `${contentInsets.right}px`
+        );
+        styleRoot.setProperty(
           '--tg-content-safe-bottom',
           `${contentInsets.bottom}px`
         );
-        root.setProperty('--tg-content-safe-left', `${contentInsets.left}px`);
+        styleRoot.setProperty(
+          '--tg-content-safe-left',
+          `${contentInsets.left}px`
+        );
       }
 
       if (safeInsets) {
-        root.setProperty('--tg-safe-area-inset-top', `${safeInsets.top}px`);
-        root.setProperty('--tg-safe-area-inset-right', `${safeInsets.right}px`);
-        root.setProperty(
+        styleRoot.setProperty('--tg-safe-area-inset-top', `${safeInsets.top}px`);
+        styleRoot.setProperty(
+          '--tg-safe-area-inset-right',
+          `${safeInsets.right}px`
+        );
+        styleRoot.setProperty(
           '--tg-safe-area-inset-bottom',
           `${safeInsets.bottom}px`
         );
-        root.setProperty('--tg-safe-area-inset-left', `${safeInsets.left}px`);
-        root.setProperty('--tg-safe-top', `${safeInsets.top}px`);
-        root.setProperty('--tg-safe-right', `${safeInsets.right}px`);
-        root.setProperty('--tg-safe-bottom', `${safeInsets.bottom}px`);
-        root.setProperty('--tg-safe-left', `${safeInsets.left}px`);
+        styleRoot.setProperty(
+          '--tg-safe-area-inset-left',
+          `${safeInsets.left}px`
+        );
+        styleRoot.setProperty('--tg-safe-top', `${safeInsets.top}px`);
+        styleRoot.setProperty('--tg-safe-right', `${safeInsets.right}px`);
+        styleRoot.setProperty('--tg-safe-bottom', `${safeInsets.bottom}px`);
+        styleRoot.setProperty('--tg-safe-left', `${safeInsets.left}px`);
       }
     };
 
     const applyTelegramControlsOffsets = () => {
-      const root = document.documentElement.style;
       const isFullscreen = Boolean(webApp.isFullscreen);
       const platform = webApp.platform;
       const top = !isFullscreen ? 0 : platform === 'ios' ? 44 : 48;
       const side = !isFullscreen ? 0 : platform === 'ios' ? 44 : 40;
-      root.setProperty('--tma-tg-controls-top', `${top}px`);
-      root.setProperty('--tma-tg-controls-side', `${side}px`);
+      const styleRoot = document.documentElement.style;
+      styleRoot.setProperty('--tma-tg-controls-top', `${top}px`);
+      styleRoot.setProperty('--tma-tg-controls-side', `${side}px`);
     };
 
     let onAny: (() => void) | null = null;
@@ -599,7 +620,6 @@ export function usePlanner() {
 
     return () => {
       webApp.offEvent?.('themeChanged', applyTheme);
-      const root = document.documentElement;
       delete root.dataset.tgPlatform;
       root.classList.remove('tg-desktop');
       if (!onAny) return;
@@ -1659,5 +1679,6 @@ export function usePlanner() {
     updateTask,
     moveTask,
     isLoading,
+    isDesktop,
   };
 }

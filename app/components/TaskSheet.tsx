@@ -42,6 +42,12 @@ const SHEET_TRANSITION = {
   mass: 1,
 } satisfies Transition;
 
+const MODAL_TRANSITION = {
+  type: "spring",
+  damping: 25,
+  stiffness: 300,
+} satisfies Transition;
+
 const REPEAT_COUNT_MIN = 1;
 const REPEAT_COUNT_MAX = 365;
 const DEFAULT_REPEAT_COUNT_DAILY = 7;
@@ -67,6 +73,7 @@ type TaskSheetProps = {
     startMinutes: number | null,
     remindBeforeMinutes: number,
   ) => void;
+  isDesktop?: boolean;
 };
 
 export default function TaskSheet({
@@ -81,6 +88,7 @@ export default function TaskSheet({
   initialRemindBeforeMinutes = 0,
   taskDate,
   onSubmit,
+  isDesktop = false,
 }: TaskSheetProps) {
   const [title, setTitle] = useState(initialTitle);
   const [duration, setDuration] = useState(initialDuration);
@@ -144,6 +152,7 @@ export default function TaskSheet({
     _event: MouseEvent | TouchEvent | PointerEvent,
     info: PanInfo,
   ) => {
+    if (isDesktop) return;
     setIsDragging(false);
     const draggingDown = info.offset.y > 0;
     const fastDrag = info.velocity.y > 300;
@@ -225,9 +234,10 @@ export default function TaskSheet({
           definition !== null &&
           !Array.isArray(definition) &&
           "y" in definition &&
-          (definition as { y?: number | string }).y === 0);
+          (definition as { y?: number | string }).y === 0) ||
+        (isDesktop && definition === undefined);
 
-      if (isOpening) {
+      if (isOpening || (isDesktop && !isSettled)) {
         setIsSettled(true);
         if (mode === "create") {
           requestAnimationFrame(() => {
@@ -238,11 +248,31 @@ export default function TaskSheet({
         }
       }
     },
-    [mode],
+    [mode, isDesktop, isSettled],
   );
 
+  const containerClasses = isDesktop
+    ? "fixed inset-0 z-50 flex items-center justify-center pointer-events-auto p-4"
+    : "fixed inset-0 z-50 flex flex-col justify-end pointer-events-none touch-none";
+
+  const sheetClasses = cn(
+    "pointer-events-auto relative w-full bg-[var(--surface)] flex flex-col shadow-[0_-10px_40px_-10px_rgba(0,0,0,0.1)] overflow-hidden ring-1 ring-inset ring-[var(--border)]",
+    isDesktop
+      ? "max-w-lg rounded-2xl shadow-2xl max-h-[85vh]"
+      : "max-w-lg mx-auto rounded-t-[32px] max-h-[92dvh]",
+  );
+
+  const initialAnim = isDesktop ? { opacity: 0, scale: 0.95 } : { y: "100%" };
+  const animateAnim = isDesktop ? { opacity: 1, scale: 1 } : { y: 0 };
+  const exitAnim = isDesktop ? { opacity: 0, scale: 0.95 } : { y: "100%" };
+  const transitionConfig = reduceMotion
+    ? { duration: 0 }
+    : isDesktop
+      ? MODAL_TRANSITION
+      : SHEET_TRANSITION;
+
   return (
-    <div className="fixed inset-0 z-50 flex flex-col justify-end pointer-events-none touch-none">
+    <div className={containerClasses}>
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -253,13 +283,13 @@ export default function TaskSheet({
       />
 
       <motion.div
-        initial={{ y: "100%" }}
-        animate={{ y: 0 }}
-        exit={{ y: "100%" }}
-        transition={reduceMotion ? { duration: 0 } : SHEET_TRANSITION}
+        initial={initialAnim}
+        animate={animateAnim}
+        exit={exitAnim}
+        transition={transitionConfig}
         onAnimationStart={() => setIsSettled(false)}
         onAnimationComplete={handleAnimationComplete}
-        drag="y"
+        drag={isDesktop ? false : "y"}
         dragControls={dragControls}
         dragListener={false}
         dragConstraints={{ top: 0 }}
@@ -267,22 +297,29 @@ export default function TaskSheet({
         onDragStart={() => setIsDragging(true)}
         onDragEnd={handleDragEnd}
         transformTemplate={(_transforms, generatedTransform) =>
-          isSettled && !isDragging ? "none" : generatedTransform
+          isSettled && !isDragging && !isDesktop ? "none" : generatedTransform
         }
-        className="pointer-events-auto relative w-full bg-[var(--surface)] rounded-t-[32px] flex flex-col shadow-[0_-10px_40px_-10px_rgba(0,0,0,0.1)] max-w-lg mx-auto overflow-hidden ring-1 ring-inset ring-[var(--border)]"
-        style={{
-          maxHeight: "92dvh",
-        }}
+        className={sheetClasses}
       >
         <div
-          className="shrink-0 w-full pt-4 pb-2 z-20 bg-[var(--surface)] cursor-grab active:cursor-grabbing touch-none select-none"
-          onPointerDown={(e) => dragControls.start(e)}
+          className={cn(
+            "shrink-0 w-full pt-4 pb-2 z-20 bg-[var(--surface)] select-none",
+            !isDesktop && "cursor-grab active:cursor-grabbing touch-none",
+          )}
+          onPointerDown={(e) => !isDesktop && dragControls.start(e)}
         >
-          <div className="flex justify-center mb-4">
-            <div className="w-12 h-1.5 rounded-full bg-[var(--muted)]/20" />
-          </div>
+          {!isDesktop && (
+            <div className="flex justify-center mb-4">
+              <div className="w-12 h-1.5 rounded-full bg-[var(--muted)]/20" />
+            </div>
+          )}
 
-          <div className="flex items-center justify-between px-6 pb-2">
+          <div
+            className={cn(
+              "flex items-center justify-between px-6 pb-2",
+              isDesktop && "pt-2",
+            )}
+          >
             <button
               type="button"
               onClick={handleClose}
