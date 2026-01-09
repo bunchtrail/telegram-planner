@@ -4,6 +4,7 @@ import { Calendar, Loader2 } from 'lucide-react';
 import type { Task } from '../types/task';
 import TaskItem from './TaskItem';
 import { isIOSDevice } from '../lib/platform';
+import { cn } from '../lib/cn';
 
 type TaskListProps = {
   dateKey: string;
@@ -18,6 +19,7 @@ type TaskListProps = {
   onToggleActive: (id: string) => void;
   updateTask: (id: string, updates: Partial<Task>) => void;
   className?: string;
+  isDesktop?: boolean;
 };
 
 export default function TaskList({
@@ -33,6 +35,7 @@ export default function TaskList({
   onToggleActive,
   updateTask,
   className,
+  isDesktop = false,
 }: TaskListProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const prevTaskIdsRef = useRef<Set<string>>(new Set());
@@ -68,8 +71,10 @@ export default function TaskList({
     prevTaskIdsRef.current = nextIds;
   }, [tasks, reduceMotion]);
 
-  const scrollClasses =
-    'h-full w-full overflow-y-auto pb-32 pt-2 touch-pan-y overscroll-contain no-scrollbar pl-[max(1rem,env(safe-area-inset-left),var(--tg-content-safe-left,0px))] pr-[max(1rem,env(safe-area-inset-right),var(--tg-content-safe-right,0px))] [-webkit-overflow-scrolling:touch]';
+  const scrollClasses = cn(
+    'h-full w-full overflow-y-auto pt-2 touch-pan-y overscroll-contain no-scrollbar pl-[max(1rem,env(safe-area-inset-left),var(--tg-content-safe-left,0px))] pr-[max(1rem,env(safe-area-inset-right),var(--tg-content-safe-right,0px))] [-webkit-overflow-scrolling:touch]',
+    isDesktop ? 'pb-8 pt-4 px-0' : 'pb-32'
+  );
 
   if (isLoading) {
     return (
@@ -89,16 +94,26 @@ export default function TaskList({
   if (tasks.length === 0) {
     return (
       <div
-        className={`${containerClassName} flex flex-col items-center justify-center`}
+        className={`${containerClassName} flex flex-col items-center justify-center min-h-[50vh]`}
       >
-        <div className="mb-6 rounded-[28px] bg-[var(--surface)] p-8 shadow-[var(--shadow-card)]">
+        <div
+          className={cn(
+            'mb-6 rounded-[28px] bg-[var(--surface)] shadow-[var(--shadow-card)]',
+            isDesktop ? 'p-12 shadow-sm border border-[var(--border)]' : 'p-8'
+          )}
+        >
           <Calendar
-            size={48}
+            size={isDesktop ? 64 : 48}
             className="text-[var(--accent)] opacity-80"
             strokeWidth={1.5}
           />
         </div>
-        <p className="text-xl font-bold text-[var(--ink)] font-[var(--font-display)]">
+        <p
+          className={cn(
+            'font-bold text-[var(--ink)] font-[var(--font-display)]',
+            isDesktop ? 'text-2xl' : 'text-xl'
+          )}
+        >
           План пуст
         </p>
         <p className="text-sm text-[var(--muted)] mt-1 mb-6">
@@ -107,7 +122,7 @@ export default function TaskList({
         <button
           type="button"
           onClick={onAdd}
-          className="rounded-xl bg-[var(--surface-2)] px-6 py-3 text-sm font-bold text-[var(--accent)] transition-colors active:scale-95"
+          className="rounded-xl bg-[var(--surface-2)] px-6 py-3 text-sm font-bold text-[var(--accent)] transition-colors active:scale-95 hover:bg-[var(--surface)] border border-[var(--border)]"
         >
           Создать задачу
         </button>
@@ -124,7 +139,7 @@ export default function TaskList({
         onReorder={onReorder}
         as="ul"
         role="list"
-        className="relative"
+        className={isDesktop ? 'space-y-4' : 'relative'}
       >
         {reduceMotion ? (
           tasks.map((task) => (
@@ -138,6 +153,7 @@ export default function TaskList({
               isActive={Boolean(task.activeStartedAt) && !task.completed}
               onToggleActive={onToggleActive}
               updateTask={updateTask}
+              isDesktop={isDesktop}
             />
           ))
         ) : (
@@ -153,6 +169,7 @@ export default function TaskList({
                 isActive={Boolean(task.activeStartedAt) && !task.completed}
                 onToggleActive={onToggleActive}
                 updateTask={updateTask}
+                isDesktop={isDesktop}
               />
             ))}
           </AnimatePresence>

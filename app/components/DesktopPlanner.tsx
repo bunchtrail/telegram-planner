@@ -294,42 +294,43 @@ export default function DesktopPlanner({ planner }: DesktopPlannerProps) {
         </div>
       </aside>
 
-      <main className="flex-1 flex flex-col min-w-0 bg-[var(--surface-2)]/30">
-        <header className="h-24 shrink-0 px-10 flex items-center justify-between border-b border-[var(--border)] bg-[var(--bg)]/80 backdrop-blur sticky top-0 z-20">
+      <main className="flex-1 flex flex-col min-w-0 bg-[var(--surface-2)]/30 relative">
+        <header className="h-24 shrink-0 px-12 flex items-center justify-between border-b border-[var(--border)] bg-[var(--bg)]/80 backdrop-blur sticky top-0 z-20">
           <div>
-            <div className="flex items-baseline gap-3 mb-1">
+            <div className="flex items-baseline gap-4 mb-1">
               <h2 className="text-4xl font-bold font-[var(--font-display)] capitalize tracking-tight">
                 {format(selectedDate, "d MMMM", { locale: ru })}
               </h2>
               {isSameDay(selectedDate, new Date()) && (
-                <span className="text-[var(--accent)] font-bold text-xs bg-[var(--accent)]/10 px-2.5 py-1 rounded-full uppercase tracking-wider">
+                <span className="text-[var(--accent)] font-bold text-xs bg-[var(--accent)]/10 px-3 py-1.5 rounded-full uppercase tracking-wider">
                   Сегодня
                 </span>
               )}
             </div>
             <p className="text-[var(--muted)] font-medium capitalize text-lg">
-              {format(selectedDate, "EEEE", { locale: ru })} •
-              {" "}
+              {format(selectedDate, "EEEE", { locale: ru })} •{" "}
               {currentTasks.length} задач
             </p>
           </div>
 
           {totalCount > 0 && (
-            <div className="h-12 px-5 bg-[var(--surface)] rounded-xl border border-[var(--border)] shadow-sm flex items-center gap-3">
+            <div className="h-14 px-6 bg-[var(--surface)] rounded-2xl border border-[var(--border)] shadow-sm flex items-center gap-4">
               <div className="text-sm font-bold text-[var(--muted)] uppercase tracking-wider">
                 Прогресс
               </div>
-              <div className="h-4 w-[1px] bg-[var(--border)]" />
-              <div className="text-xl font-bold text-[var(--ink)] tabular-nums">
+              <div className="h-6 w-[1px] bg-[var(--border)]" />
+              <div className="text-2xl font-bold text-[var(--ink)] tabular-nums">
                 {completedCount}
-                <span className="text-[var(--muted)]">/ {totalCount}</span>
+                <span className="text-[var(--muted)] text-xl">
+                  / {totalCount}
+                </span>
               </div>
             </div>
           )}
         </header>
 
         <div className="flex-1 overflow-hidden relative">
-          <div className="absolute inset-0 overflow-y-auto px-10 py-8 max-w-4xl mx-auto w-full no-scrollbar">
+          <div className="absolute inset-0 overflow-y-auto px-12 py-10 max-w-6xl mx-auto w-full no-scrollbar">
             <TaskList
               dateKey={format(selectedDate, "yyyy-MM-dd")}
               tasks={currentTasks}
@@ -342,6 +343,7 @@ export default function DesktopPlanner({ planner }: DesktopPlannerProps) {
               onReorder={handleReorder}
               onToggleActive={toggleActiveTask}
               updateTask={updateTask}
+              isDesktop
               className="pl-0 pr-0"
             />
             <div className="h-32" />

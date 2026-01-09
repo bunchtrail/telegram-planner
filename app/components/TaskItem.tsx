@@ -15,27 +15,28 @@ import {
   Reorder,
   motion,
   useDragControls,
-  AnimatePresence,
   useMotionTemplate,
   useMotionValue,
   animate,
   useReducedMotion,
+  AnimatePresence,
 } from 'framer-motion';
 import {
+  ArrowRight,
   Calendar,
   Check,
   ChevronDown,
   Clock,
+  CornerDownLeft,
   GripVertical,
-  Pin,
+  Pause,
   Pencil,
+  Pin,
+  Play,
   Plus,
   Sunrise,
   Trash2,
   X,
-  CornerDownLeft,
-  Play,
-  Pause,
 } from 'lucide-react';
 import type { Task } from '../types/task';
 import { cn } from '../lib/cn';
@@ -51,6 +52,7 @@ type TaskItemProps = {
   isActive: boolean;
   onToggleActive: (id: string) => void;
   updateTask: (id: string, updates: Partial<Task>) => void;
+  isDesktop?: boolean;
 };
 
 interface CustomCSSProperties extends CSSProperties {
@@ -108,6 +110,7 @@ const TaskItem = memo(function TaskItem({
   isActive,
   onToggleActive,
   updateTask,
+  isDesktop = false,
 }: TaskItemProps) {
   const { impact, selection, notification } = useHaptic();
   const dragControls = useDragControls();
@@ -293,12 +296,15 @@ const TaskItem = memo(function TaskItem({
           : { type: 'tween', duration: 0.18, ease: 'easeOut' }
       }
       className={cn(
-        'group relative mb-4 overflow-hidden rounded-[28px] bg-[var(--surface)] touch-pan-y transition-shadow duration-300',
+        'group relative overflow-hidden bg-[var(--surface)] touch-pan-y transition-all duration-300',
+        isDesktop
+          ? 'rounded-[20px] mb-3 hover:shadow-md border border-transparent hover:border-[var(--border)]'
+          : 'rounded-[28px] mb-4 shadow-[var(--shadow-card)]',
         isActive
           ? 'z-20'
           : isExpanded
             ? 'shadow-[var(--shadow-pop)] z-10'
-            : 'shadow-[var(--shadow-card)]'
+            : ''
       )}
       style={
         {
@@ -315,13 +321,21 @@ const TaskItem = memo(function TaskItem({
             <motion.div
               animate={{ opacity: [0.3, 0.5, 0.3], scale: [0.98, 1.01, 0.98] }}
               transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-              className="absolute inset-0 rounded-[28px] bg-[var(--task-color)] blur-xl opacity-40 -z-10"
+              className={cn(
+                'absolute inset-0 bg-[var(--task-color)] blur-xl opacity-40 -z-10',
+                isDesktop ? 'rounded-[20px]' : 'rounded-[28px]'
+              )}
             />
           )}
 
           {!reduceEffects && <ActiveBorder color={task.color} />}
 
-          <div className="absolute inset-0 rounded-[28px] overflow-hidden bg-[var(--surface)] z-0">
+          <div
+            className={cn(
+              'absolute inset-0 overflow-hidden bg-[var(--surface)] z-0',
+              isDesktop ? 'rounded-[20px]' : 'rounded-[28px]'
+            )}
+          >
             <motion.div
               className="absolute inset-0 bg-[var(--task-color)] opacity-[0.08]"
               initial={reduceEffects ? false : { width: 0 }}
@@ -336,11 +350,11 @@ const TaskItem = memo(function TaskItem({
 
       <div
         className={cn(
-          'flex flex-col relative z-10 rounded-[28px]',
+          'flex flex-col relative z-10 rounded-[inherit]',
           isExpanded && !isActive && 'bg-[var(--muted)]/5'
         )}
       >
-        <div className="flex items-start gap-4 p-5 pr-3">
+        <div className={cn('flex items-start gap-4 pr-3', isDesktop ? 'p-6' : 'p-5')}>
           <motion.button
             type="button"
             whileTap={{ scale: 0.85 }}
@@ -354,12 +368,10 @@ const TaskItem = memo(function TaskItem({
               onToggle(task.id, { x, y });
             }}
             aria-pressed={task.completed}
-            aria-label={
-              task.completed
-                ? 'Отметить как невыполненную'
-                : 'Отметить как выполненную'
-            }
-            className="relative flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-[1.5px] transition-colors duration-300 mt-1"
+            className={cn(
+              'relative flex shrink-0 items-center justify-center rounded-full border-[1.5px] transition-colors duration-300 mt-1',
+              isDesktop ? 'h-7 w-7' : 'h-6 w-6'
+            )}
             style={{
               borderColor: task.color,
               backgroundColor: task.completed ? task.color : 'transparent',
@@ -407,7 +419,8 @@ const TaskItem = memo(function TaskItem({
               <div className="flex items-center gap-2 min-w-0">
                 <p
                   className={cn(
-                    'text-[17px] font-semibold leading-snug tracking-tight transition-colors mb-1 font-[var(--font-display)]',
+                    'font-semibold leading-snug tracking-tight transition-colors mb-1 font-[var(--font-display)]',
+                    isDesktop ? 'text-xl' : 'text-[17px]',
                     task.completed
                       ? 'text-[var(--muted)] line-through decoration-2 decoration-[var(--border)]'
                       : 'text-[var(--ink)]',
@@ -418,7 +431,7 @@ const TaskItem = memo(function TaskItem({
                 </p>
                 {task.isPinned && (
                   <Pin
-                    size={12}
+                    size={isDesktop ? 14 : 12}
                     className="text-[var(--accent)] fill-current rotate-45 flex-shrink-0"
                   />
                 )}
@@ -430,12 +443,16 @@ const TaskItem = memo(function TaskItem({
                 {isActive ? (
                   reduceEffects ? (
                     <div className="inline-flex items-center text-[var(--task-color)] font-bold tabular-nums">
-                      <span className="text-[14px]">{elapsedLabel}</span>
+                      <span className={isDesktop ? 'text-[15px]' : 'text-[14px]'}>
+                        {elapsedLabel}
+                      </span>
                     </div>
                   ) : (
                     <div className="inline-flex items-center text-[var(--task-color)] font-bold tabular-nums animate-in fade-in duration-300">
                       <ActiveWave />
-                      <span className="text-[14px] ml-1">{elapsedLabel}</span>
+                      <span className={cn('ml-1', isDesktop ? 'text-[15px]' : 'text-[14px]')}>
+                        {elapsedLabel}
+                      </span>
                     </div>
                   )
                 ) : (
@@ -474,7 +491,7 @@ const TaskItem = memo(function TaskItem({
                   </div>
                 )}
 
-                {isExpanded && (
+                {isExpanded && !isDesktop && (
                   <motion.span
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
@@ -485,8 +502,8 @@ const TaskItem = memo(function TaskItem({
                   </motion.span>
                 )}
               </div>
-                )}
-              </div>
+            )}
+          </div>
 
           <div className="flex items-center gap-2">
             {!isExpanded && !task.completed && (
@@ -498,33 +515,86 @@ const TaskItem = memo(function TaskItem({
                   onToggleActive(task.id);
                 }}
                 className={cn(
-                  'h-8 w-8 flex items-center justify-center rounded-full transition-all active:scale-90 relative z-20',
+                  'flex items-center justify-center rounded-full transition-all active:scale-90 relative z-20',
+                  isDesktop ? 'h-9 w-9' : 'h-8 w-8',
                   isActive
                     ? 'bg-[var(--task-color)] text-[var(--bg)] shadow-lg'
                     : 'bg-[var(--surface-2)] text-[var(--muted)] hover:text-[var(--ink)]'
                 )}
               >
                 {isActive ? (
-                  <Pause size={14} fill="currentColor" />
+                  <Pause size={isDesktop ? 16 : 14} fill="currentColor" />
                 ) : (
-                  <Play size={14} fill="currentColor" className="ml-0.5" />
+                  <Play
+                    size={isDesktop ? 16 : 14}
+                    fill="currentColor"
+                    className="ml-0.5"
+                  />
                 )}
               </button>
             )}
 
-            <button
-              type="button"
-              aria-label="Перетащить"
-              className="h-8 w-8 flex items-center justify-center text-[var(--muted)] opacity-20 group-hover:opacity-50 transition-opacity cursor-grab active:cursor-grabbing touch-none -mr-1"
-              onPointerDown={(event) => {
-                event.preventDefault();
-                event.stopPropagation();
-                impact('light');
-                dragControls.start(event);
-              }}
-            >
-              <GripVertical size={20} />
-            </button>
+            {!isDesktop ? (
+              <button
+                type="button"
+                aria-label="Перетащить"
+                className="h-8 w-8 flex items-center justify-center text-[var(--muted)] opacity-20 group-hover:opacity-50 transition-opacity cursor-grab active:cursor-grabbing touch-none -mr-1"
+                onPointerDown={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  impact('light');
+                  dragControls.start(event);
+                }}
+              >
+                <GripVertical size={20} />
+              </button>
+            ) : (
+              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEdit(task);
+                  }}
+                  className="h-9 w-9 flex items-center justify-center rounded-xl hover:bg-[var(--surface-2)] text-[var(--muted)] hover:text-[var(--ink)] transition-colors"
+                  title="Изменить"
+                >
+                  <Pencil size={18} />
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleMoveTomorrow();
+                  }}
+                  className="h-9 w-9 flex items-center justify-center rounded-xl hover:bg-[var(--surface-2)] text-[var(--muted)] hover:text-[var(--accent)] transition-colors"
+                  title="На завтра"
+                >
+                  <ArrowRight size={18} />
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDelete(task.id);
+                  }}
+                  className="h-9 w-9 flex items-center justify-center rounded-xl hover:bg-[var(--danger)]/10 text-[var(--muted)] hover:text-[var(--danger)] transition-colors"
+                  title="Удалить"
+                >
+                  <Trash2 size={18} />
+                </button>
+                <div
+                  className="h-9 w-6 flex items-center justify-center text-[var(--muted)] opacity-20 hover:opacity-100 cursor-grab active:cursor-grabbing"
+                  onPointerDown={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    dragControls.start(event);
+                  }}
+                >
+                  <GripVertical size={18} />
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -542,7 +612,10 @@ const TaskItem = memo(function TaskItem({
         >
           <div
             ref={detailsRef}
-            className="px-4 pb-4 pt-0 pl-[3.5rem] space-y-3"
+            className={cn(
+              'px-4 pb-4 pt-0 pl-[3.5rem] md:pl-[4.5rem] md:pr-6 space-y-3 md:space-y-4',
+              isDesktop && 'pt-2'
+            )}
           >
             {!task.completed ? (
               <>
@@ -553,9 +626,8 @@ const TaskItem = memo(function TaskItem({
                     impact('light');
                     onToggleActive(task.id);
                   }}
-                  aria-pressed={isActive}
                   className={cn(
-                    'w-full h-[52px] rounded-[18px] flex items-center justify-center gap-2 text-[14px] font-bold transition-[transform,colors] duration-200 active:scale-[0.98] relative overflow-hidden',
+                    'w-full h-[52px] md:h-[60px] rounded-[18px] flex items-center justify-center gap-2 text-[14px] md:text-[16px] font-bold transition-[transform,colors] duration-200 active:scale-[0.98] relative overflow-hidden',
                     isActive
                       ? 'bg-[var(--task-color)] text-[var(--bg)] shadow-lg shadow-[var(--task-color)]/20'
                       : 'bg-[var(--surface-2)] text-[var(--ink)] hover:bg-[var(--border)]'
@@ -597,7 +669,7 @@ const TaskItem = memo(function TaskItem({
                   </div>
                 </button>
 
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-2 md:gap-3">
                   <button
                     type="button"
                     onClick={(event) => {
@@ -605,13 +677,13 @@ const TaskItem = memo(function TaskItem({
                       setPendingDate(null);
                       handleMoveTomorrow();
                     }}
-                    className="col-span-1 flex flex-col items-center justify-center gap-1 h-[64px] rounded-[18px] bg-[var(--surface-2)] text-[var(--ink)] active:scale-95 transition-[transform,colors] duration-200 relative overflow-hidden group hover:bg-[var(--border)]"
+                    className="col-span-1 flex flex-col items-center justify-center gap-1 h-[64px] md:h-[72px] rounded-[18px] bg-[var(--surface-2)] text-[var(--ink)] active:scale-95 transition-[transform,colors] duration-200 relative overflow-hidden group hover:bg-[var(--border)]"
                   >
                     <Sunrise size={20} className="text-[var(--accent)] mb-0.5" />
                     <span className="text-[12px] font-bold">Завтра</span>
                   </button>
 
-                  <div className="col-span-1 relative h-[64px]">
+                  <div className="col-span-1 relative h-[64px] md:h-[72px]">
                     {hasPendingChange ? (
                       <div className="absolute inset-0 flex flex-col gap-0.5">
                         <button
@@ -824,51 +896,64 @@ const TaskItem = memo(function TaskItem({
                   </form>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      impact('light');
-                      updateTask(task.id, { isPinned: !task.isPinned });
-                    }}
-                    className={cn(
-                      'col-span-1 h-10 rounded-xl flex items-center justify-center gap-2 text-xs font-bold transition-colors active:scale-95',
-                      task.isPinned
-                        ? 'bg-[var(--ink)] text-[var(--bg)]'
-                        : 'bg-[var(--surface-2)] text-[var(--ink)]'
-                    )}
-                    aria-pressed={task.isPinned}
-                  >
-                    <Pin
-                      size={14}
-                      className={task.isPinned ? 'fill-current' : ''}
-                    />
-                    {task.isPinned ? 'Открепить' : 'Закрепить'}
-                  </button>
+                {!isDesktop ? (
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        impact('light');
+                        updateTask(task.id, { isPinned: !task.isPinned });
+                      }}
+                      className={cn(
+                        'col-span-1 h-10 rounded-xl flex items-center justify-center gap-2 text-xs font-bold transition-colors active:scale-95',
+                        task.isPinned
+                          ? 'bg-[var(--ink)] text-[var(--bg)]'
+                          : 'bg-[var(--surface-2)] text-[var(--ink)]'
+                      )}
+                      aria-pressed={task.isPinned}
+                    >
+                      <Pin
+                        size={14}
+                        className={task.isPinned ? 'fill-current' : ''}
+                      />
+                      {task.isPinned ? 'Открепить' : 'Закрепить'}
+                    </button>
 
-                  <button
-                    type="button"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      onEdit(task);
-                    }}
-                    className="col-span-1 flex items-center justify-center gap-2 h-10 rounded-xl bg-[var(--surface-2)] text-[var(--ink)] font-bold text-[12px] active:scale-95 transition-[transform,colors] duration-200 hover:bg-[var(--border)]"
-                  >
-                    <Pencil size={16} /> Изменить
-                  </button>
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onEdit(task);
+                      }}
+                      className="col-span-1 flex items-center justify-center gap-2 h-10 rounded-xl bg-[var(--surface-2)] text-[var(--ink)] font-bold text-[12px] active:scale-95 transition-[transform,colors] duration-200 hover:bg-[var(--border)]"
+                    >
+                      <Pencil size={16} /> Изменить
+                    </button>
 
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onDelete(task.id);
+                      }}
+                      className="col-span-2 flex items-center justify-center gap-2 h-[52px] rounded-[18px] bg-[var(--danger)]/10 text-[var(--danger)] font-bold text-[13px] active:scale-95 transition-[transform,colors] duration-200 hover:bg-[var(--danger)]/20"
+                    >
+                      <Trash2 size={18} /> Удалить
+                    </button>
+                  </div>
+                ) : (
                   <button
                     type="button"
                     onClick={(event) => {
                       event.stopPropagation();
                       onDelete(task.id);
                     }}
-                    className="col-span-2 flex items-center justify-center gap-2 h-[52px] rounded-[18px] bg-[var(--danger)]/10 text-[var(--danger)] font-bold text-[13px] active:scale-95 transition-[transform,colors] duration-200 hover:bg-[var(--danger)]/20"
+                    className="w-full flex items-center justify-center gap-2 h-[52px] rounded-[18px] bg-[var(--danger)]/10 text-[var(--danger)] font-bold text-[13px] active:scale-95 transition-[transform,colors] duration-200 hover:bg-[var(--danger)]/20"
                   >
-                    <Trash2 size={18} /> Удалить
+                    <Trash2 size={18} /> Удалить задачу
                   </button>
-                </div>
+                )}
               </>
             ) : (
               <button
