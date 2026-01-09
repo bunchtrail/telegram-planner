@@ -286,6 +286,11 @@ export default function PlannerApp() {
               initialRemindBeforeMinutes={
                 sheetMode === 'edit' ? editingTask?.remindBeforeMinutes : 0
               }
+              taskDate={
+                sheetMode === 'edit'
+                  ? editingTask?.date ?? selectedDate
+                  : selectedDate
+              }
               onSubmit={handleSheetSubmit}
             />
           )}

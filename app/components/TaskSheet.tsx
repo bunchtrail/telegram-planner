@@ -17,6 +17,7 @@ import {
   Repeat,
   X,
 } from "lucide-react";
+import { isSameDay } from "date-fns";
 import {
   motion,
   type AnimationDefinition,
@@ -56,6 +57,7 @@ type TaskSheetProps = {
   initialColor?: string;
   initialStartMinutes?: number | null;
   initialRemindBeforeMinutes?: number;
+  taskDate: Date;
   onSubmit: (
     title: string,
     duration: number,
@@ -77,6 +79,7 @@ export default function TaskSheet({
   initialColor = DEFAULT_TASK_COLOR,
   initialStartMinutes = null,
   initialRemindBeforeMinutes = 0,
+  taskDate,
   onSubmit,
 }: TaskSheetProps) {
   const [title, setTitle] = useState(initialTitle);
@@ -117,6 +120,10 @@ export default function TaskSheet({
     `${String(Math.floor(value / 60)).padStart(2, "0")}:${String(
       value % 60,
     ).padStart(2, "0")}`;
+  const defaultPickerMinutes = (() => {
+    const now = new Date();
+    return isSameDay(taskDate, now) ? now.getHours() * 60 : 12 * 60;
+  })();
 
   const adjustTextareaHeight = useCallback(() => {
     const el = inputRef.current;
@@ -394,6 +401,7 @@ export default function TaskSheet({
                     <TimeGridPicker
                       valueMinutes={startMinutes}
                       durationMinutes={duration}
+                      defaultMinutes={defaultPickerMinutes}
                       onChange={(value) => {
                         setStartMinutes(value);
                       }}

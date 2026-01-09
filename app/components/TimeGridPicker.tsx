@@ -15,12 +15,14 @@ type TimeGridPickerProps = {
   valueMinutes: number | null;
   durationMinutes: number;
   onChange: (minutes: number) => void;
+  defaultMinutes?: number;
 };
 
 export default function TimeGridPicker({
   valueMinutes,
   durationMinutes,
   onChange,
+  defaultMinutes,
 }: TimeGridPickerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState(false);
@@ -43,10 +45,14 @@ export default function TimeGridPicker({
   };
 
   useEffect(() => {
-    if (valueMinutes == null) return;
     const el = containerRef.current;
     if (!el) return;
-    const top = Math.round((valueMinutes / SLOT_MIN) * SLOT_PX - 2.5 * SLOT_PX);
+    const now = new Date();
+    const currentHourMinutes = now.getHours() * 60;
+    const fallbackMinutes = defaultMinutes ?? currentHourMinutes;
+    const rawMinutes = valueMinutes ?? fallbackMinutes;
+    const targetMinutes = Math.max(0, Math.min(1439, rawMinutes));
+    const top = Math.round((targetMinutes / SLOT_MIN) * SLOT_PX - 2.5 * SLOT_PX);
     const prefersReducedMotion =
       typeof window !== 'undefined' &&
       window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
