@@ -30,22 +30,19 @@ export default function MonthGrid({
   };
 
   return (
-    <div className="p-2">
-      <div className="grid grid-cols-7 mb-3 text-center">
+    <div className="p-1">
+      <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold uppercase tracking-[0.15em] text-[var(--muted)] mb-3 opacity-70">
         {Array.from({ length: 7 }).map((_, i) => {
           const day = addDays(weekStart, i);
           return (
-            <span
-              key={format(day, 'EEE', { locale: ru })}
-              className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)] opacity-60"
-            >
+            <span key={format(day, 'EEE', { locale: ru })}>
               {format(day, 'EE', { locale: ru })}
             </span>
           );
         })}
       </div>
 
-      <div className="grid grid-cols-7 gap-y-1 gap-x-1">
+      <div className="grid grid-cols-7 gap-y-2 gap-x-1">
         {days.map((day) => {
           const isSelected = isSameDay(day, selectedDate);
           const isToday = isSameDay(day, today);
@@ -61,24 +58,23 @@ export default function MonthGrid({
               aria-current={isSelected ? 'date' : undefined}
               aria-label={format(day, 'EEEE, d MMMM', { locale: ru })}
               className={cn(
-                'relative flex h-9 w-full flex-col items-center justify-center rounded-[10px] text-[13px] transition-all duration-200 select-none',
+                'relative flex h-10 w-full flex-col items-center justify-center rounded-[12px] text-[14px] transition-all duration-200 active:scale-95 touch-manipulation',
                 isSelected
-                  ? 'bg-[var(--ink)] text-[var(--bg)] shadow-md font-bold scale-100 z-10'
-                  : 'text-[var(--ink)] hover:bg-[var(--surface-2)] font-medium active:scale-95',
+                  ? 'bg-[var(--accent)] text-[var(--accent-ink)] shadow-[var(--shadow-glow)] font-bold z-10'
+                  : 'text-[var(--ink)] hover:bg-[var(--surface-2)] font-medium',
                 isOutside && !isSelected && 'text-[var(--muted)] opacity-30',
                 !isSelected &&
                   isToday &&
-                  'text-[var(--accent)] font-bold bg-[var(--surface-2)] ring-1 ring-inset ring-[var(--accent)]/20'
+                  'text-[var(--accent)] ring-2 ring-inset ring-[var(--accent)]/30 bg-[var(--surface)]'
               )}
             >
-              <span className="relative z-10">{format(day, 'd')}</span>
+              <span>{format(day, 'd')}</span>
 
               {hasTasks && !isSelected && (
                 <span
                   className={cn(
-                    'absolute bottom-1.5 w-1 h-1 rounded-full',
-                    isOutside ? 'bg-[var(--muted)]' : 'bg-[var(--accent)]',
-                    isToday && 'bg-[var(--accent)]'
+                    'absolute bottom-1 h-1 w-1 rounded-full',
+                    isOutside ? 'bg-[var(--muted)]' : 'bg-[var(--accent)]'
                   )}
                 />
               )}

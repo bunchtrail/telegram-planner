@@ -10,9 +10,6 @@ import {
   Clock,
   Flame,
   Plus,
-  ArrowUpRight,
-  CheckCircle2,
-  Zap,
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import MonthGrid from './MonthGrid';
@@ -24,7 +21,6 @@ import { useHaptic } from '../hooks/useHaptic';
 import { useReward } from '../hooks/useReward';
 import type { Task, TaskRepeat } from '../types/task';
 import type { usePlanner } from '../hooks/usePlanner';
-import { cn } from '../lib/cn';
 
 type DesktopPlannerProps = {
   planner: ReturnType<typeof usePlanner>;
@@ -45,7 +41,6 @@ export default function DesktopPlanner({ planner }: DesktopPlannerProps) {
     toggleActiveTask,
     goToPreviousPeriod,
     goToNextPeriod,
-    goToToday,
     handleReorder,
     addTask,
     toggleTask,
@@ -196,246 +191,140 @@ export default function DesktopPlanner({ planner }: DesktopPlannerProps) {
   };
 
   return (
-    <div className="flex h-screen w-full bg-[var(--bg)] text-[var(--ink)] overflow-hidden font-sans selection:bg-[var(--accent)] selection:text-[var(--accent-ink)]">
-      {/* 
-        LEFT PANEL REWORK
-        Wider panel (380px), modern dashboard aesthetic, cleaner typography.
-      */}
-      <aside className="w-[380px] flex-none border-r border-[var(--border)] bg-[var(--surface)] flex flex-col relative z-30 shadow-2xl shadow-[var(--shadow-soft)]">
-        {/* Header Title */}
-        <div className="pt-10 px-8 pb-6 flex items-center gap-3">
+    <div className="flex h-screen w-full bg-[var(--bg)] text-[var(--ink)] overflow-hidden font-sans">
+      <aside className="w-80 flex-none border-r border-[var(--border)] bg-[var(--surface)] flex flex-col p-6 gap-6 shadow-xl z-10">
+        <div className="flex items-center gap-3 px-2">
           <div className="h-10 w-10 bg-[var(--ink)] text-[var(--bg)] rounded-xl flex items-center justify-center shadow-lg shadow-[var(--ink)]/20">
-            <Zap
-              size={24}
-              strokeWidth={2.5}
-              fill="currentColor"
-              className="text-[var(--bg)]"
-            />
+            <CalendarDays size={24} />
           </div>
-          <h1 className="text-3xl font-bold font-[var(--font-display)] tracking-tight text-[var(--ink)]">
+          <h1 className="text-2xl font-bold font-[var(--font-display)]">
             Planner
           </h1>
         </div>
 
-        {/* Scrollable Content Area */}
-        <div className="flex-1 overflow-y-auto px-8 no-scrollbar space-y-10 pb-4">
-          {/* Calendar Section */}
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center justify-between mb-2">
-              <button
-                onClick={goToToday}
-                className="text-xl font-bold capitalize font-[var(--font-display)] text-[var(--ink)] hover:text-[var(--accent)] transition-colors text-left"
-                title="Перейти к сегодня"
-              >
+        <div className="flex flex-col gap-4">
+          <div className="bg-[var(--surface-2)]/30 rounded-[24px] p-4 border border-[var(--border)]">
+            <div className="flex items-center justify-between mb-4 px-2">
+              <span className="font-bold capitalize text-[var(--ink)] text-lg">
                 {format(selectedDate, 'LLLL yyyy', { locale: ru })}
-              </button>
-              <div className="flex gap-1 bg-[var(--surface-2)] p-1 rounded-xl border border-[var(--border)] shadow-sm">
+              </span>
+              <div className="flex gap-1">
                 <button
                   onClick={goToPreviousPeriod}
-                  className="p-1.5 hover:bg-[var(--surface)] rounded-lg transition-all text-[var(--muted)] hover:text-[var(--ink)] active:scale-90"
-                  aria-label="Назад"
+                  className="p-1 hover:bg-[var(--surface-2)] rounded-lg transition-colors"
+                  aria-label="Предыдущий месяц"
                 >
-                  <ChevronLeft size={18} />
+                  <ChevronLeft size={20} />
                 </button>
                 <button
                   onClick={goToNextPeriod}
-                  className="p-1.5 hover:bg-[var(--surface)] rounded-lg transition-all text-[var(--muted)] hover:text-[var(--ink)] active:scale-90"
-                  aria-label="Вперед"
+                  className="p-1 hover:bg-[var(--surface-2)] rounded-lg transition-colors"
+                  aria-label="Следующий месяц"
                 >
-                  <ChevronRight size={18} />
+                  <ChevronRight size={20} />
                 </button>
               </div>
             </div>
-
-            {/* Calendar Grid */}
-            <div className="-mx-2 select-none">
-              <MonthGrid
-                days={monthDays}
-                selectedDate={selectedDate}
-                onSelectDate={setSelectedDate}
-                taskDates={taskDates}
-              />
-            </div>
+            <MonthGrid
+              days={monthDays}
+              selectedDate={selectedDate}
+              onSelectDate={setSelectedDate}
+              taskDates={taskDates}
+            />
           </div>
 
-          {/* Stats Section */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-xs font-bold uppercase tracking-widest text-[var(--muted)] opacity-80">
-                Обзор дня
-              </h3>
-              <button
-                onClick={() => setShowStats(true)}
-                className="text-[10px] font-bold uppercase tracking-wider text-[var(--accent)] hover:underline flex items-center gap-0.5"
-              >
-                Подробнее <ArrowUpRight size={12} />
-              </button>
-            </div>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              onClick={() => setShowStats(true)}
+              className="p-4 bg-[var(--surface)] border border-[var(--border)] rounded-[20px] flex flex-col gap-2 hover:border-[var(--accent)] transition-colors text-left shadow-sm group"
+              aria-label="Статистика"
+            >
+              <div className="p-2 bg-orange-500/10 w-fit rounded-full text-orange-500 group-hover:scale-110 transition-transform">
+                <Flame size={18} fill="currentColor" />
+              </div>
+              <div>
+                <div className="text-2xl font-bold tabular-nums leading-none">
+                  {streak}
+                </div>
+                <div className="text-[10px] font-bold text-[var(--muted)] uppercase tracking-wider mt-1">
+                  Серия
+                </div>
+              </div>
+            </button>
 
-            <div className="grid grid-cols-2 gap-3">
-              {/* Streak Card */}
-              <button
-                onClick={() => setShowStats(true)}
-                className="group relative overflow-hidden bg-[var(--surface-2)] border border-[var(--border)] hover:border-orange-500/30 p-4 rounded-[24px] transition-all hover:shadow-lg hover:shadow-orange-500/5 text-left flex flex-col justify-between h-32"
-              >
-                <div className="flex items-start justify-between w-full">
-                  <div className="w-9 h-9 rounded-full bg-orange-500/10 flex items-center justify-center text-orange-500 group-hover:scale-110 transition-transform duration-300">
-                    <Flame size={18} fill="currentColor" />
-                  </div>
-                  <div className="opacity-0 group-hover:opacity-100 transition-opacity text-orange-500">
-                    <ArrowUpRight size={16} />
-                  </div>
+            <div className="p-4 bg-[var(--surface)] border border-[var(--border)] rounded-[20px] flex flex-col gap-2 shadow-sm">
+              <div className="p-2 bg-[var(--ink)]/5 w-fit rounded-full text-[var(--ink)]">
+                <Clock size={18} />
+              </div>
+              <div>
+                <div className="text-xl font-bold tabular-nums leading-none flex items-baseline gap-0.5">
+                  {hours}
+                  <span className="text-xs font-medium text-[var(--muted)]">
+                    ч
+                  </span>
+                  {minutes}
+                  <span className="text-xs font-medium text-[var(--muted)]">
+                    м
+                  </span>
                 </div>
-                <div>
-                  <div className="text-3xl font-bold tabular-nums text-[var(--ink)] leading-none mb-1">
-                    {streak}
-                  </div>
-                  <div className="text-[12px] font-medium text-[var(--muted)]">
-                    Серия дней
-                  </div>
-                </div>
-              </button>
-
-              {/* Focus Time Card */}
-              <div className="group relative overflow-hidden bg-[var(--surface-2)] border border-[var(--border)] p-4 rounded-[24px] transition-all flex flex-col justify-between h-32">
-                <div className="w-9 h-9 rounded-full bg-[var(--ink)] text-[var(--bg)] flex items-center justify-center group-hover:rotate-12 transition-transform duration-300 shadow-lg shadow-[var(--ink)]/10">
-                  <Clock size={18} />
-                </div>
-                <div>
-                  <div className="text-2xl font-bold tabular-nums text-[var(--ink)] leading-none mb-1 flex items-baseline gap-0.5">
-                    {hours}
-                    <span className="text-sm font-semibold text-[var(--muted)] opacity-70">
-                      ч
-                    </span>
-                    {minutes}
-                    <span className="text-sm font-semibold text-[var(--muted)] opacity-70">
-                      м
-                    </span>
-                  </div>
-                  <div className="text-[12px] font-medium text-[var(--muted)]">
-                    В фокусе
-                  </div>
+                <div className="text-[10px] font-bold text-[var(--muted)] uppercase tracking-wider mt-1">
+                  За день
                 </div>
               </div>
             </div>
           </div>
-
-          {/* Active Task Widget (Appears when task is running) */}
-          <AnimatePresence>
-            {activeTaskObj && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 10 }}
-                className="relative"
-              >
-                <h3 className="text-xs font-bold uppercase tracking-widest text-[var(--muted)] mb-3 opacity-80 pl-1">
-                  Сейчас в работе
-                </h3>
-                <button
-                  onClick={() => setShowFocus(true)}
-                  className="w-full text-left group"
-                >
-                  <div className="bg-[var(--surface)] border border-[var(--accent)]/30 rounded-[24px] p-1 shadow-lg shadow-[var(--accent)]/5 hover:shadow-[var(--accent)]/10 transition-all hover:-translate-y-0.5">
-                    <div className="bg-[var(--surface-2)] rounded-[20px] p-4 flex items-center gap-4 relative overflow-hidden">
-                      {/* Subtle gradient overlay */}
-                      <div className="absolute inset-0 bg-gradient-to-r from-[var(--accent)]/5 to-transparent opacity-50 pointer-events-none" />
-
-                      <div className="h-11 w-11 rounded-2xl bg-[var(--accent)] text-[var(--accent-ink)] flex items-center justify-center shrink-0 shadow-lg shadow-[var(--accent)]/20 z-10">
-                        <Clock
-                          className="animate-pulse"
-                          size={22}
-                          strokeWidth={2.5}
-                        />
-                      </div>
-                      <div className="z-10 min-w-0 pr-2">
-                        <div className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-wider mb-0.5">
-                          Таймер запущен
-                        </div>
-                        <div className="font-bold truncate text-[var(--ink)] text-[15px]">
-                          {activeTaskObj.title}
-                        </div>
-                      </div>
-                      <div className="ml-auto text-[var(--muted)] group-hover:text-[var(--accent)] transition-colors z-10">
-                        <ArrowUpRight size={18} />
-                      </div>
-                    </div>
-                  </div>
-                </button>
-              </motion.div>
-            )}
-          </AnimatePresence>
         </div>
 
-        {/* Bottom Action Area */}
-        <div className="p-8 mt-auto bg-gradient-to-t from-[var(--surface)] via-[var(--surface)] to-transparent pt-6">
+        <div className="mt-auto">
+          {activeTaskObj && (
+            <button
+              onClick={() => setShowFocus(true)}
+              className="w-full py-4 bg-[var(--accent)] text-[var(--accent-ink)] rounded-2xl font-bold shadow-lg flex items-center justify-center gap-2 hover:brightness-110 active:scale-95 transition-all mb-4"
+            >
+              <Clock className="animate-pulse" /> Текущая задача
+            </button>
+          )}
           <button
             onClick={handleOpenCreate}
-            className="w-full h-[68px] bg-[var(--ink)] hover:bg-[var(--ink)]/90 text-[var(--bg)] rounded-[24px] font-bold text-lg flex items-center justify-center gap-3 shadow-[var(--shadow-pop)] hover:shadow-2xl hover:shadow-[var(--ink)]/20 hover:-translate-y-1 active:translate-y-0 active:shadow-sm transition-all duration-300 group"
+            className="w-full h-14 bg-[var(--ink)] text-[var(--bg)] rounded-2xl font-bold flex items-center justify-center gap-2 shadow-xl shadow-[var(--ink)]/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
           >
-            <div className="bg-[var(--bg)]/20 p-1.5 rounded-full group-hover:rotate-90 transition-transform duration-500">
-              <Plus size={22} strokeWidth={3} />
-            </div>
-            <span className="font-[var(--font-display)] tracking-tight">
-              Новая задача
-            </span>
+            <Plus size={20} strokeWidth={2.5} />
+            <span>Новая задача</span>
           </button>
         </div>
       </aside>
 
-      {/* MAIN CONTENT */}
-      <main className="flex-1 flex flex-col min-w-0 bg-[var(--surface-2)] relative">
-        {/* Optional pattern for main content */}
-        <div
-          className="absolute inset-0 opacity-[0.03] pointer-events-none"
-          style={{
-            backgroundImage:
-              'radial-gradient(circle at 1px 1px, var(--ink) 1px, transparent 0)',
-            backgroundSize: '24px 24px',
-          }}
-        />
-
-        <header className="h-28 shrink-0 px-12 flex items-center justify-between border-b border-[var(--border)] bg-[var(--bg)]/80 backdrop-blur sticky top-0 z-20">
+      <main className="flex-1 flex flex-col min-w-0 bg-[var(--surface-2)]/30 relative">
+        <header className="h-24 shrink-0 px-12 flex items-center justify-between border-b border-[var(--border)] bg-[var(--bg)]/80 backdrop-blur sticky top-0 z-20">
           <div>
             <div className="flex items-baseline gap-4 mb-1">
-              <h2 className="text-4xl font-bold font-[var(--font-display)] capitalize tracking-tight text-[var(--ink)]">
+              <h2 className="text-4xl font-bold font-[var(--font-display)] capitalize tracking-tight">
                 {format(selectedDate, 'd MMMM', { locale: ru })}
               </h2>
               {isSameDay(selectedDate, new Date()) && (
-                <span className="text-[var(--accent)] font-bold text-xs bg-[var(--accent)]/10 px-3 py-1.5 rounded-full uppercase tracking-wider border border-[var(--accent)]/10">
+                <span className="text-[var(--accent)] font-bold text-xs bg-[var(--accent)]/10 px-3 py-1.5 rounded-full uppercase tracking-wider">
                   Сегодня
                 </span>
               )}
             </div>
-            <p className="text-[var(--muted)] font-medium capitalize text-lg flex items-center gap-2">
-              {format(selectedDate, 'EEEE', { locale: ru })}
-              <span className="w-1 h-1 rounded-full bg-[var(--muted)] opacity-50" />
-              {currentTasks.length}{' '}
-              {currentTasks.length === 1
-                ? 'задача'
-                : currentTasks.length > 1 && currentTasks.length < 5
-                ? 'задачи'
-                : 'задач'}
+            <p className="text-[var(--muted)] font-medium capitalize text-lg">
+              {format(selectedDate, 'EEEE', { locale: ru })} •{' '}
+              {currentTasks.length} задач
             </p>
           </div>
 
           {totalCount > 0 && (
-            <div className="h-16 px-6 bg-[var(--surface)] rounded-[20px] border border-[var(--border)] shadow-sm flex items-center gap-5">
-              <div className="text-xs font-bold text-[var(--muted)] uppercase tracking-wider">
+            <div className="h-14 px-6 bg-[var(--surface)] rounded-2xl border border-[var(--border)] shadow-sm flex items-center gap-4">
+              <div className="text-sm font-bold text-[var(--muted)] uppercase tracking-wider">
                 Прогресс
               </div>
-              <div className="h-8 w-[1px] bg-[var(--border)]" />
-              <div className="text-3xl font-bold text-[var(--ink)] tabular-nums font-[var(--font-display)]">
+              <div className="h-6 w-[1px] bg-[var(--border)]" />
+              <div className="text-2xl font-bold text-[var(--ink)] tabular-nums">
                 {completedCount}
-                <span className="text-[var(--muted)] text-xl opacity-60 font-sans font-semibold">
+                <span className="text-[var(--muted)] text-xl">
                   / {totalCount}
                 </span>
               </div>
-              {completedCount === totalCount && (
-                <div className="w-8 h-8 rounded-full bg-[var(--accent)] text-[var(--accent-ink)] flex items-center justify-center animate-in fade-in zoom-in duration-300">
-                  <CheckCircle2 size={18} />
-                </div>
-              )}
             </div>
           )}
         </header>
@@ -462,7 +351,6 @@ export default function DesktopPlanner({ planner }: DesktopPlannerProps) {
         </div>
       </main>
 
-      {/* Modals & Overlays */}
       <AnimatePresence>
         {isAddOpen && (
           <TaskSheet
@@ -554,3 +442,4 @@ export default function DesktopPlanner({ planner }: DesktopPlannerProps) {
     </div>
   );
 }
+
