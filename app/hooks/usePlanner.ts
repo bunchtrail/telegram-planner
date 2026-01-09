@@ -466,6 +466,21 @@ export function usePlanner() {
     }
     webApp.expand?.();
 
+    const applyPlatform = () => {
+      const root = document.documentElement;
+      const platform = webApp.platform;
+      if (platform) {
+        root.dataset.tgPlatform = platform;
+      } else {
+        delete root.dataset.tgPlatform;
+      }
+
+      const isDesktop = platform === 'tdesktop' || platform === 'macos';
+      root.classList.toggle('tg-desktop', isDesktop);
+    };
+
+    applyPlatform();
+
     const applyTheme = () => {
       const root = document.documentElement.style;
       const params = webApp.themeParams ?? {};
@@ -584,6 +599,9 @@ export function usePlanner() {
 
     return () => {
       webApp.offEvent?.('themeChanged', applyTheme);
+      const root = document.documentElement;
+      delete root.dataset.tgPlatform;
+      root.classList.remove('tg-desktop');
       if (!onAny) return;
       webApp.offEvent?.('safeAreaChanged', onAny);
       webApp.offEvent?.('contentSafeAreaChanged', onAny);
