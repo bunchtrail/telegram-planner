@@ -131,13 +131,22 @@ export default function TaskList({
     );
   }
 
+  const taskById = new Map(tasks.map((task) => [task.clientId, task]));
+
   return (
     <div ref={scrollContainerRef} className={containerClassName}>
       <Reorder.Group
         key={dateKey}
         axis="y"
-        values={tasks}
-        onReorder={onReorder}
+        values={tasks.map((task) => task.clientId)}
+        onReorder={(nextIds) => {
+          const nextTasks = nextIds
+            .map((id) => taskById.get(id))
+            .filter((task): task is Task => Boolean(task));
+          if (nextTasks.length === tasks.length) {
+            onReorder(nextTasks);
+          }
+        }}
         as="ul"
         role="list"
         className={isDesktop ? 'space-y-4' : 'relative'}

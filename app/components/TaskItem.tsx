@@ -280,7 +280,7 @@ const TaskItem = memo(function TaskItem({
 
   return (
     <Reorder.Item
-      value={task}
+      value={task.clientId}
       id={task.clientId}
       dragListener={false}
       dragControls={dragControls}

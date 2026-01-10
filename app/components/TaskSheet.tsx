@@ -797,7 +797,7 @@ export default function TaskSheet({
                   </div>
                 )}
                 <div className="h-px bg-[var(--border)] mx-6 opacity-60 shrink-0" />
-                {renderDurationSection()}
+                <div className="shrink-0 px-6">{renderDurationSection()}</div>
                 <div className="h-px bg-[var(--border)] mx-6 opacity-60 shrink-0" />
                 <div className="shrink-0 px-6">{renderColorSection()}</div>
                 <div className="h-px bg-[var(--border)] mx-6 opacity-60 shrink-0" />
