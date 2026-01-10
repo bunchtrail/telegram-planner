@@ -252,8 +252,8 @@ export default function TaskSheet({
   );
 
   const containerClasses = isDesktop
-    ? "fixed inset-0 z-50 flex items-center justify-center pointer-events-auto p-4"
-    : "fixed inset-0 z-50 flex flex-col justify-end pointer-events-none touch-none";
+    ? "fixed inset-0 z-50 flex items-center justify-center pointer-events-auto py-4 pl-[max(1rem,env(safe-area-inset-left),var(--tg-content-safe-left,0px))] pr-[max(1rem,env(safe-area-inset-right),var(--tg-content-safe-right,0px))]"
+    : "fixed inset-0 z-50 flex flex-col justify-end pointer-events-none touch-none pl-[max(env(safe-area-inset-left),var(--tg-content-safe-left,0px))] pr-[max(env(safe-area-inset-right),var(--tg-content-safe-right,0px))]";
 
   const sheetClasses = cn(
     "pointer-events-auto relative w-full bg-[var(--surface)] flex flex-col shadow-[0_-10px_40px_-10px_rgba(0,0,0,0.1)] overflow-hidden ring-1 ring-inset ring-[var(--border)]",

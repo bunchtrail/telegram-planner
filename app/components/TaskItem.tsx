@@ -123,6 +123,7 @@ const TaskItem = memo(function TaskItem({
   const prefersReducedMotion = useReducedMotion();
   const isIOS = isIOSDevice();
   const reduceEffects = prefersReducedMotion || isIOS;
+  const listMotionEnabled = !prefersReducedMotion;
   const [tickNow, setTickNow] = useState(() => Date.now());
   const startTimeLabel =
     task.startMinutes != null
@@ -283,20 +284,20 @@ const TaskItem = memo(function TaskItem({
       id={task.clientId}
       dragListener={false}
       dragControls={dragControls}
-      layout={reduceEffects ? undefined : 'position'}
+      layout={listMotionEnabled ? 'position' : undefined}
       initial={false}
       animate={{
         opacity: task.completed ? 0.8 : 1,
         y: 0,
       }}
-      exit={reduceEffects ? undefined : { opacity: 0, scale: 0.95 }}
+      exit={listMotionEnabled ? { opacity: 0, scale: 0.95 } : undefined}
       transition={
-        reduceEffects
-          ? { duration: 0 }
-          : { type: 'tween', duration: 0.18, ease: 'easeOut' }
+        listMotionEnabled
+          ? { type: 'tween', duration: 0.18, ease: 'easeOut' }
+          : { duration: 0 }
       }
       className={cn(
-        'group relative overflow-hidden bg-[var(--surface)] touch-pan-y transition-all duration-300',
+        'group relative overflow-hidden bg-[var(--surface)] touch-pan-y transition-[box-shadow,border-color,background-color] duration-300',
         isDesktop
           ? 'rounded-[20px] mb-3 hover:shadow-md border border-transparent hover:border-[var(--border)]'
           : 'rounded-[28px] mb-4 shadow-[var(--shadow-card)]',
@@ -313,7 +314,6 @@ const TaskItem = memo(function TaskItem({
         } as CustomCSSProperties
       }
       as="li"
-      transformTemplate={undefined}
     >
       {isActive && !isExpanded && (
         <>
@@ -443,14 +443,24 @@ const TaskItem = memo(function TaskItem({
                 {isActive ? (
                   reduceEffects ? (
                     <div className="inline-flex items-center text-[var(--task-color)] font-bold tabular-nums">
-                      <span className={isDesktop ? 'text-[15px]' : 'text-[14px]'}>
+                      <span
+                        className={cn(
+                          'min-w-[7ch] text-right',
+                          isDesktop ? 'text-[15px]' : 'text-[14px]'
+                        )}
+                      >
                         {elapsedLabel}
                       </span>
                     </div>
                   ) : (
                     <div className="inline-flex items-center text-[var(--task-color)] font-bold tabular-nums animate-in fade-in duration-300">
                       <ActiveWave />
-                      <span className={cn('ml-1', isDesktop ? 'text-[15px]' : 'text-[14px]')}>
+                      <span
+                        className={cn(
+                          'ml-1 min-w-[7ch] text-right',
+                          isDesktop ? 'text-[15px]' : 'text-[14px]'
+                        )}
+                      >
                         {elapsedLabel}
                       </span>
                     </div>
@@ -651,7 +661,7 @@ const TaskItem = memo(function TaskItem({
                       <>
                         <Pause size={18} fill="currentColor" />
                         <span>Пауза</span>
-                        <span className="tabular-nums opacity-90 ml-1">
+                        <span className="tabular-nums opacity-90 ml-1 min-w-[7ch] text-right">
                           {elapsedLabel}
                         </span>
                       </>

@@ -41,7 +41,8 @@ export default function TaskList({
   const prevTaskIdsRef = useRef<Set<string>>(new Set());
   const prefersReducedMotion = useReducedMotion();
   const isIOS = isIOSDevice();
-  const reduceMotion = prefersReducedMotion || isIOS;
+  const reduceEffects = prefersReducedMotion || isIOS;
+  const listMotionEnabled = !prefersReducedMotion;
 
   useEffect(() => {
     const prevIds = prevTaskIdsRef.current;
@@ -63,13 +64,13 @@ export default function TaskList({
         if (isScrollable && nearBottom) {
           container.scrollTo({
             top: container.scrollHeight,
-            behavior: reduceMotion ? 'auto' : 'smooth',
+            behavior: reduceEffects ? 'auto' : 'smooth',
           });
         }
       }
     }
     prevTaskIdsRef.current = nextIds;
-  }, [tasks, reduceMotion]);
+  }, [tasks, reduceEffects]);
 
   const scrollClasses = cn(
     'h-full w-full overflow-y-auto pt-2 touch-pan-y overscroll-contain no-scrollbar pl-[max(1rem,env(safe-area-inset-left),var(--tg-content-safe-left,0px))] pr-[max(1rem,env(safe-area-inset-right),var(--tg-content-safe-right,0px))] [-webkit-overflow-scrolling:touch]',
@@ -141,7 +142,7 @@ export default function TaskList({
         role="list"
         className={isDesktop ? 'space-y-4' : 'relative'}
       >
-        {reduceMotion ? (
+        {!listMotionEnabled ? (
           tasks.map((task) => (
             <TaskItem
               key={task.clientId}
