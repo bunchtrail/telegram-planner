@@ -11,6 +11,7 @@ const pad2 = (value: number) => String(value).padStart(2, '0');
 const formatMinutes = (value: number) =>
   `${pad2(Math.floor(value / 60))}:${pad2(value % 60)}`;
 
+
 type TimeGridPickerProps = {
   valueMinutes: number | null;
   durationMinutes: number;
