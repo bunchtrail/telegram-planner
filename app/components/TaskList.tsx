@@ -131,19 +131,47 @@ export default function TaskList({
     );
   }
 
-  const taskById = new Map(tasks.map((task) => [task.clientId, task]));
+  const isActiveTask = (task: Task) =>
+    Boolean(task.activeStartedAt) && !task.completed;
+  const isPinnedTask = (task: Task) =>
+    task.isPinned && !task.completed && !isActiveTask(task);
+  const isNormalTask = (task: Task) =>
+    !task.completed && !isActiveTask(task) && !task.isPinned;
 
-  return (
-    <div ref={scrollContainerRef} className={containerClassName}>
+  const activeTasks = tasks.filter(isActiveTask);
+  const pinnedTasks = tasks.filter(isPinnedTask);
+  const normalTasks = tasks.filter(isNormalTask);
+  const completedTasks = tasks.filter((task) => task.completed);
+
+  const splitByStartTime = (group: Task[]) => {
+    const scheduled = group.filter((task) => task.startMinutes != null);
+    const unscheduled = group.filter((task) => task.startMinutes == null);
+    return { scheduled, unscheduled };
+  };
+
+  const { scheduled: pinnedScheduled, unscheduled: pinnedUnscheduled } =
+    splitByStartTime(pinnedTasks);
+  const { scheduled: normalScheduled, unscheduled: normalUnscheduled } =
+    splitByStartTime(normalTasks);
+
+  const renderGroup = (
+    groupTasks: Task[],
+    canReorder: boolean,
+    groupKey: string
+  ) => {
+    if (groupTasks.length === 0) return null;
+    const taskById = new Map(groupTasks.map((task) => [task.clientId, task]));
+    return (
       <Reorder.Group
-        key={dateKey}
+        key={`${dateKey}-${groupKey}`}
         axis="y"
-        values={tasks.map((task) => task.clientId)}
+        values={groupTasks.map((task) => task.clientId)}
         onReorder={(nextIds) => {
+          if (!canReorder) return;
           const nextTasks = nextIds
             .map((id) => taskById.get(id))
             .filter((task): task is Task => Boolean(task));
-          if (nextTasks.length === tasks.length) {
+          if (nextTasks.length === groupTasks.length) {
             onReorder(nextTasks);
           }
         }}
@@ -152,7 +180,7 @@ export default function TaskList({
         className={isDesktop ? 'space-y-4' : 'relative'}
       >
         {!listMotionEnabled ? (
-          tasks.map((task) => (
+          groupTasks.map((task) => (
             <TaskItem
               key={task.clientId}
               task={task}
@@ -160,15 +188,16 @@ export default function TaskList({
               onDelete={onDelete}
               onEdit={onEdit}
               onMove={onMove}
-              isActive={Boolean(task.activeStartedAt) && !task.completed}
+              isActive={isActiveTask(task)}
               onToggleActive={onToggleActive}
               updateTask={updateTask}
               isDesktop={isDesktop}
+              canReorder={canReorder}
             />
           ))
         ) : (
           <AnimatePresence initial={false} mode="popLayout">
-            {tasks.map((task) => (
+            {groupTasks.map((task) => (
               <TaskItem
                 key={task.clientId}
                 task={task}
@@ -176,15 +205,27 @@ export default function TaskList({
                 onDelete={onDelete}
                 onEdit={onEdit}
                 onMove={onMove}
-                isActive={Boolean(task.activeStartedAt) && !task.completed}
+                isActive={isActiveTask(task)}
                 onToggleActive={onToggleActive}
                 updateTask={updateTask}
                 isDesktop={isDesktop}
+                canReorder={canReorder}
               />
             ))}
           </AnimatePresence>
         )}
       </Reorder.Group>
+    );
+  };
+
+  return (
+    <div ref={scrollContainerRef} className={containerClassName}>
+      {renderGroup(activeTasks, false, 'active')}
+      {renderGroup(pinnedScheduled, false, 'pinned-scheduled')}
+      {renderGroup(pinnedUnscheduled, true, 'pinned-unscheduled')}
+      {renderGroup(normalScheduled, false, 'normal-scheduled')}
+      {renderGroup(normalUnscheduled, true, 'normal-unscheduled')}
+      {renderGroup(completedTasks, false, 'completed')}
       <div className="h-4" />
     </div>
   );

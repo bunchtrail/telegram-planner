@@ -206,6 +206,11 @@ const normalizeHex = (value?: string | null) => {
   return withHash;
 };
 
+const isUuid = (value: string) =>
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    value
+  );
+
 const hexToRgb = (hex: string) => {
   const normalized = normalizeHex(hex);
   if (!normalized) return null;
@@ -1010,43 +1015,39 @@ export function usePlanner() {
 
   const handleReorder = async (nextOrder: Task[]) => {
     const selectedDateKey = formatDateOnly(selectedDate);
-    const reordered = nextOrder.map((task, index) => ({
-      ...task,
-      position: index,
-    }));
+    const positionsById = new Map(
+      nextOrder.map((task, index) => [task.id, index])
+    );
 
     setTasks((prev) => {
-      let inserted = false;
-      const next: Task[] = [];
-      for (const task of prev) {
-        if (formatDateOnly(task.date) === selectedDateKey) {
-          if (!inserted) {
-            next.push(...reordered);
-            inserted = true;
-          }
-          continue;
-        }
-        next.push(task);
-      }
-      if (!inserted) {
-        next.push(...reordered);
-      }
-      return next;
+      if (positionsById.size === 0) return prev;
+      return prev.map((task) => {
+        if (formatDateOnly(task.date) !== selectedDateKey) return task;
+        const nextPosition = positionsById.get(task.id);
+        if (nextPosition == null || task.position === nextPosition) return task;
+        return { ...task, position: nextPosition };
+      });
     });
 
-    if (!userId || reordered.length === 0) {
+    if (!userId || positionsById.size === 0) {
       return;
     }
 
-    const updates = reordered.map((task) => ({
-      id: task.id,
-      title: task.title,
-      duration: task.duration,
-      date: formatDateOnly(task.date),
-      completed: task.completed,
-      telegram_id: userId,
-      position: task.position ?? 0,
-    }));
+    const updates = nextOrder
+      .filter((task) => isUuid(task.id))
+      .map((task) => ({
+        id: task.id,
+        title: task.title,
+        duration: task.duration,
+        date: formatDateOnly(task.date),
+        completed: task.completed,
+        telegram_id: userId,
+        position: positionsById.get(task.id) ?? task.position ?? 0,
+      }));
+
+    if (updates.length === 0) {
+      return;
+    }
 
     const { error } = await supabase
       .from('tasks')

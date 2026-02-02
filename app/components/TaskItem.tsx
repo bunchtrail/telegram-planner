@@ -53,6 +53,7 @@ type TaskItemProps = {
   onToggleActive: (id: string) => void;
   updateTask: (id: string, updates: Partial<Task>) => void;
   isDesktop?: boolean;
+  canReorder?: boolean;
 };
 
 interface CustomCSSProperties extends CSSProperties {
@@ -111,6 +112,7 @@ const TaskItem = memo(function TaskItem({
   onToggleActive,
   updateTask,
   isDesktop = false,
+  canReorder = true,
 }: TaskItemProps) {
   const { impact, selection, notification } = useHaptic();
   const dragControls = useDragControls();
@@ -548,10 +550,16 @@ const TaskItem = memo(function TaskItem({
               <button
                 type="button"
                 aria-label="Перетащить"
-                className="h-8 w-8 flex items-center justify-center text-[var(--muted)] opacity-20 group-hover:opacity-50 transition-opacity cursor-grab active:cursor-grabbing touch-none -mr-1"
+                className={cn(
+                  'h-8 w-8 flex items-center justify-center text-[var(--muted)] opacity-20 group-hover:opacity-50 transition-opacity touch-none -mr-1',
+                  canReorder
+                    ? 'cursor-grab active:cursor-grabbing'
+                    : 'cursor-not-allowed opacity-10'
+                )}
                 onPointerDown={(event) => {
                   event.preventDefault();
                   event.stopPropagation();
+                  if (!canReorder) return;
                   impact('light');
                   dragControls.start(event);
                 }}
@@ -594,10 +602,16 @@ const TaskItem = memo(function TaskItem({
                   <Trash2 size={18} />
                 </button>
                 <div
-                  className="h-9 w-6 flex items-center justify-center text-[var(--muted)] opacity-20 hover:opacity-100 cursor-grab active:cursor-grabbing"
+                  className={cn(
+                    'h-9 w-6 flex items-center justify-center text-[var(--muted)] opacity-20 hover:opacity-100',
+                    canReorder
+                      ? 'cursor-grab active:cursor-grabbing'
+                      : 'cursor-not-allowed opacity-10'
+                  )}
                   onPointerDown={(event) => {
                     event.preventDefault();
                     event.stopPropagation();
+                    if (!canReorder) return;
                     dragControls.start(event);
                   }}
                 >
