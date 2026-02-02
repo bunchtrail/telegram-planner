@@ -143,17 +143,6 @@ export default function TaskList({
   const normalTasks = tasks.filter(isNormalTask);
   const completedTasks = tasks.filter((task) => task.completed);
 
-  const splitByStartTime = (group: Task[]) => {
-    const scheduled = group.filter((task) => task.startMinutes != null);
-    const unscheduled = group.filter((task) => task.startMinutes == null);
-    return { scheduled, unscheduled };
-  };
-
-  const { scheduled: pinnedScheduled, unscheduled: pinnedUnscheduled } =
-    splitByStartTime(pinnedTasks);
-  const { scheduled: normalScheduled, unscheduled: normalUnscheduled } =
-    splitByStartTime(normalTasks);
-
   const renderGroup = (
     groupTasks: Task[],
     canReorder: boolean,
@@ -221,10 +210,8 @@ export default function TaskList({
   return (
     <div ref={scrollContainerRef} className={containerClassName}>
       {renderGroup(activeTasks, false, 'active')}
-      {renderGroup(pinnedScheduled, false, 'pinned-scheduled')}
-      {renderGroup(pinnedUnscheduled, true, 'pinned-unscheduled')}
-      {renderGroup(normalScheduled, false, 'normal-scheduled')}
-      {renderGroup(normalUnscheduled, true, 'normal-unscheduled')}
+      {renderGroup(pinnedTasks, true, 'pinned')}
+      {renderGroup(normalTasks, true, 'normal')}
       {renderGroup(completedTasks, false, 'completed')}
       <div className="h-4" />
     </div>

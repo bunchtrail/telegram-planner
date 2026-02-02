@@ -972,13 +972,6 @@ export function usePlanner() {
       if (aGroup !== bGroup) {
         return aGroup - bGroup;
       }
-      if (a.startMinutes != null || b.startMinutes != null) {
-        if (a.startMinutes == null) return 1;
-        if (b.startMinutes == null) return -1;
-        if (a.startMinutes !== b.startMinutes) {
-          return a.startMinutes - b.startMinutes;
-        }
-      }
       const aPos = a.position ?? 0;
       const bPos = b.position ?? 0;
       if (aPos !== bPos) return aPos - bPos;
