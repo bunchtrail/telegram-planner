@@ -42,7 +42,7 @@ export default function TaskList({
   const prefersReducedMotion = useReducedMotion();
   const isIOS = isIOSDevice();
   const reduceEffects = prefersReducedMotion || isIOS;
-  const listMotionEnabled = !prefersReducedMotion;
+  const listMotionEnabled = !reduceEffects;
 
   useEffect(() => {
     const prevIds = prevTaskIdsRef.current;

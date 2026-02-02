@@ -125,7 +125,7 @@ const TaskItem = memo(function TaskItem({
   const prefersReducedMotion = useReducedMotion();
   const isIOS = isIOSDevice();
   const reduceEffects = prefersReducedMotion || isIOS;
-  const listMotionEnabled = !prefersReducedMotion;
+  const listMotionEnabled = !reduceEffects;
   const [tickNow, setTickNow] = useState(() => Date.now());
   const startTimeLabel =
     task.startMinutes != null
