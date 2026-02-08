@@ -1,6 +1,6 @@
 import { format } from "date-fns";
 import { ru } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, Clock, Flame } from "lucide-react";
+import { ChevronLeft, ChevronRight, Clock, Flame, Repeat } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import MonthGrid from "./MonthGrid";
 import WeekStrip from "./WeekStrip";
@@ -25,6 +25,7 @@ type PlannerHeaderProps = {
   onNext: () => void;
   onToday: () => void;
   onOpenStats: () => void;
+  onOpenRecurring: () => void;
 };
 
 function ProgressRing({
@@ -89,6 +90,7 @@ export default function PlannerHeader({
   onNext,
   onToday,
   onOpenStats,
+  onOpenRecurring,
 }: PlannerHeaderProps) {
   const { impact } = useHaptic();
   const isToday =
@@ -184,6 +186,21 @@ export default function PlannerHeader({
               </div>
 
               <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    impact("light");
+                    // Assuming Repeat icon comes from lucide-react, I need to make sure it's imported.
+                    // I'll use a text label or icon. Let's use an icon.
+                    // Wait, I need to import Repeat icon if I use it.
+                    onOpenRecurring();
+                  }}
+                  aria-label="Повторяющиеся задачи"
+                  className="h-9 w-9 rounded-[12px] border border-[var(--border)]/50 bg-[var(--surface-2)] text-[var(--muted)] hover:text-[var(--ink)] flex items-center justify-center active:scale-95 transition-transform"
+                >
+                  <Repeat size={18} />
+                </button>
+
                 <button
                   type="button"
                   onClick={() => {

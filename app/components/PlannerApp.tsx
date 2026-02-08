@@ -11,6 +11,7 @@ import TaskList from './TaskList';
 import FocusOverlay from './FocusOverlay';
 import StatsModal from './StatsModal';
 import DesktopPlanner from './DesktopPlanner';
+import RecurringTasksSheet from './RecurringTasksSheet';
 import { usePlanner } from '../hooks/usePlanner';
 import { useHaptic } from '../hooks/useHaptic';
 import { useReward } from '../hooks/useReward';
@@ -60,6 +61,7 @@ export default function PlannerApp() {
   const [dayCompleteKey, setDayCompleteKey] = useState<string | null>(null);
   const dayCompleteTimeoutRef = useRef<number | null>(null);
   const [showStats, setShowStats] = useState(false);
+  const [showRecurring, setShowRecurring] = useState(false);
   const [showFocus, setShowFocus] = useState(false);
 
   const activeTaskObj = useMemo(
@@ -240,6 +242,7 @@ export default function PlannerApp() {
             onNext={goToNextPeriod}
             onToday={goToToday}
             onOpenStats={() => setShowStats(true)}
+            onOpenRecurring={() => setShowRecurring(true)}
           />
         </div>
 
@@ -311,6 +314,16 @@ export default function PlannerApp() {
               tasks={tasks}
               selectedDate={selectedDate}
               onClose={() => setShowStats(false)}
+            />
+          )}
+
+          {showRecurring && (
+            <RecurringTasksSheet
+              onClose={() => setShowRecurring(false)}
+              recurringTasks={planner.recurringTasks}
+              onDeleteSeries={planner.deleteTaskSeries}
+              onSkipDate={planner.skipTaskSeriesDate}
+              isDesktop={isDesktop}
             />
           )}
 

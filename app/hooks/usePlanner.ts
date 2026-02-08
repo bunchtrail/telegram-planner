@@ -39,7 +39,7 @@ type TaskRow = {
   remind_at?: string | null;
 };
 
-type TaskSeriesRow = {
+export type TaskSeriesRow = {
   id: string;
   title: string;
   duration: number;
@@ -268,6 +268,7 @@ export function usePlanner() {
   const [isLoading, setIsLoading] = useState(true);
   const [isDesktop, setIsDesktop] = useState(false);
   const [refetchKey, setRefetchKey] = useState(0);
+  const [recurringTasks, setRecurringTasks] = useState<TaskSeriesRow[]>([]);
   const toggleRequestRef = useRef(new Map<string, number>());
   const pendingInsertRef = useRef(new Map<string, TaskRow>());
 
@@ -759,16 +760,16 @@ export function usePlanner() {
                 }
               }
 
-            if (pendingMatchId) {
-              pendingInsertRef.current.delete(pendingMatchId);
-              return prev.map((task) =>
-                task.id === pendingMatchId
-                  ? mapTaskRow(row, task.clientId)
-                  : task
-              );
-            }
+              if (pendingMatchId) {
+                pendingInsertRef.current.delete(pendingMatchId);
+                return prev.map((task) =>
+                  task.id === pendingMatchId
+                    ? mapTaskRow(row, task.clientId)
+                    : task
+                );
+              }
 
-            return [...prev, mapTaskRow(row)];
+              return [...prev, mapTaskRow(row)];
             });
           }
 
@@ -1476,17 +1477,17 @@ export function usePlanner() {
     const wasActive = Boolean(targetTask.activeStartedAt);
     const completionElapsed = wasActive
       ? targetTask.elapsedMs +
-        Math.max(0, Date.now() - targetTask.activeStartedAt!.getTime())
+      Math.max(0, Date.now() - targetTask.activeStartedAt!.getTime())
       : targetTask.elapsedMs;
     setTasks((prev) =>
       prev.map((task) =>
         task.id === id
           ? {
-              ...task,
-              completed: newStatus,
-              activeStartedAt: newStatus ? null : task.activeStartedAt,
-              elapsedMs: newStatus ? completionElapsed : task.elapsedMs,
-            }
+            ...task,
+            completed: newStatus,
+            activeStartedAt: newStatus ? null : task.activeStartedAt,
+            elapsedMs: newStatus ? completionElapsed : task.elapsedMs,
+          }
           : task
       )
     );
@@ -1504,11 +1505,11 @@ export function usePlanner() {
         prev.map((task) =>
           task.id === id
             ? {
-                ...task,
-                completed: !newStatus,
-                activeStartedAt: targetTask.activeStartedAt,
-                elapsedMs: targetTask.elapsedMs,
-              }
+              ...task,
+              completed: !newStatus,
+              activeStartedAt: targetTask.activeStartedAt,
+              elapsedMs: targetTask.elapsedMs,
+            }
             : task
         )
       );
@@ -1645,6 +1646,90 @@ export function usePlanner() {
     }
   };
 
+
+
+  const fetchRecurringTasks = async () => {
+    if (!userId) return;
+
+    const { data, error } = await supabase
+      .from('task_series')
+      .select('*')
+      .eq('telegram_id', userId)
+      .is('end_date', null); // Only fetch active series
+
+    if (!error && data) {
+      setRecurringTasks(data as TaskSeriesRow[]);
+    }
+  };
+
+  // Initial fetch for recurring tasks
+  useEffect(() => {
+    if (userId) {
+      fetchRecurringTasks();
+    }
+  }, [userId]);
+
+  const deleteTaskSeries = async (seriesId: string) => {
+    // Optimistic update
+    setRecurringTasks((prev) => prev.filter((s) => s.id !== seriesId));
+    // Remove tasks from current view that belong to this series
+    setTasks((prev) => prev.filter((t) => t.seriesId !== seriesId));
+
+    // 1. Delete from task_series (backend will cascade delete tasks usually, but we should check schema or be safe)
+    // Actually, usually we might want to just set end_date to now() to "stop" it, but user asked for "delete".
+    // Let's assume hard delete for now as per requirement "delete all repeats".
+
+    const { error } = await supabase
+      .from('task_series')
+      .delete()
+      .eq('id', seriesId);
+
+    if (error) {
+      // Revert optimistic update (simplified)
+      fetchRecurringTasks();
+      setRefetchKey((prev) => prev + 1);
+    } else {
+      // Also delete actively created instances to be clean, although cascade might handle it
+      await supabase.from('tasks').delete().eq('series_id', seriesId);
+    }
+  };
+
+  const skipTaskSeriesDate = async (seriesId: string, date: Date) => {
+    if (!userId) return;
+    const dateKey = formatDateOnly(date);
+
+    // Optimistic update: remove from current view if it's there
+    setTasks((prev) =>
+      prev.filter(
+        (t) => !(t.seriesId === seriesId && isSameDay(t.date, date))
+      )
+    );
+
+    // 1. Add to task_series_skips
+    const { error } = await supabase.from('task_series_skips').upsert(
+      {
+        series_id: seriesId,
+        telegram_id: userId,
+        date: dateKey,
+      },
+      { onConflict: 'series_id,date', ignoreDuplicates: true }
+    );
+
+    // 2. Delete any concrete instance if it exists
+    if (!error) {
+      // We need to find if there's a concrete task for this date to delete it
+      // We can just try to delete matching criteria
+      await supabase
+        .from('tasks')
+        .delete()
+        .eq('series_id', seriesId)
+        .eq('date', dateKey);
+    } else {
+      // Revert
+      setRefetchKey((prev) => prev + 1);
+    }
+  };
+
   return {
     selectedDate,
     setSelectedDate,
@@ -1673,6 +1758,10 @@ export function usePlanner() {
     updateTask,
     moveTask,
     isLoading,
+    recurringTasks,
+    fetchRecurringTasks,
+    deleteTaskSeries,
+    skipTaskSeriesDate,
     isDesktop,
   };
 }
