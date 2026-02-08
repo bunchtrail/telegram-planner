@@ -8,6 +8,7 @@ import {
   format,
   getDay,
   isSameDay,
+  startOfDay,
   startOfMonth,
   startOfWeek,
   subMonths,
@@ -51,7 +52,7 @@ export type TaskSeriesRow = {
   end_date: string | null;
 };
 
-type TaskSeriesSkipRow = {
+export type TaskSeriesSkipRow = {
   series_id: string;
   date: string;
 };
@@ -269,6 +270,7 @@ export function usePlanner() {
   const [isDesktop, setIsDesktop] = useState(false);
   const [refetchKey, setRefetchKey] = useState(0);
   const [recurringTasks, setRecurringTasks] = useState<TaskSeriesRow[]>([]);
+  const [recurringSkips, setRecurringSkips] = useState<TaskSeriesSkipRow[]>([]);
   const toggleRequestRef = useRef(new Map<string, number>());
   const pendingInsertRef = useRef(new Map<string, TaskRow>());
 
@@ -1647,15 +1649,39 @@ export function usePlanner() {
   };
   const fetchRecurringTasks = useCallback(async () => {
     if (!userId) return;
+    const todayKey = formatDateOnly(new Date());
 
     const { data, error } = await supabase
       .from('task_series')
       .select('*')
       .eq('telegram_id', userId)
-      .is('end_date', null);
+      .or(`end_date.is.null,end_date.gte.${todayKey}`);
 
     if (!error && data) {
-      setRecurringTasks(data as TaskSeriesRow[]);
+      const seriesRows = data as TaskSeriesRow[];
+      setRecurringTasks(seriesRows);
+
+      const seriesIds = seriesRows.map((series) => series.id);
+      if (seriesIds.length === 0) {
+        setRecurringSkips([]);
+        return;
+      }
+
+      const { data: skipsData, error: skipsError } = await supabase
+        .from('task_series_skips')
+        .select('series_id,date')
+        .eq('telegram_id', userId)
+        .in('series_id', seriesIds)
+        .gte('date', todayKey);
+
+      if (!skipsError && skipsData) {
+        setRecurringSkips(skipsData as TaskSeriesSkipRow[]);
+      } else {
+        setRecurringSkips([]);
+      }
+    } else {
+      setRecurringTasks([]);
+      setRecurringSkips([]);
     }
   }, [userId]);
 
@@ -1669,36 +1695,57 @@ export function usePlanner() {
     return () => {
       window.clearTimeout(timerId);
     };
-  }, [fetchRecurringTasks, userId]);
+  }, [fetchRecurringTasks, userId, refetchKey]);
 
   const deleteTaskSeries = async (seriesId: string) => {
-    // Optimistic update
-    setRecurringTasks((prev) => prev.filter((s) => s.id !== seriesId));
-    // Remove tasks from current view that belong to this series
-    setTasks((prev) => prev.filter((t) => t.seriesId !== seriesId));
+    if (!userId) return;
+    const today = startOfDay(new Date());
+    const todayKey = formatDateOnly(today);
+    const yesterdayKey = formatDateOnly(addDays(today, -1));
 
-    // 1. Delete from task_series (backend will cascade delete tasks usually, but we should check schema or be safe)
-    // Actually, usually we might want to just set end_date to now() to "stop" it, but user asked for "delete".
-    // Let's assume hard delete for now as per requirement "delete all repeats".
+    setRecurringTasks((prev) => prev.filter((series) => series.id !== seriesId));
+    setRecurringSkips((prev) =>
+      prev.filter((skip) => skip.series_id !== seriesId)
+    );
+    setTasks((prev) =>
+      prev.filter(
+        (task) => !(task.seriesId === seriesId && formatDateOnly(task.date) >= todayKey)
+      )
+    );
 
-    const { error } = await supabase
+    const { error: updateError } = await supabase
       .from('task_series')
-      .delete()
+      .update({ end_date: yesterdayKey })
+      .eq('telegram_id', userId)
       .eq('id', seriesId);
 
-    if (error) {
-      // Revert optimistic update (simplified)
-      fetchRecurringTasks();
+    if (updateError) {
+      void fetchRecurringTasks();
       setRefetchKey((prev) => prev + 1);
-    } else {
-      // Also delete actively created instances to be clean, although cascade might handle it
-      await supabase.from('tasks').delete().eq('series_id', seriesId);
+      return;
     }
+
+    const { error: deleteFutureError } = await supabase
+      .from('tasks')
+      .delete()
+      .eq('telegram_id', userId)
+      .eq('series_id', seriesId)
+      .gte('date', todayKey);
+
+    if (deleteFutureError) {
+      setRefetchKey((prev) => prev + 1);
+    }
+
+    await supabase.from('task_series_skips').delete().eq('series_id', seriesId);
   };
 
   const skipTaskSeriesDate = async (seriesId: string, date: Date) => {
     if (!userId) return;
     const dateKey = formatDateOnly(date);
+    const hasSkip = recurringSkips.some(
+      (skip) => skip.series_id === seriesId && skip.date === dateKey
+    );
+    const skipAddedOptimistically = !hasSkip;
 
     // Optimistic update: remove from current view if it's there
     setTasks((prev) =>
@@ -1706,6 +1753,9 @@ export function usePlanner() {
         (t) => !(t.seriesId === seriesId && isSameDay(t.date, date))
       )
     );
+    if (skipAddedOptimistically) {
+      setRecurringSkips((prev) => [...prev, { series_id: seriesId, date: dateKey }]);
+    }
 
     // 1. Add to task_series_skips
     const { error } = await supabase.from('task_series_skips').upsert(
@@ -1727,7 +1777,14 @@ export function usePlanner() {
         .eq('series_id', seriesId)
         .eq('date', dateKey);
     } else {
-      // Revert
+      if (skipAddedOptimistically) {
+        setRecurringSkips((prev) =>
+          prev.filter(
+            (skip) =>
+              !(skip.series_id === seriesId && skip.date === dateKey)
+          )
+        );
+      }
       setRefetchKey((prev) => prev + 1);
     }
   };
@@ -1761,6 +1818,7 @@ export function usePlanner() {
     moveTask,
     isLoading,
     recurringTasks,
+    recurringSkips,
     fetchRecurringTasks,
     deleteTaskSeries,
     skipTaskSeriesDate,

@@ -10,12 +10,12 @@ import {
   useReducedMotion,
 } from "framer-motion";
 import { ChevronRight, Clock, Repeat, Trash2, X } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { addDays, format, getDay, startOfDay } from "date-fns";
 import { ru } from "date-fns/locale";
 import { cn } from "../lib/cn";
 import { useHaptic } from "../hooks/useHaptic";
-import type { TaskSeriesRow } from "../hooks/usePlanner";
+import type { TaskSeriesRow, TaskSeriesSkipRow } from "../hooks/usePlanner";
 import { isIOSDevice } from "../lib/platform";
 
 const SHEET_TRANSITION = {
@@ -41,6 +41,7 @@ type ConfirmAction =
 type RecurringTasksSheetProps = {
   onClose: () => void;
   recurringTasks: TaskSeriesRow[];
+  recurringSkips: TaskSeriesSkipRow[];
   onDeleteSeries: (id: string) => void;
   onSkipDate: (seriesId: string, date: Date) => void;
   isDesktop?: boolean;
@@ -85,9 +86,18 @@ const formatRepeatLabel = (series: TaskSeriesRow) => {
   return weekday ? `Еженедельно · ${weekday}` : "Еженедельно";
 };
 
+const parseDateOnly = (value: string) => {
+  const [year, month, day] = value.split("-").map(Number);
+  if (!year || !month || !day) {
+    return startOfDay(new Date(value));
+  }
+  return new Date(year, month - 1, day);
+};
+
 export default function RecurringTasksSheet({
   onClose,
   recurringTasks,
+  recurringSkips,
   onDeleteSeries,
   onSkipDate,
   isDesktop = false,
@@ -181,6 +191,16 @@ export default function RecurringTasksSheet({
       ? MODAL_TRANSITION
       : SHEET_TRANSITION;
 
+  const skipsBySeriesId = useMemo(() => {
+    const map = new Map<string, Set<string>>();
+    recurringSkips.forEach((skip) => {
+      const current = map.get(skip.series_id) ?? new Set<string>();
+      current.add(skip.date);
+      map.set(skip.series_id, current);
+    });
+    return map;
+  }, [recurringSkips]);
+
   const calculateNextOccurrences = (
     series: TaskSeriesRow,
     count = UPCOMING_OCCURRENCES_COUNT
@@ -190,17 +210,31 @@ export default function RecurringTasksSheet({
       return dates;
     }
 
-    let currentDate = startOfDay(new Date());
+    const today = startOfDay(new Date());
+    const seriesStartDate = startOfDay(parseDateOnly(series.start_date));
+    const seriesEndDate = series.end_date
+      ? startOfDay(parseDateOnly(series.end_date))
+      : null;
+    let currentDate =
+      seriesStartDate.getTime() > today.getTime() ? seriesStartDate : today;
+    const skipSet = skipsBySeriesId.get(series.id);
     let sanityCheck = 0;
-    while (dates.length < count && sanityCheck < 180) {
+    while (dates.length < count && sanityCheck < 365 * 3) {
       sanityCheck += 1;
+
+      if (seriesEndDate && currentDate.getTime() > seriesEndDate.getTime()) {
+        break;
+      }
 
       const dayMatches =
         series.repeat === "daily" ||
         (series.repeat === "weekly" && getDay(currentDate) === series.weekday);
 
       if (dayMatches) {
-        dates.push(new Date(currentDate));
+        const dateKey = format(currentDate, "yyyy-MM-dd");
+        if (!skipSet?.has(dateKey)) {
+          dates.push(new Date(currentDate));
+        }
       }
 
       currentDate = addDays(currentDate, 1);
@@ -255,7 +289,7 @@ export default function RecurringTasksSheet({
     confirmAction == null
       ? ""
       : confirmAction.type === "delete-series"
-        ? `Серия «${confirmAction.title}» будет удалена полностью. Это действие нельзя отменить.`
+        ? `Будущие повторы серии «${confirmAction.title}» будут остановлены. Прошлые задачи останутся в истории.`
         : `Повтор «${confirmAction.title}» за ${format(
             confirmAction.date,
             "d MMMM (EEEE)",
@@ -527,7 +561,7 @@ export default function RecurringTasksSheet({
                     className="h-11 rounded-xl bg-[var(--danger)] text-white font-semibold active:scale-95 transition-transform"
                   >
                     {confirmAction.type === "delete-series"
-                      ? "Удалить всё"
+                      ? "Остановить"
                       : "Удалить день"}
                   </button>
                 </div>

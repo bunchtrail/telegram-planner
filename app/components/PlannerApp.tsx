@@ -321,6 +321,7 @@ export default function PlannerApp() {
             <RecurringTasksSheet
               onClose={() => setShowRecurring(false)}
               recurringTasks={planner.recurringTasks}
+              recurringSkips={planner.recurringSkips}
               onDeleteSeries={planner.deleteTaskSeries}
               onSkipDate={planner.skipTaskSeriesDate}
               isDesktop={isDesktop}
