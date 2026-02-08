@@ -1645,29 +1645,31 @@ export function usePlanner() {
       );
     }
   };
-
-
-
-  const fetchRecurringTasks = async () => {
+  const fetchRecurringTasks = useCallback(async () => {
     if (!userId) return;
 
     const { data, error } = await supabase
       .from('task_series')
       .select('*')
       .eq('telegram_id', userId)
-      .is('end_date', null); // Only fetch active series
+      .is('end_date', null);
 
     if (!error && data) {
       setRecurringTasks(data as TaskSeriesRow[]);
     }
-  };
-
-  // Initial fetch for recurring tasks
-  useEffect(() => {
-    if (userId) {
-      fetchRecurringTasks();
-    }
   }, [userId]);
+
+  useEffect(() => {
+    if (!userId) return;
+
+    const timerId = window.setTimeout(() => {
+      void fetchRecurringTasks();
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timerId);
+    };
+  }, [fetchRecurringTasks, userId]);
 
   const deleteTaskSeries = async (seriesId: string) => {
     // Optimistic update

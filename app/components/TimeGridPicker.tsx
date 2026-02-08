@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { cn } from '../lib/cn';
 
 const SLOT_MIN = 15;
@@ -10,7 +10,6 @@ const LABEL_W = 54;
 const pad2 = (value: number) => String(value).padStart(2, '0');
 const formatMinutes = (value: number) =>
   `${pad2(Math.floor(value / 60))}:${pad2(value % 60)}`;
-
 
 type TimeGridPickerProps = {
   valueMinutes: number | null;
@@ -33,17 +32,20 @@ export default function TimeGridPicker({
     return Array.from({ length: count }, (_, i) => i * SLOT_MIN);
   }, []);
 
-  const selectByClientY = (clientY: number) => {
-    const el = containerRef.current;
-    if (!el) return;
-    const rect = el.getBoundingClientRect();
-    const y = clientY - rect.top + el.scrollTop;
-    const slotIndex = Math.max(
-      0,
-      Math.min(slots.length - 1, Math.floor(y / SLOT_PX))
-    );
-    onChange(slots[slotIndex]);
-  };
+  const selectByClientY = useCallback(
+    (clientY: number) => {
+      const el = containerRef.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      const y = clientY - rect.top + el.scrollTop;
+      const slotIndex = Math.max(
+        0,
+        Math.min(slots.length - 1, Math.floor(y / SLOT_PX))
+      );
+      onChange(slots[slotIndex]);
+    },
+    [onChange, slots]
+  );
 
   useEffect(() => {
     const el = containerRef.current;
@@ -61,7 +63,7 @@ export default function TimeGridPicker({
       top: Math.max(0, top),
       behavior: prefersReducedMotion ? 'auto' : 'smooth',
     });
-  }, [valueMinutes]);
+  }, [defaultMinutes, valueMinutes]);
 
   useEffect(() => {
     if (!dragging) return;
@@ -76,7 +78,7 @@ export default function TimeGridPicker({
       window.removeEventListener('pointermove', handleMove);
       window.removeEventListener('pointerup', handleUp);
     };
-  }, [dragging, slots]);
+  }, [dragging, selectByClientY]);
 
   const selectionTop =
     valueMinutes == null ? null : (valueMinutes / SLOT_MIN) * SLOT_PX;
