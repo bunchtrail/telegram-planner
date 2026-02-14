@@ -2080,7 +2080,7 @@ export function usePlanner() {
     }
 
     // 1. Add to task_series_skips
-    const { error } = await runWithAuthRetry(() =>
+    const { error: skipError } = await runWithAuthRetry(() =>
       supabase.from('task_series_skips').upsert(
         {
           series_id: seriesId,
@@ -2091,18 +2091,7 @@ export function usePlanner() {
       )
     );
 
-    // 2. Delete any concrete instance if it exists
-    if (!error) {
-      // We need to find if there's a concrete task for this date to delete it
-      // We can just try to delete matching criteria
-      await runWithAuthRetry(() =>
-        supabase
-          .from('tasks')
-          .delete()
-          .eq('series_id', seriesId)
-          .eq('date', dateKey)
-      );
-    } else {
+    if (skipError) {
       if (skipAddedOptimistically) {
         setRecurringSkips((prev) =>
           prev.filter(
@@ -2111,6 +2100,37 @@ export function usePlanner() {
           )
         );
       }
+      setRefetchKey((prev) => prev + 1);
+      return;
+    }
+
+    // 2. Delete concrete instance for this date (if already materialized)
+    const { error: deleteError } = await runWithAuthRetry(() =>
+      supabase
+        .from('tasks')
+        .delete()
+        .eq('series_id', seriesId)
+        .eq('date', dateKey)
+    );
+
+    if (deleteError) {
+      console.error('Skip recurring date failed to delete task instance', deleteError);
+      if (skipAddedOptimistically) {
+        setRecurringSkips((prev) =>
+          prev.filter(
+            (skip) =>
+              !(skip.series_id === seriesId && skip.date === dateKey)
+          )
+        );
+      }
+
+      await runWithAuthRetry(() =>
+        supabase
+          .from('task_series_skips')
+          .delete()
+          .eq('series_id', seriesId)
+          .eq('date', dateKey)
+      );
       setRefetchKey((prev) => prev + 1);
     }
   };
