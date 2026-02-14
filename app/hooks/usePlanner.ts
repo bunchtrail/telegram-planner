@@ -40,6 +40,20 @@ type TaskRow = {
   remind_at?: string | null;
 };
 
+type TelegramAuthPayload = {
+  token?: string;
+  error?: string;
+  user?: { id?: string | number };
+};
+
+type SupabaseErrorLike = {
+  message?: string;
+  details?: string | null;
+  hint?: string | null;
+  code?: string;
+  status?: number | string | null;
+};
+
 export type TaskSeriesRow = {
   id: string;
   title: string;
@@ -259,6 +273,42 @@ const mapTaskRow = (row: TaskRow, clientId = row.id): Task => ({
   remindBeforeMinutes: parseRemindBefore(row.remind_before_minutes),
 });
 
+const isSupabaseAuthError = (error: SupabaseErrorLike | null | undefined) => {
+  if (!error) return false;
+
+  const code = typeof error.code === 'string' ? error.code.toUpperCase() : '';
+  if (code === 'PGRST301' || code === 'PGRST302' || code === 'PGRST303') {
+    return true;
+  }
+
+  const rawStatus = error.status;
+  const status =
+    typeof rawStatus === 'number'
+      ? rawStatus
+      : typeof rawStatus === 'string'
+        ? Number(rawStatus)
+        : NaN;
+  if (status === 401 || status === 403) {
+    return true;
+  }
+
+  const message = `${error.message ?? ''} ${error.details ?? ''}`.toLowerCase();
+  if (message.includes('jwt') && message.includes('expired')) {
+    return true;
+  }
+  if (message.includes('invalid jwt') || message.includes('token is expired')) {
+    return true;
+  }
+  if (message.includes('invalid token')) {
+    return true;
+  }
+  if (message.includes('unauthorized') || message.includes('not authenticated')) {
+    return true;
+  }
+
+  return false;
+};
+
 export function usePlanner() {
   const [selectedDate, setSelectedDate] = useState(() => new Date());
   const [viewMode, setViewMode] = useState<PlannerViewMode>('week');
@@ -273,6 +323,119 @@ export function usePlanner() {
   const [recurringSkips, setRecurringSkips] = useState<TaskSeriesSkipRow[]>([]);
   const toggleRequestRef = useRef(new Map<string, number>());
   const pendingInsertRef = useRef(new Map<string, TaskRow>());
+  const pendingMutationRef = useRef(new Map<string, Record<string, unknown>>());
+  const authRefreshPromiseRef = useRef<Promise<boolean> | null>(null);
+
+  const applyAuthSession = useCallback(
+    (token: string, authUserId: string | null) => {
+      setSupabaseAccessToken(token);
+      if (authUserId) {
+        setUserId((current) => (current === authUserId ? current : authUserId));
+      }
+    },
+    []
+  );
+
+  const requestTelegramAuth = useCallback(async () => {
+    const initData = getTelegramInitData();
+    if (!initData) {
+      return null;
+    }
+
+    const response = await fetch('/api/auth/telegram', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ initData }),
+    });
+    const payload = (await response.json().catch(() => null)) as
+      | TelegramAuthPayload
+      | null;
+
+    if (!response.ok || !payload?.token) {
+      return null;
+    }
+
+    return {
+      token: payload.token,
+      userId: payload.user?.id != null ? String(payload.user.id) : null,
+    };
+  }, []);
+
+  const refreshSupabaseAuth = useCallback(async () => {
+    if (authRefreshPromiseRef.current) {
+      return authRefreshPromiseRef.current;
+    }
+
+    const refreshPromise = (async () => {
+      try {
+        const authPayload = await requestTelegramAuth();
+        if (!authPayload?.token) {
+          return false;
+        }
+        applyAuthSession(authPayload.token, authPayload.userId);
+        return true;
+      } catch (error) {
+        console.error('Supabase auth refresh failed', error);
+        return false;
+      }
+    })();
+
+    authRefreshPromiseRef.current = refreshPromise;
+    try {
+      return await refreshPromise;
+    } finally {
+      if (authRefreshPromiseRef.current === refreshPromise) {
+        authRefreshPromiseRef.current = null;
+      }
+    }
+  }, [applyAuthSession, requestTelegramAuth]);
+
+  const runWithAuthRetry = useCallback(
+    async <T extends { error: SupabaseErrorLike | null | undefined }>(
+      operation: () => Promise<T>
+    ) => {
+      let result = await operation();
+      if (!isSupabaseAuthError(result.error)) {
+        return result;
+      }
+
+      const refreshed = await refreshSupabaseAuth();
+      if (!refreshed) {
+        return result;
+      }
+
+      result = await operation();
+      return result;
+    },
+    [refreshSupabaseAuth]
+  );
+
+  const queuePendingMutation = useCallback(
+    (tempId: string, updates: Record<string, unknown>) => {
+      if (!updates || Object.keys(updates).length === 0) {
+        return;
+      }
+      const existing = pendingMutationRef.current.get(tempId) ?? {};
+      pendingMutationRef.current.set(tempId, { ...existing, ...updates });
+    },
+    []
+  );
+
+  const flushPendingMutation = useCallback(async (tempId: string, id: string) => {
+    const updates = pendingMutationRef.current.get(tempId);
+    if (!updates || Object.keys(updates).length === 0) {
+      pendingMutationRef.current.delete(tempId);
+      return;
+    }
+
+    pendingMutationRef.current.delete(tempId);
+    const { error } = await runWithAuthRetry(() =>
+      supabase.from('tasks').update(updates).eq('id', id)
+    );
+    if (error) {
+      console.error('Flush pending task mutation failed', error);
+    }
+  }, [runWithAuthRetry]);
 
   const activeMonthKey = useMemo(
     () => format(selectedDate, 'yyyy-MM'),
@@ -334,6 +497,7 @@ export function usePlanner() {
   const toggleActiveTask = useCallback(
     async (id: string) => {
       if (!userId) return;
+      if (!isUuid(id)) return;
       const target = tasksById.get(id);
       if (!target || target.completed) return;
       const now = Date.now();
@@ -359,16 +523,18 @@ export function usePlanner() {
           return task;
         })
       );
-      const { error } = await supabase.rpc('toggle_task_timer', {
-        task_id: id,
-      });
+      const { error } = await runWithAuthRetry(() =>
+        supabase.rpc('toggle_task_timer', {
+          task_id: id,
+        })
+      );
 
       if (error) {
         console.error('Toggle task timer failed', error);
         setTasks(previousTasks);
       }
     },
-    [tasksById, tasks, userId]
+    [tasksById, tasks, userId, runWithAuthRetry]
   );
 
   const isDateInActiveMonth = useCallback(
@@ -454,16 +620,18 @@ export function usePlanner() {
       }
 
       if (rows.length > 0) {
-        const { error } = await supabase.from('tasks').upsert(rows, {
-          onConflict: 'series_id,date',
-          ignoreDuplicates: true,
-        });
+        const { error } = await runWithAuthRetry(() =>
+          supabase.from('tasks').upsert(rows, {
+            onConflict: 'series_id,date',
+            ignoreDuplicates: true,
+          })
+        );
         if (error) {
           console.error('Series instance upsert failed', error);
         }
       }
     },
-    [userId]
+    [userId, runWithAuthRetry]
   );
 
   useEffect(() => {
@@ -659,36 +827,16 @@ export function usePlanner() {
       }
 
       try {
-        const initData = getTelegramInitData();
-        if (!initData) {
+        const authPayload = await requestTelegramAuth();
+        if (!authPayload?.token) {
           if (!isCancelled) {
             setIsLoading(false);
           }
           return;
         }
 
-        const response = await fetch('/api/auth/telegram', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ initData }),
-        });
-        const payload = (await response.json().catch(() => null)) as {
-          token?: string;
-          error?: string;
-          user?: { id?: string | number };
-        } | null;
-
-        if (!response.ok || !payload?.token) {
-          if (!isCancelled) {
-            setIsLoading(false);
-          }
-          return;
-        }
-
-        setSupabaseAccessToken(payload.token);
-        if (payload.user?.id != null) {
-          setUserId(String(payload.user.id));
-        } else if (!isCancelled) {
+        applyAuthSession(authPayload.token, authPayload.userId);
+        if (authPayload.userId == null && !isCancelled) {
           setIsLoading(false);
         }
       } catch {
@@ -702,7 +850,7 @@ export function usePlanner() {
     return () => {
       isCancelled = true;
     };
-  }, []);
+  }, [applyAuthSession, requestTelegramAuth]);
 
   useEffect(() => {
     if (!userId) return;
@@ -843,21 +991,34 @@ export function usePlanner() {
 
     const fetchTasks = async () => {
       setIsLoading(true);
-      setTasks([]);
-      pendingInsertRef.current.clear();
 
-      const { data: tasksData, error: tasksError } = await supabase
-        .from('tasks')
-        .select('*')
-        .gte('date', monthStartKey)
-        .lte('date', monthEndKey)
-        .order('date', { ascending: true })
-        .order('position', { ascending: true })
-        .order('created_at', { ascending: true });
+      const { data: tasksData, error: tasksError } = await runWithAuthRetry(() =>
+        supabase
+          .from('tasks')
+          .select('*')
+          .gte('date', monthStartKey)
+          .lte('date', monthEndKey)
+          .order('date', { ascending: true })
+          .order('position', { ascending: true })
+          .order('created_at', { ascending: true })
+      );
 
       if (!isCancelled) {
         if (!tasksError && tasksData) {
-          setTasks(tasksData.map((t: TaskRow) => mapTaskRow(t)));
+          const fetchedTasks = tasksData.map((t: TaskRow) => mapTaskRow(t));
+          const pendingIds = new Set(pendingInsertRef.current.keys());
+          setTasks((prev) => {
+            if (pendingIds.size === 0) {
+              return fetchedTasks;
+            }
+            const pendingTasks = prev.filter(
+              (task) => pendingIds.has(task.id) && isDateInActiveMonth(task.date)
+            );
+            if (pendingTasks.length === 0) {
+              return fetchedTasks;
+            }
+            return [...fetchedTasks, ...pendingTasks];
+          });
         }
         setIsLoading(false);
       }
@@ -880,11 +1041,13 @@ export function usePlanner() {
         }
       });
 
-      const { data: skipsData } = await supabase
-        .from('task_series_skips')
-        .select('series_id,date')
-        .gte('date', monthStartKey)
-        .lte('date', monthEndKey);
+      const { data: skipsData } = await runWithAuthRetry(() =>
+        supabase
+          .from('task_series_skips')
+          .select('series_id,date')
+          .gte('date', monthStartKey)
+          .lte('date', monthEndKey)
+      );
 
       if (isCancelled) {
         return;
@@ -896,13 +1059,15 @@ export function usePlanner() {
         )
       );
 
-      const { data: seriesData } = await supabase
-        .from('task_series')
-        .select(
-          'id,title,duration,repeat,weekday,start_minutes,remind_before_minutes,start_date,end_date'
-        )
-        .lte('start_date', monthEndKey)
-        .or(`end_date.is.null,end_date.gte.${monthStartKey}`);
+      const { data: seriesData } = await runWithAuthRetry(() =>
+        supabase
+          .from('task_series')
+          .select(
+            'id,title,duration,repeat,weekday,start_minutes,remind_before_minutes,start_date,end_date'
+          )
+          .lte('start_date', monthEndKey)
+          .or(`end_date.is.null,end_date.gte.${monthStartKey}`)
+      );
 
       if (isCancelled) {
         return;
@@ -924,27 +1089,35 @@ export function usePlanner() {
     return () => {
       isCancelled = true;
     };
-  }, [userId, monthStartKey, monthEndKey, ensureSeriesInstancesForMonth, refetchKey]);
+  }, [
+    userId,
+    monthStartKey,
+    monthEndKey,
+    ensureSeriesInstancesForMonth,
+    refetchKey,
+    isDateInActiveMonth,
+    runWithAuthRetry,
+  ]);
 
   useEffect(() => {
     if (!userId) return;
     let isCancelled = false;
 
-    supabase
-      .rpc('get_user_streak', { user_telegram_id: userId })
-      .then(({ data, error }) => {
-        if (isCancelled) return;
-        if (error) {
-          console.error('Fetch streak failed', error);
-          return;
-        }
-        setStreak(typeof data === 'number' ? data : 0);
-      });
+    runWithAuthRetry(() =>
+      supabase.rpc('get_user_streak', { user_telegram_id: userId })
+    ).then(({ data, error }) => {
+      if (isCancelled) return;
+      if (error) {
+        console.error('Fetch streak failed', error);
+        return;
+      }
+      setStreak(typeof data === 'number' ? data : 0);
+    });
 
     return () => {
       isCancelled = true;
     };
-  }, [userId, tasks]);
+  }, [userId, tasks, runWithAuthRetry]);
 
   useEffect(() => {
     if (!userId) return;
@@ -1045,9 +1218,9 @@ export function usePlanner() {
       return;
     }
 
-    const { error } = await supabase
-      .from('tasks')
-      .upsert(updates, { onConflict: 'id' });
+    const { error } = await runWithAuthRetry(() =>
+      supabase.from('tasks').upsert(updates, { onConflict: 'id' })
+    );
 
     if (error) {
       console.error('Reorder failed', error);
@@ -1124,34 +1297,39 @@ export function usePlanner() {
 
       setTasks((prev) => [...prev, newTask]);
 
-      const { data, error } = await supabase
-        .from('tasks')
-        .insert({
-          title: newTask.title,
-          duration: newTask.duration,
-          date: formatDateOnly(newTask.date),
-          completed: false,
-          telegram_id: userId,
-          position: newTask.position,
-          series_id: null,
-          color: resolvedColor,
-          is_pinned: false,
-          checklist: [],
-          start_minutes: normalizedStartMinutes,
-          remind_before_minutes: normalizedRemindBefore,
-          remind_at: remindAt,
-        })
-        .select()
-        .single();
+      const { data, error } = await runWithAuthRetry(() =>
+        supabase
+          .from('tasks')
+          .insert({
+            title: newTask.title,
+            duration: newTask.duration,
+            date: formatDateOnly(newTask.date),
+            completed: false,
+            telegram_id: userId,
+            position: newTask.position,
+            series_id: null,
+            color: resolvedColor,
+            is_pinned: false,
+            checklist: [],
+            start_minutes: normalizedStartMinutes,
+            remind_before_minutes: normalizedRemindBefore,
+            remind_at: remindAt,
+          })
+          .select()
+          .single()
+      );
 
       pendingInsertRef.current.delete(tempId);
 
       if (error) {
+        console.error('Add task failed', error);
+        pendingMutationRef.current.delete(tempId);
         setTasks((prev) => prev.filter((t) => t.id !== tempId));
       } else if (data) {
         setTasks((prev) =>
           prev.map((t) => (t.id === tempId ? { ...t, id: data.id } : t))
         );
+        await flushPendingMutation(tempId, data.id);
       }
       return;
     }
@@ -1163,21 +1341,23 @@ export function usePlanner() {
         : addDays(selectedDate, normalizedRepeatCount - 1);
     const endDateKey = formatDateOnly(endDate);
 
-    const { data: seriesData, error: seriesError } = await supabase
-      .from('task_series')
-      .insert({
-        telegram_id: userId,
-        title: trimmedTitle,
-        duration,
-        repeat: repeat === 'daily' ? 'daily' : 'weekly',
-        weekday: repeat === 'weekly' ? getDay(selectedDate) : null,
-        start_date: selectedDateKey,
-        end_date: endDateKey,
-        start_minutes: normalizedStartMinutes,
-        remind_before_minutes: normalizedRemindBefore,
-      })
-      .select()
-      .single();
+    const { data: seriesData, error: seriesError } = await runWithAuthRetry(() =>
+      supabase
+        .from('task_series')
+        .insert({
+          telegram_id: userId,
+          title: trimmedTitle,
+          duration,
+          repeat: repeat === 'daily' ? 'daily' : 'weekly',
+          weekday: repeat === 'weekly' ? getDay(selectedDate) : null,
+          start_date: selectedDateKey,
+          end_date: endDateKey,
+          start_minutes: normalizedStartMinutes,
+          remind_before_minutes: normalizedRemindBefore,
+        })
+        .select()
+        .single()
+    );
 
     if (seriesError || !seriesData) {
       return;
@@ -1223,29 +1403,33 @@ export function usePlanner() {
 
     setTasks((prev) => [...prev, newTask]);
 
-    const { data, error } = await supabase
-      .from('tasks')
-      .insert({
-        title: newTask.title,
-        duration: newTask.duration,
-        date: selectedDateKey,
-        completed: false,
-        telegram_id: userId,
-        position: newTask.position,
-        series_id: seriesId,
-        color: resolvedColor,
-        is_pinned: false,
-        checklist: [],
-        start_minutes: normalizedStartMinutes,
-        remind_before_minutes: normalizedRemindBefore,
-        remind_at: remindAt,
-      })
-      .select()
-      .single();
+    const { data, error } = await runWithAuthRetry(() =>
+      supabase
+        .from('tasks')
+        .insert({
+          title: newTask.title,
+          duration: newTask.duration,
+          date: selectedDateKey,
+          completed: false,
+          telegram_id: userId,
+          position: newTask.position,
+          series_id: seriesId,
+          color: resolvedColor,
+          is_pinned: false,
+          checklist: [],
+          start_minutes: normalizedStartMinutes,
+          remind_before_minutes: normalizedRemindBefore,
+          remind_at: remindAt,
+        })
+        .select()
+        .single()
+    );
 
     pendingInsertRef.current.delete(tempId);
 
     if (error) {
+      console.error('Add recurring task instance failed', error);
+      pendingMutationRef.current.delete(tempId);
       setTasks((prev) => prev.filter((t) => t.id !== tempId));
       return;
     }
@@ -1254,6 +1438,7 @@ export function usePlanner() {
       setTasks((prev) =>
         prev.map((t) => (t.id === tempId ? { ...t, id: data.id } : t))
       );
+      await flushPendingMutation(tempId, data.id);
     }
 
     const existingKeys = new Set<string>();
@@ -1366,12 +1551,51 @@ export function usePlanner() {
       dbUpdates.reminder_sent_at = null;
     }
 
-    const { error } = await supabase.from('tasks').update(dbUpdates).eq('id', id);
+    if (!isUuid(id)) {
+      queuePendingMutation(id, dbUpdates);
+      return;
+    }
+
+    const rollbackUpdates: Partial<Task> = {};
+    if (appliedUpdates.title !== undefined) {
+      rollbackUpdates.title = existingTask.title;
+    }
+    if (appliedUpdates.duration !== undefined) {
+      rollbackUpdates.duration = existingTask.duration;
+    }
+    if (appliedUpdates.color !== undefined) {
+      rollbackUpdates.color = existingTask.color;
+    }
+    if (appliedUpdates.isPinned !== undefined) {
+      rollbackUpdates.isPinned = existingTask.isPinned;
+    }
+    if (appliedUpdates.checklist !== undefined) {
+      rollbackUpdates.checklist = existingTask.checklist;
+    }
+    if (appliedUpdates.startMinutes !== undefined) {
+      rollbackUpdates.startMinutes = existingTask.startMinutes;
+    }
+    if (appliedUpdates.remindBeforeMinutes !== undefined) {
+      rollbackUpdates.remindBeforeMinutes = existingTask.remindBeforeMinutes;
+    }
+    if (appliedUpdates.date !== undefined) {
+      rollbackUpdates.date = existingTask.date;
+    }
+
+    const { error } = await runWithAuthRetry(() =>
+      supabase.from('tasks').update(dbUpdates).eq('id', id)
+    );
 
     if (error) {
-      setTasks((prev) =>
-        prev.map((task) => (task.id === id ? existingTask : task))
-      );
+      console.error('Update task failed', error);
+      setTasks((prev) => {
+        if (Object.keys(rollbackUpdates).length === 0) {
+          return prev;
+        }
+        return prev.map((task) =>
+          task.id === id ? { ...task, ...rollbackUpdates } : task
+        );
+      });
     }
   };
 
@@ -1411,21 +1635,34 @@ export function usePlanner() {
       return next;
     });
 
+    if (!isUuid(id)) {
+      queuePendingMutation(id, {
+        date: nextDateKey,
+        position: nextPosition,
+        series_id: taskToMove.seriesId ? null : taskToMove.seriesId ?? null,
+        remind_at: remindAt,
+        reminder_sent_at: null,
+      });
+      return;
+    }
+
     if (!userId) {
       return;
     }
 
     if (taskToMove.seriesId) {
-      const { error: skipError } = await supabase
-        .from('task_series_skips')
-        .upsert(
-          {
-            series_id: taskToMove.seriesId,
-            telegram_id: userId,
-            date: currentDateKey,
-          },
-          { onConflict: 'series_id,date', ignoreDuplicates: true }
-        );
+      const { error: skipError } = await runWithAuthRetry(() =>
+        supabase
+          .from('task_series_skips')
+          .upsert(
+            {
+              series_id: taskToMove.seriesId,
+              telegram_id: userId,
+              date: currentDateKey,
+            },
+            { onConflict: 'series_id,date', ignoreDuplicates: true }
+          )
+      );
 
       if (skipError) {
         setTasks((prev) => {
@@ -1439,16 +1676,18 @@ export function usePlanner() {
       }
     }
 
-    const { error } = await supabase
-      .from('tasks')
-      .update({
-        date: nextDateKey,
-        position: nextPosition,
-        series_id: taskToMove.seriesId ? null : taskToMove.seriesId ?? null,
-        remind_at: remindAt,
-        reminder_sent_at: null,
-      })
-      .eq('id', id);
+    const { error } = await runWithAuthRetry(() =>
+      supabase
+        .from('tasks')
+        .update({
+          date: nextDateKey,
+          position: nextPosition,
+          series_id: taskToMove.seriesId ? null : taskToMove.seriesId ?? null,
+          remind_at: remindAt,
+          reminder_sent_at: null,
+        })
+        .eq('id', id)
+    );
 
     if (error) {
       setTasks((prev) => {
@@ -1459,11 +1698,13 @@ export function usePlanner() {
         return next;
       });
       if (taskToMove.seriesId) {
-        await supabase
-          .from('task_series_skips')
-          .delete()
-          .eq('series_id', taskToMove.seriesId)
-          .eq('date', currentDateKey);
+        await runWithAuthRetry(() =>
+          supabase
+            .from('task_series_skips')
+            .delete()
+            .eq('series_id', taskToMove.seriesId)
+            .eq('date', currentDateKey)
+        );
       }
     }
   };
@@ -1472,8 +1713,13 @@ export function usePlanner() {
     const targetTask = tasks.find((task) => task.id === id);
     if (!targetTask) return;
 
-    const requestId = (toggleRequestRef.current.get(id) ?? 0) + 1;
-    toggleRequestRef.current.set(id, requestId);
+    const isPersistedTask = isUuid(id);
+    const requestId = isPersistedTask
+      ? (toggleRequestRef.current.get(id) ?? 0) + 1
+      : 0;
+    if (isPersistedTask) {
+      toggleRequestRef.current.set(id, requestId);
+    }
 
     const newStatus = !targetTask.completed;
     const wasActive = Boolean(targetTask.activeStartedAt);
@@ -1494,12 +1740,17 @@ export function usePlanner() {
       )
     );
 
-    const { error } = await supabase
-      .from('tasks')
-      .update({ completed: newStatus })
-      .eq('id', id);
+    if (!isPersistedTask) {
+      queuePendingMutation(id, { completed: newStatus });
+      return;
+    }
+
+    const { error } = await runWithAuthRetry(() =>
+      supabase.from('tasks').update({ completed: newStatus }).eq('id', id)
+    );
 
     if (error) {
+      console.error('Toggle task failed', error);
       if (toggleRequestRef.current.get(id) !== requestId) {
         return;
       }
@@ -1536,7 +1787,9 @@ export function usePlanner() {
     };
 
     if (!taskToDelete.seriesId) {
-      const { error } = await supabase.from('tasks').delete().eq('id', id);
+      const { error } = await runWithAuthRetry(() =>
+        supabase.from('tasks').delete().eq('id', id)
+      );
 
       if (error) {
         restoreInState();
@@ -1551,26 +1804,27 @@ export function usePlanner() {
     }
 
     const dateKey = formatDateOnly(taskToDelete.date);
-    const { error: skipError } = await supabase
-      .from('task_series_skips')
-      .upsert(
-        {
-          series_id: taskToDelete.seriesId,
-          telegram_id: userId,
-          date: dateKey,
-        },
-        { onConflict: 'series_id,date', ignoreDuplicates: true }
-      );
+    const { error: skipError } = await runWithAuthRetry(() =>
+      supabase
+        .from('task_series_skips')
+        .upsert(
+          {
+            series_id: taskToDelete.seriesId,
+            telegram_id: userId,
+            date: dateKey,
+          },
+          { onConflict: 'series_id,date', ignoreDuplicates: true }
+        )
+    );
 
     if (skipError) {
       restoreInState();
       return null;
     }
 
-    const { error: deleteError } = await supabase
-      .from('tasks')
-      .delete()
-      .eq('id', id);
+    const { error: deleteError } = await runWithAuthRetry(() =>
+      supabase.from('tasks').delete().eq('id', id)
+    );
 
     if (deleteError) {
       restoreInState();
@@ -1592,11 +1846,13 @@ export function usePlanner() {
     let skipRemoved = false;
 
     if (task.seriesId) {
-      const { error: skipError } = await supabase
-        .from('task_series_skips')
-        .delete()
-        .eq('series_id', task.seriesId)
-        .eq('date', dateKey);
+      const { error: skipError } = await runWithAuthRetry(() =>
+        supabase
+          .from('task_series_skips')
+          .delete()
+          .eq('series_id', task.seriesId)
+          .eq('date', dateKey)
+      );
       skipRemoved = !skipError;
     }
 
@@ -1606,39 +1862,43 @@ export function usePlanner() {
       task.remindBeforeMinutes
     );
 
-    const { data, error } = await supabase
-      .from('tasks')
-      .insert({
-        title: task.title,
-        duration: task.duration,
-        date: dateKey,
-        completed: task.completed,
-        telegram_id: userId,
-        position: task.position ?? 0,
-        series_id: task.seriesId ?? null,
-        elapsed_ms: task.elapsedMs ?? 0,
-        active_started_at: null,
-        color: task.color,
-        is_pinned: task.isPinned,
-        checklist: task.checklist,
-        start_minutes: task.startMinutes,
-        remind_before_minutes: task.remindBeforeMinutes,
-        remind_at: remindAt,
-        reminder_sent_at: null,
-      })
-      .select()
-      .single();
+    const { data, error } = await runWithAuthRetry(() =>
+      supabase
+        .from('tasks')
+        .insert({
+          title: task.title,
+          duration: task.duration,
+          date: dateKey,
+          completed: task.completed,
+          telegram_id: userId,
+          position: task.position ?? 0,
+          series_id: task.seriesId ?? null,
+          elapsed_ms: task.elapsedMs ?? 0,
+          active_started_at: null,
+          color: task.color,
+          is_pinned: task.isPinned,
+          checklist: task.checklist,
+          start_minutes: task.startMinutes,
+          remind_before_minutes: task.remindBeforeMinutes,
+          remind_at: remindAt,
+          reminder_sent_at: null,
+        })
+        .select()
+        .single()
+    );
 
     if (error) {
       setTasks((prev) => prev.filter((t) => t.id !== task.id));
       if (task.seriesId && skipRemoved) {
-        await supabase.from('task_series_skips').upsert(
-          {
-            series_id: task.seriesId,
-            telegram_id: userId,
-            date: dateKey,
-          },
-          { onConflict: 'series_id,date', ignoreDuplicates: true }
+        await runWithAuthRetry(() =>
+          supabase.from('task_series_skips').upsert(
+            {
+              series_id: task.seriesId,
+              telegram_id: userId,
+              date: dateKey,
+            },
+            { onConflict: 'series_id,date', ignoreDuplicates: true }
+          )
         );
       }
     } else if (data) {
@@ -1651,11 +1911,13 @@ export function usePlanner() {
     if (!userId) return;
     const todayKey = formatDateOnly(new Date());
 
-    const { data, error } = await supabase
-      .from('task_series')
-      .select('*')
-      .eq('telegram_id', userId)
-      .or(`end_date.is.null,end_date.gte.${todayKey}`);
+    const { data, error } = await runWithAuthRetry(() =>
+      supabase
+        .from('task_series')
+        .select('*')
+        .eq('telegram_id', userId)
+        .or(`end_date.is.null,end_date.gte.${todayKey}`)
+    );
 
     if (!error && data) {
       const seriesRows = data as TaskSeriesRow[];
@@ -1667,12 +1929,14 @@ export function usePlanner() {
         return;
       }
 
-      const { data: skipsData, error: skipsError } = await supabase
-        .from('task_series_skips')
-        .select('series_id,date')
-        .eq('telegram_id', userId)
-        .in('series_id', seriesIds)
-        .gte('date', todayKey);
+      const { data: skipsData, error: skipsError } = await runWithAuthRetry(() =>
+        supabase
+          .from('task_series_skips')
+          .select('series_id,date')
+          .eq('telegram_id', userId)
+          .in('series_id', seriesIds)
+          .gte('date', todayKey)
+      );
 
       if (!skipsError && skipsData) {
         setRecurringSkips(skipsData as TaskSeriesSkipRow[]);
@@ -1683,7 +1947,7 @@ export function usePlanner() {
       setRecurringTasks([]);
       setRecurringSkips([]);
     }
-  }, [userId]);
+  }, [userId, runWithAuthRetry]);
 
   useEffect(() => {
     if (!userId) return;
@@ -1713,11 +1977,13 @@ export function usePlanner() {
       )
     );
 
-    const { error: updateError } = await supabase
-      .from('task_series')
-      .update({ end_date: yesterdayKey })
-      .eq('telegram_id', userId)
-      .eq('id', seriesId);
+    const { error: updateError } = await runWithAuthRetry(() =>
+      supabase
+        .from('task_series')
+        .update({ end_date: yesterdayKey })
+        .eq('telegram_id', userId)
+        .eq('id', seriesId)
+    );
 
     if (updateError) {
       void fetchRecurringTasks();
@@ -1725,18 +1991,22 @@ export function usePlanner() {
       return;
     }
 
-    const { error: deleteFutureError } = await supabase
-      .from('tasks')
-      .delete()
-      .eq('telegram_id', userId)
-      .eq('series_id', seriesId)
-      .gte('date', todayKey);
+    const { error: deleteFutureError } = await runWithAuthRetry(() =>
+      supabase
+        .from('tasks')
+        .delete()
+        .eq('telegram_id', userId)
+        .eq('series_id', seriesId)
+        .gte('date', todayKey)
+    );
 
     if (deleteFutureError) {
       setRefetchKey((prev) => prev + 1);
     }
 
-    await supabase.from('task_series_skips').delete().eq('series_id', seriesId);
+    await runWithAuthRetry(() =>
+      supabase.from('task_series_skips').delete().eq('series_id', seriesId)
+    );
   };
 
   const skipTaskSeriesDate = async (seriesId: string, date: Date) => {
@@ -1758,24 +2028,28 @@ export function usePlanner() {
     }
 
     // 1. Add to task_series_skips
-    const { error } = await supabase.from('task_series_skips').upsert(
-      {
-        series_id: seriesId,
-        telegram_id: userId,
-        date: dateKey,
-      },
-      { onConflict: 'series_id,date', ignoreDuplicates: true }
+    const { error } = await runWithAuthRetry(() =>
+      supabase.from('task_series_skips').upsert(
+        {
+          series_id: seriesId,
+          telegram_id: userId,
+          date: dateKey,
+        },
+        { onConflict: 'series_id,date', ignoreDuplicates: true }
+      )
     );
 
     // 2. Delete any concrete instance if it exists
     if (!error) {
       // We need to find if there's a concrete task for this date to delete it
       // We can just try to delete matching criteria
-      await supabase
-        .from('tasks')
-        .delete()
-        .eq('series_id', seriesId)
-        .eq('date', dateKey);
+      await runWithAuthRetry(() =>
+        supabase
+          .from('tasks')
+          .delete()
+          .eq('series_id', seriesId)
+          .eq('date', dateKey)
+      );
     } else {
       if (skipAddedOptimistically) {
         setRecurringSkips((prev) =>
