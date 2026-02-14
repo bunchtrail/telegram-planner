@@ -23,7 +23,6 @@
 ### Интеграции (в `app/lib/` и `app/api/`)
 
 - `app/api/auth/telegram/route.ts`: только валидация Telegram initData + выпуск JWT.
-- `app/api/reminders/run/route.ts`: серверный cron endpoint для отправки напоминаний через Telegram Bot API (`GET` для Vercel Cron по Bearer secret, `POST` для совместимости/ручных вызовов).
 - `app/lib/supabase.ts`: конфигурация клиента Supabase и установка access token.
 
 ## Поток авторизации

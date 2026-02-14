@@ -20,23 +20,13 @@
 
 - `TELEGRAM_BOT_TOKEN`
 - `SUPABASE_JWT_SECRET`
-- `SUPABASE_SERVICE_ROLE_KEY` (для рассылки напоминаний)
-- `CRON_SECRET` (рекомендуется для Vercel Cron: Bearer token в `Authorization`)
-- `REMINDERS_CRON_SECRET` (legacy/fallback: ключ в query `?key=...`)
+- `SUPABASE_SERVICE_ROLE_KEY`
 
 ## Supabase настройки
 
 1. Применить `supabase/schema.sql`
 2. Убедиться, что JWT secret совпадает с `SUPABASE_JWT_SECRET`
 3. Realtime включен для таблицы (по умолчанию — обычно да, но зависит от проекта)
-
-## Напоминания (cron)
-
-- Vercel Cron: `GET /api/reminders/run` (защита через `Authorization: Bearer <CRON_SECRET>`)
-- Внешний cron/manual: `POST /api/reminders/run?key=...` (или `Authorization: Bearer ...`)
-- Ключ: `CRON_SECRET` (или `REMINDERS_CRON_SECRET` как fallback)
-- Рекомендуемый интервал: 1–5 минут (в зависимости от лимитов и нужной точности)
-- В репозитории добавлен `vercel.json` с расписанием `*/2 * * * *`.
 
 ## Деплой
 
