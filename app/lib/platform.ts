@@ -1,6 +1,16 @@
 export const isIOSDevice = () => {
   if (typeof navigator === 'undefined') return false;
-  return /iPad|iPhone|iPod/.test(navigator.userAgent);
+  // Standard iOS UA check
+  if (/iPad|iPhone|iPod/.test(navigator.userAgent)) return true;
+  // iPadOS with desktop user-agent
+  if (
+    navigator.platform === 'MacIntel' &&
+    typeof navigator.maxTouchPoints === 'number' &&
+    navigator.maxTouchPoints > 1
+  ) {
+    return true;
+  }
+  return false;
 };
 
 type TelegramWebApp = {

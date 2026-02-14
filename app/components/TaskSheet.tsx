@@ -31,6 +31,7 @@ import { DEFAULT_TASK_COLOR, TASK_COLOR_OPTIONS } from "../lib/constants";
 import { useHaptic } from "../hooks/useHaptic";
 import type { TaskRepeat } from "../types/task";
 import { isIOSDevice } from "../lib/platform";
+import { useKeyboardInset } from "../hooks/useKeyboardInset";
 import TimeGridPicker from "./TimeGridPicker";
 
 const DURATION_PRESETS = [15, 30, 45, 60, 90, 120];
@@ -123,7 +124,11 @@ export default function TaskSheet({
   const { impact, notification } = useHaptic();
   const prefersReducedMotion = useReducedMotion();
   const isIOS = isIOSDevice();
-  const reduceMotion = prefersReducedMotion || isIOS;
+  const keyboardHeight = useKeyboardInset();
+  // Only fully disable motion for prefers-reduced-motion.
+  // On iOS, keep basic spring transitions but skip heavy GPU effects.
+  const reduceMotion = Boolean(prefersReducedMotion);
+  const reduceHeavyEffects = reduceMotion || isIOS;
   const formatMinutes = (value: number) =>
     `${String(Math.floor(value / 60)).padStart(2, "0")}:${String(
       value % 60,
@@ -654,7 +659,7 @@ export default function TaskSheet({
         <div
           className={cn(
             "shrink-0 w-full pt-4 pb-2 z-20 bg-[var(--surface)] select-none",
-            !isDesktop && "cursor-grab active:cursor-grabbing touch-none",
+            !isDesktop && "cursor-grab active:cursor-grabbing touch-none [touch-action:none]",
             isDesktop && "p-6 pb-0",
           )}
           onPointerDown={(e) => !isDesktop && dragControls.start(e)}
@@ -724,7 +729,7 @@ export default function TaskSheet({
             "flex-1 overflow-y-auto overflow-x-hidden no-scrollbar touch-pan-y flex flex-col min-h-0",
             isDesktop
               ? "p-8 pt-0"
-              : "px-0 pb-[max(env(safe-area-inset-bottom),32px)] pt-0",
+              : `px-0 pt-0 pb-[max(env(safe-area-inset-bottom),32px,var(--keyboard-height,0px))]`,
           )}
         >
           <div className={cn("shrink-0", isDesktop ? "mb-8" : "px-6 py-2")}>

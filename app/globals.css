@@ -24,6 +24,7 @@ body {
   --tg-safe-right: 0px;
   --tg-safe-bottom: 0px;
   --tg-safe-left: 0px;
+  --keyboard-height: 0px;
   --bg: var(--tg-theme-bg-color, #f2f2f7);
   --surface: var(--tg-theme-secondary-bg-color, #ffffff);
   --surface-2: var(--tg-theme-section-bg-color, #ffffff);
@@ -107,16 +108,18 @@ body {
   perspective: 1000px;
 }
 
+/* iOS glassmorphism: use lighter blur + higher opacity as fallback */
 @supports (-webkit-touch-callout: none) {
   .glass {
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-    background: var(--surface);
+    -webkit-backdrop-filter: blur(12px) saturate(140%);
+    backdrop-filter: blur(12px) saturate(140%);
+    background: rgba(255, 255, 255, 0.92);
   }
 
-  [class*="backdrop-blur"] {
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
+  @media (prefers-color-scheme: dark) {
+    .glass {
+      background: rgba(30, 30, 30, 0.92);
+    }
   }
 }
 
@@ -129,4 +132,10 @@ body {
     transition: none !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* Scrollable areas: prevent iOS rubber-band leaking */
+.scroll-container {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
 }

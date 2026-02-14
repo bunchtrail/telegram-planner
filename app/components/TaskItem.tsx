@@ -124,14 +124,17 @@ const TaskItem = memo(function TaskItem({
   const inputRef = useRef<HTMLInputElement>(null);
   const prefersReducedMotion = useReducedMotion();
   const isIOS = isIOSDevice();
-  const reduceEffects = prefersReducedMotion || isIOS;
-  const listMotionEnabled = !reduceEffects;
+  // reduceMotion: fully disable transitions (only for prefers-reduced-motion)
+  const reduceMotion = Boolean(prefersReducedMotion);
+  // reduceHeavyEffects: skip GPU-intensive glow, blur, conic-gradient (iOS + reduced motion)
+  const reduceHeavyEffects = reduceMotion || isIOS;
+  const listMotionEnabled = !reduceMotion;
   const [tickNow, setTickNow] = useState(() => Date.now());
   const startTimeLabel =
     task.startMinutes != null
       ? `${String(Math.floor(task.startMinutes / 60)).padStart(2, '0')}:${String(
-          task.startMinutes % 60
-        ).padStart(2, '0')}`
+        task.startMinutes % 60
+      ).padStart(2, '0')}`
       : null;
 
   const focusSubtaskInput = (preventScroll = false) => {
@@ -214,7 +217,7 @@ const TaskItem = memo(function TaskItem({
   const elapsedMs =
     isActive && task.activeStartedAt
       ? (task.elapsedMs ?? 0) +
-        Math.max(0, tickNow - task.activeStartedAt.getTime())
+      Math.max(0, tickNow - task.activeStartedAt.getTime())
       : task.elapsedMs ?? 0;
   const hasElapsed = elapsedMs > 0;
   const elapsedLabel = formatElapsed(elapsedMs);
@@ -319,7 +322,7 @@ const TaskItem = memo(function TaskItem({
     >
       {isActive && !isExpanded && (
         <>
-          {!reduceEffects && (
+          {!reduceHeavyEffects && (
             <motion.div
               animate={{ opacity: [0.3, 0.5, 0.3], scale: [0.98, 1.01, 0.98] }}
               transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
@@ -330,7 +333,7 @@ const TaskItem = memo(function TaskItem({
             />
           )}
 
-          {!reduceEffects && <ActiveBorder color={task.color} />}
+          {!reduceHeavyEffects && <ActiveBorder color={task.color} />}
 
           <div
             className={cn(
@@ -340,10 +343,10 @@ const TaskItem = memo(function TaskItem({
           >
             <motion.div
               className="absolute inset-0 bg-[var(--task-color)] opacity-[0.08]"
-              initial={reduceEffects ? false : { width: 0 }}
+              initial={reduceMotion ? false : { width: 0 }}
               animate={{ width: `${timeProgress}%` }}
               transition={
-                reduceEffects ? { duration: 0 } : { duration: 1, ease: 'linear' }
+                reduceMotion ? { duration: 0 } : { duration: 1, ease: 'linear' }
               }
             />
           </div>
@@ -443,7 +446,7 @@ const TaskItem = memo(function TaskItem({
             {!task.completed && (
               <div className="flex items-center gap-3 flex-wrap mt-1 min-h-[20px]">
                 {isActive ? (
-                  reduceEffects ? (
+                  reduceMotion ? (
                     <div className="inline-flex items-center text-[var(--task-color)] font-bold tabular-nums">
                       <span
                         className={cn(
@@ -551,7 +554,7 @@ const TaskItem = memo(function TaskItem({
                 type="button"
                 aria-label="Перетащить"
                 className={cn(
-                  'h-8 w-8 flex items-center justify-center text-[var(--muted)] opacity-20 group-hover:opacity-50 transition-opacity touch-none -mr-1',
+                  'h-8 w-8 flex items-center justify-center text-[var(--muted)] opacity-20 group-hover:opacity-50 transition-opacity touch-none [touch-action:none] -mr-1',
                   canReorder
                     ? 'cursor-grab active:cursor-grabbing'
                     : 'cursor-not-allowed opacity-10'
@@ -629,7 +632,7 @@ const TaskItem = memo(function TaskItem({
             opacity: isExpanded ? 1 : 0,
           }}
           transition={
-            reduceEffects ? { duration: 0 } : { duration: 0.18, ease: 'easeOut' }
+            reduceMotion ? { duration: 0 } : { duration: 0.18, ease: 'easeOut' }
           }
           className="overflow-hidden"
           style={{ pointerEvents: isExpanded ? 'auto' : 'none' }}
@@ -772,10 +775,10 @@ const TaskItem = memo(function TaskItem({
                             ? task.color
                             : 'var(--ink)',
                         }}
-                        initial={reduceEffects ? false : { width: 0 }}
+                        initial={reduceMotion ? false : { width: 0 }}
                         animate={{ width: `${checklistProgress}%` }}
                         transition={
-                          reduceEffects
+                          reduceMotion
                             ? { duration: 0 }
                             : { duration: 0.5, ease: 'circOut' }
                         }
@@ -784,7 +787,7 @@ const TaskItem = memo(function TaskItem({
                   )}
 
                   <ul className="space-y-1">
-                    {reduceEffects ? (
+                    {reduceMotion ? (
                       task.checklist.map((item, idx) => (
                         <li key={`${task.id}-subtask-${idx}`}>
                           <div className="group flex items-center gap-3 w-full bg-[var(--surface)] rounded-xl px-2.5 py-2 border border-transparent shadow-sm">

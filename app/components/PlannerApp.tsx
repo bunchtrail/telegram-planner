@@ -15,11 +15,13 @@ import RecurringTasksSheet from './RecurringTasksSheet';
 import { usePlanner } from '../hooks/usePlanner';
 import { useHaptic } from '../hooks/useHaptic';
 import { useReward } from '../hooks/useReward';
+import { useKeyboardInset } from '../hooks/useKeyboardInset';
 import type { Task, TaskRepeat } from '../types/task';
 
 export default function PlannerApp() {
   const planner = usePlanner();
   const { isDesktop } = planner;
+  useKeyboardInset();
 
   const {
     selectedDate,

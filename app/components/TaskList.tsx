@@ -3,7 +3,6 @@ import { AnimatePresence, Reorder, useReducedMotion } from 'framer-motion';
 import { Calendar, Loader2 } from 'lucide-react';
 import type { Task } from '../types/task';
 import TaskItem from './TaskItem';
-import { isIOSDevice } from '../lib/platform';
 import { cn } from '../lib/cn';
 
 type TaskListProps = {
@@ -40,9 +39,8 @@ export default function TaskList({
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const prevTaskIdsRef = useRef<Set<string>>(new Set());
   const prefersReducedMotion = useReducedMotion();
-  const isIOS = isIOSDevice();
-  const reduceEffects = prefersReducedMotion || isIOS;
-  const listMotionEnabled = !reduceEffects;
+  const reduceMotion = Boolean(prefersReducedMotion);
+  const listMotionEnabled = !reduceMotion;
 
   useEffect(() => {
     const prevIds = prevTaskIdsRef.current;
@@ -64,13 +62,13 @@ export default function TaskList({
         if (isScrollable && nearBottom) {
           container.scrollTo({
             top: container.scrollHeight,
-            behavior: reduceEffects ? 'auto' : 'smooth',
+            behavior: reduceMotion ? 'auto' : 'smooth',
           });
         }
       }
     }
     prevTaskIdsRef.current = nextIds;
-  }, [tasks, reduceEffects]);
+  }, [tasks, reduceMotion]);
 
   const scrollClasses = cn(
     'h-full w-full overflow-y-auto pt-2 touch-pan-y overscroll-contain no-scrollbar pl-[max(1rem,env(safe-area-inset-left),var(--tg-content-safe-left,0px))] pr-[max(1rem,env(safe-area-inset-right),var(--tg-content-safe-right,0px))] [-webkit-overflow-scrolling:touch]',
