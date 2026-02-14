@@ -9,7 +9,7 @@ import {
   useDragControls,
   useReducedMotion,
 } from "framer-motion";
-import { ChevronRight, Clock, Repeat, Trash2, X } from "lucide-react";
+import { AlertTriangle, Calendar, ChevronRight, Clock, Repeat, Trash2, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { addDays, format, getDay, startOfDay } from "date-fns";
 import { ru } from "date-fns/locale";
@@ -19,10 +19,10 @@ import type { TaskSeriesRow, TaskSeriesSkipRow } from "../hooks/usePlanner";
 import { isIOSDevice } from "../lib/platform";
 
 const SHEET_TRANSITION = {
-    type: "spring",
-    damping: 32,
-    stiffness: 400,
-    mass: 1,
+  type: "spring",
+  damping: 32,
+  stiffness: 400,
+  mass: 1,
 } satisfies Transition;
 
 const MODAL_TRANSITION = {
@@ -291,10 +291,10 @@ export default function RecurringTasksSheet({
       : confirmAction.type === "delete-series"
         ? `Будущие повторы серии «${confirmAction.title}» будут остановлены. Прошлые задачи останутся в истории.`
         : `Повтор «${confirmAction.title}» за ${format(
-            confirmAction.date,
-            "d MMMM (EEEE)",
-            { locale: ru }
-          )} будет удален из расписания.`;
+          confirmAction.date,
+          "d MMMM (EEEE)",
+          { locale: ru }
+        )} будет удален из расписания.`;
 
   return (
     <div className={containerClasses}>
@@ -341,7 +341,7 @@ export default function RecurringTasksSheet({
           className={cn(
             "shrink-0 w-full z-20 bg-[var(--surface)] select-none border-b border-[var(--border)]",
             !isDesktop &&
-              "pt-4 pb-3 cursor-grab active:cursor-grabbing touch-none",
+            "pt-4 pb-3 cursor-grab active:cursor-grabbing touch-none",
             isDesktop && "px-6 pt-6 pb-4"
           )}
           onPointerDown={(event) =>
@@ -360,26 +360,33 @@ export default function RecurringTasksSheet({
               !isDesktop && "px-5"
             )}
           >
-            <div className="min-w-0">
-              <h2
-                id="recurring-sheet-title"
-                className="text-[20px] font-bold font-[var(--font-display)] text-[var(--ink)] leading-tight"
-              >
-                Повторяющиеся задачи
-              </h2>
-              <p className="mt-1 text-[12px] font-semibold text-[var(--muted)]">
-                {recurringTasks.length === 0
-                  ? "Серии пока не добавлены"
-                  : formatSeriesCountLabel(recurringTasks.length)}
-              </p>
+            <div className="min-w-0 flex items-start gap-3">
+              <div className="shrink-0 flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--accent)]/10 text-[var(--accent)] shadow-sm">
+                <Repeat size={22} strokeWidth={2.5} />
+              </div>
+              <div className="min-w-0 pt-0.5">
+                <h2
+                  id="recurring-sheet-title"
+                  className="text-[20px] font-bold font-[var(--font-display)] text-[var(--ink)] leading-tight"
+                >
+                  Повторяющиеся задачи
+                </h2>
+                <div className="mt-1.5 flex items-center gap-2">
+                  <div className="px-2.5 py-1 rounded-lg bg-[var(--surface-2)] border border-[var(--border)] text-[11px] font-bold text-[var(--muted)] uppercase tracking-wider">
+                    {recurringTasks.length === 0
+                      ? "Пока пусто"
+                      : formatSeriesCountLabel(recurringTasks.length)}
+                  </div>
+                </div>
+              </div>
             </div>
             <button
               type="button"
               onClick={handleClose}
-              className="h-11 w-11 flex items-center justify-center rounded-full text-[var(--muted)] hover:bg-[var(--surface-2)] hover:text-[var(--ink)] transition-colors active:scale-95"
+              className="p-2 bg-[var(--surface-2)] rounded-full text-[var(--muted)] hover:text-[var(--ink)] transition-colors active:scale-95"
               aria-label="Закрыть"
             >
-              <X size={22} strokeWidth={2.5} />
+              <X size={20} />
             </button>
           </div>
         </div>
@@ -393,14 +400,15 @@ export default function RecurringTasksSheet({
           )}
         >
           {recurringTasks.length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center text-center text-[var(--muted)]">
-              <div className="h-16 w-16 rounded-full border border-[var(--border)] bg-[var(--surface-2)]/40 flex items-center justify-center mb-4">
-                <Repeat size={28} strokeWidth={2} />
+            <div className="h-full flex flex-col items-center justify-center text-center text-[var(--muted)] py-8">
+              <div className="relative h-20 w-20 rounded-3xl border border-[var(--border)] bg-[var(--surface)] flex items-center justify-center mb-5 shadow-[var(--shadow-card)] overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-br from-[var(--accent)] to-transparent opacity-10 pointer-events-none" />
+                <Repeat size={32} strokeWidth={2} className="text-[var(--accent)] relative z-10" />
               </div>
-              <p className="text-[15px] font-semibold text-[var(--ink)]">
+              <p className="text-[16px] font-bold text-[var(--ink)]">
                 Нет повторяющихся задач
               </p>
-              <p className="mt-1 text-[13px] max-w-[260px] leading-snug">
+              <p className="mt-2 text-[13px] max-w-[260px] leading-relaxed opacity-80">
                 Создайте задачу с повтором в окне добавления, чтобы управлять
                 ею здесь.
               </p>
@@ -415,38 +423,49 @@ export default function RecurringTasksSheet({
                   <article
                     key={series.id}
                     role="listitem"
-                    className="bg-[var(--surface)] rounded-[24px] border border-[var(--border)] overflow-hidden shadow-[var(--shadow-soft)]"
+                    className="relative bg-[var(--surface)] rounded-[24px] border border-[var(--border)] overflow-hidden shadow-[var(--shadow-card)] group/card"
                   >
+                    {/* Subtle accent gradient overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-[var(--accent)] to-transparent opacity-[0.03] pointer-events-none" />
+
                     <button
                       type="button"
                       aria-expanded={isExpanded}
                       aria-controls={`series-panel-${series.id}`}
-                      className="w-full p-4 text-left transition-colors hover:bg-[var(--surface-2)]/50 active:bg-[var(--surface-2)]/80"
+                      className="relative z-10 w-full p-4 text-left transition-colors hover:bg-[var(--surface-2)]/40 active:bg-[var(--surface-2)]/60"
                       onClick={() => {
                         impact("light");
                         setExpandedSeriesId(isExpanded ? null : series.id);
                       }}
                     >
-                      <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className={cn(
+                          "shrink-0 flex h-10 w-10 items-center justify-center rounded-xl shadow-sm transition-colors",
+                          isExpanded
+                            ? "bg-[var(--accent)] text-[var(--accent-ink)]"
+                            : "bg-[var(--accent)]/10 text-[var(--accent)]"
+                        )}>
+                          <Repeat size={20} strokeWidth={2.5} />
+                        </div>
                         <div className="min-w-0 flex-1">
-                          <h3 className="font-bold text-[var(--ink)] text-[17px] truncate">
+                          <h3 className="font-bold text-[var(--ink)] text-[17px] truncate leading-tight">
                             {series.title}
                           </h3>
-                          <div className="mt-2 flex flex-wrap items-center gap-2">
-                            <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)]/80 bg-[var(--surface-2)]/60 px-2.5 py-1 text-[12px] font-semibold text-[var(--muted)]">
-                              <Clock size={13} />
+                          <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                            <span className="inline-flex items-center gap-1 rounded-full bg-[var(--accent)]/8 px-2.5 py-0.5 text-[11px] font-bold text-[var(--accent)]">
+                              <Clock size={12} />
                               {formatStartTime(series.start_minutes)}
                             </span>
-                            <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)]/80 bg-[var(--surface-2)]/60 px-2.5 py-1 text-[12px] font-semibold text-[var(--muted)]">
-                              <Repeat size={13} />
+                            <span className="inline-flex items-center gap-1 rounded-full bg-[var(--surface-2)] border border-[var(--border)]/60 px-2.5 py-0.5 text-[11px] font-bold text-[var(--muted)]">
+                              <Repeat size={11} />
                               {formatRepeatLabel(series)}
                             </span>
                           </div>
                         </div>
                         <ChevronRight
-                          size={20}
+                          size={18}
                           className={cn(
-                            "text-[var(--muted)] transition-transform duration-200 mt-1",
+                            "text-[var(--muted)] transition-transform duration-200 shrink-0",
                             isExpanded && "rotate-90"
                           )}
                         />
@@ -461,33 +480,40 @@ export default function RecurringTasksSheet({
                           animate={{ height: "auto", opacity: 1 }}
                           exit={{ height: 0, opacity: 0 }}
                           transition={{ duration: reduceMotion ? 0 : 0.2 }}
+                          className="relative z-10"
                         >
-                          <div className="px-4 pb-4 pt-3 border-t border-[var(--border)]">
-                            <h4 className="text-[11px] font-bold text-[var(--muted)] uppercase tracking-widest mb-2">
-                              Ближайшие {UPCOMING_OCCURRENCES_COUNT} повторов
-                            </h4>
-                            <div className="space-y-2">
+                          <div className="px-4 pb-4 pt-3 border-t border-[var(--border)]/60">
+                            <div className="flex items-center gap-2 mb-3">
+                              <Calendar size={12} className="text-[var(--muted)]" />
+                              <h4 className="text-[11px] font-bold text-[var(--muted)] uppercase tracking-widest">
+                                Ближайшие {UPCOMING_OCCURRENCES_COUNT} повторов
+                              </h4>
+                            </div>
+                            <div className="space-y-1.5">
                               {nextDates.map((date) => (
                                 <div
                                   key={date.toISOString()}
-                                  className="flex items-center justify-between rounded-2xl border border-[var(--border)]/70 bg-[var(--surface-2)]/40 pl-3 pr-1 py-1"
+                                  className="flex items-center justify-between rounded-2xl bg-[var(--surface-2)]/50 pl-3.5 pr-1 py-1 transition-colors hover:bg-[var(--surface-2)]"
                                 >
-                                  <span className="text-[14px] font-semibold text-[var(--ink)]">
-                                    {format(date, "d MMMM (EEEE)", {
-                                      locale: ru,
-                                    })}
-                                  </span>
+                                  <div className="flex items-center gap-2.5">
+                                    <div className="h-2 w-2 rounded-full bg-[var(--accent)]/40 shrink-0" />
+                                    <span className="text-[14px] font-semibold text-[var(--ink)]">
+                                      {format(date, "d MMMM (EEEE)", {
+                                        locale: ru,
+                                      })}
+                                    </span>
+                                  </div>
                                   <button
                                     type="button"
                                     onClick={() => requestDeleteDate(series, date)}
-                                    className="h-11 w-11 flex items-center justify-center text-[var(--danger)] rounded-xl active:scale-95 hover:bg-[var(--danger)]/10 transition-colors"
+                                    className="h-9 w-9 flex items-center justify-center text-[var(--muted)] rounded-xl active:scale-95 hover:bg-[var(--danger)]/10 hover:text-[var(--danger)] transition-colors"
                                     aria-label={`Удалить повтор за ${format(
                                       date,
                                       "d MMMM",
                                       { locale: ru }
                                     )}`}
                                   >
-                                    <Trash2 size={16} />
+                                    <Trash2 size={14} />
                                   </button>
                                 </div>
                               ))}
@@ -496,9 +522,9 @@ export default function RecurringTasksSheet({
                             <button
                               type="button"
                               onClick={() => requestDeleteSeries(series)}
-                              className="mt-4 h-11 w-full flex items-center justify-center gap-2 bg-[var(--danger)]/10 text-[var(--danger)] font-bold rounded-xl active:scale-95 transition-colors hover:bg-[var(--danger)]/20 text-[15px]"
+                              className="mt-4 h-11 w-full flex items-center justify-center gap-2 bg-[var(--danger)]/10 text-[var(--danger)] font-bold rounded-2xl border border-[var(--danger)]/15 active:scale-[0.98] transition-all hover:bg-[var(--danger)]/15 text-[14px]"
                             >
-                              <Trash2 size={17} />
+                              <Trash2 size={16} />
                               Удалить все повторы
                             </button>
                           </div>
@@ -536,29 +562,36 @@ export default function RecurringTasksSheet({
                 className={cn(
                   "relative mt-auto w-full border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-pop)]",
                   isDesktop
-                    ? "m-auto max-w-md rounded-[28px] p-5"
-                    : "rounded-t-[28px] px-4 pt-4 pb-[calc(0.75rem+max(env(safe-area-inset-bottom),var(--tg-content-safe-bottom,0px)))]"
+                    ? "m-auto max-w-md rounded-[28px] p-6"
+                    : "rounded-t-[28px] px-5 pt-5 pb-[calc(1rem+max(env(safe-area-inset-bottom),var(--tg-content-safe-bottom,0px)))]"
                 )}
               >
-                <h3 className="text-[18px] font-bold text-[var(--ink)] font-[var(--font-display)]">
-                  {confirmTitle}
-                </h3>
-                <p className="mt-2 text-[14px] leading-relaxed text-[var(--muted)]">
-                  {confirmDescription}
-                </p>
+                <div className="flex items-start gap-3 mb-3">
+                  <div className="shrink-0 flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--danger)]/10 text-[var(--danger)]">
+                    <AlertTriangle size={20} strokeWidth={2.5} />
+                  </div>
+                  <div className="min-w-0 pt-0.5">
+                    <h3 className="text-[18px] font-bold text-[var(--ink)] font-[var(--font-display)] leading-tight">
+                      {confirmTitle}
+                    </h3>
+                    <p className="mt-1.5 text-[14px] leading-relaxed text-[var(--muted)]">
+                      {confirmDescription}
+                    </p>
+                  </div>
+                </div>
 
-                <div className="mt-4 grid grid-cols-2 gap-2">
+                <div className="mt-5 grid grid-cols-2 gap-2.5">
                   <button
                     type="button"
                     onClick={() => setConfirmAction(null)}
-                    className="h-11 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] text-[var(--ink)] font-semibold active:scale-95 transition-transform"
+                    className="h-12 rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] text-[var(--ink)] font-bold active:scale-[0.97] transition-all text-[15px]"
                   >
                     Отмена
                   </button>
                   <button
                     type="button"
                     onClick={handleConfirmAction}
-                    className="h-11 rounded-xl bg-[var(--danger)] text-white font-semibold active:scale-95 transition-transform"
+                    className="h-12 rounded-2xl bg-[var(--danger)] text-white font-bold active:scale-[0.97] transition-all shadow-lg shadow-[var(--danger)]/20 text-[15px]"
                   >
                     {confirmAction.type === "delete-series"
                       ? "Остановить"
