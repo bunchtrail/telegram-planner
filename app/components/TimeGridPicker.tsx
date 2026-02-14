@@ -1,15 +1,62 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../lib/cn';
-
-const SLOT_MIN = 15;
-const SLOT_PX = 32;
-const LABEL_W = 54;
 
 const pad2 = (value: number) => String(value).padStart(2, '0');
 const formatMinutes = (value: number) =>
   `${pad2(Math.floor(value / 60))}:${pad2(value % 60)}`;
+
+const MINUTE_SLOTS = [0, 15, 30, 45] as const;
+
+type TimePeriod = 'night' | 'morning' | 'day' | 'evening';
+
+const TIME_PERIODS: { id: TimePeriod; label: string; emoji: string; hours: number[]; color: string; bgFrom: string; bgTo: string }[] = [
+  {
+    id: 'night',
+    label: 'Ночь',
+    emoji: '🌙',
+    hours: [0, 1, 2, 3, 4, 5],
+    color: 'hsl(230, 50%, 65%)',
+    bgFrom: 'hsl(230, 40%, 20%)',
+    bgTo: 'hsl(230, 35%, 28%)',
+  },
+  {
+    id: 'morning',
+    label: 'Утро',
+    emoji: '☀️',
+    hours: [6, 7, 8, 9, 10, 11],
+    color: 'hsl(35, 90%, 55%)',
+    bgFrom: 'hsl(35, 55%, 22%)',
+    bgTo: 'hsl(35, 45%, 30%)',
+  },
+  {
+    id: 'day',
+    label: 'День',
+    emoji: '🌤',
+    hours: [12, 13, 14, 15, 16, 17],
+    color: 'hsl(200, 80%, 55%)',
+    bgFrom: 'hsl(200, 45%, 20%)',
+    bgTo: 'hsl(200, 40%, 28%)',
+  },
+  {
+    id: 'evening',
+    label: 'Вечер',
+    emoji: '🌆',
+    hours: [18, 19, 20, 21, 22, 23],
+    color: 'hsl(270, 50%, 62%)',
+    bgFrom: 'hsl(270, 35%, 22%)',
+    bgTo: 'hsl(270, 30%, 30%)',
+  },
+];
+
+function getPeriodForHour(hour: number): TimePeriod {
+  if (hour < 6) return 'night';
+  if (hour < 12) return 'morning';
+  if (hour < 18) return 'day';
+  return 'evening';
+}
 
 type TimeGridPickerProps = {
   valueMinutes: number | null;
@@ -22,78 +69,44 @@ export default function TimeGridPicker({
   valueMinutes,
   durationMinutes,
   onChange,
-  defaultMinutes,
 }: TimeGridPickerProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [dragging, setDragging] = useState(false);
+  const selectedHour = valueMinutes != null ? Math.floor(valueMinutes / 60) : null;
+  const selectedMinute = valueMinutes != null ? valueMinutes % 60 : null;
 
-  const slots = useMemo(() => {
-    const count = (24 * 60) / SLOT_MIN;
-    return Array.from({ length: count }, (_, i) => i * SLOT_MIN);
-  }, []);
+  const [expandedHour, setExpandedHour] = useState<number | null>(selectedHour);
 
-  const selectByClientY = useCallback(
-    (clientY: number) => {
-      const el = containerRef.current;
-      if (!el) return;
-      const rect = el.getBoundingClientRect();
-      const y = clientY - rect.top + el.scrollTop;
-      const slotIndex = Math.max(
-        0,
-        Math.min(slots.length - 1, Math.floor(y / SLOT_PX))
-      );
-      onChange(slots[slotIndex]);
+  const endLabel = useMemo(() => {
+    if (valueMinutes == null) return null;
+    return formatMinutes(Math.min(24 * 60, valueMinutes + durationMinutes));
+  }, [valueMinutes, durationMinutes]);
+
+  const handleHourClick = useCallback(
+    (hour: number) => {
+      if (expandedHour === hour) {
+        // collapse if clicking same hour again
+        setExpandedHour(null);
+      } else {
+        setExpandedHour(hour);
+        // auto-select :00 when a new hour is picked
+        onChange(hour * 60);
+      }
     },
-    [onChange, slots]
+    [expandedHour, onChange],
   );
 
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-    const now = new Date();
-    const currentHourMinutes = now.getHours() * 60;
-    const fallbackMinutes = defaultMinutes ?? currentHourMinutes;
-    const rawMinutes = valueMinutes ?? fallbackMinutes;
-    const targetMinutes = Math.max(0, Math.min(1439, rawMinutes));
-    const top = Math.round((targetMinutes / SLOT_MIN) * SLOT_PX - 2.5 * SLOT_PX);
-    const prefersReducedMotion =
-      typeof window !== 'undefined' &&
-      window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-    el.scrollTo({
-      top: Math.max(0, top),
-      behavior: prefersReducedMotion ? 'auto' : 'smooth',
-    });
-  }, [defaultMinutes, valueMinutes]);
-
-  useEffect(() => {
-    if (!dragging) return;
-    const handleMove = (event: PointerEvent) => {
-      event.preventDefault();
-      selectByClientY(event.clientY);
-    };
-    const handleUp = () => setDragging(false);
-    window.addEventListener('pointermove', handleMove, { passive: false });
-    window.addEventListener('pointerup', handleUp, { passive: true, once: true });
-    return () => {
-      window.removeEventListener('pointermove', handleMove);
-      window.removeEventListener('pointerup', handleUp);
-    };
-  }, [dragging, selectByClientY]);
-
-  const selectionTop =
-    valueMinutes == null ? null : (valueMinutes / SLOT_MIN) * SLOT_PX;
-  const selectionHeight = Math.max(
-    SLOT_PX,
-    (Math.max(SLOT_MIN, durationMinutes) / SLOT_MIN) * SLOT_PX
+  const handleMinuteClick = useCallback(
+    (minute: number) => {
+      if (expandedHour != null) {
+        onChange(expandedHour * 60 + minute);
+      }
+    },
+    [expandedHour, onChange],
   );
-  const endLabel =
-    valueMinutes == null
-      ? null
-      : formatMinutes(Math.min(24 * 60, valueMinutes + durationMinutes));
 
   return (
-    <div className="w-full h-[260px] flex flex-col select-none">
-      <div className="flex items-center justify-between mb-2 px-1 shrink-0">
+    <div className="w-full flex flex-col select-none">
+      {/* Header: selected range */}
+      <div className="flex items-center justify-between mb-3 px-1 shrink-0">
         <div className="text-[11px] font-bold text-[var(--muted)] uppercase tracking-wider opacity-80">
           Начало — Конец
         </div>
@@ -104,70 +117,109 @@ export default function TimeGridPicker({
         </div>
       </div>
 
-      <div
-        ref={containerRef}
-        className="relative w-full flex-1 overflow-y-auto no-scrollbar rounded-[16px] border border-[var(--border)] bg-[var(--surface-2)]/30 touch-pan-y"
-        onPointerDown={(event) => {
-          if ((event.target as HTMLElement).tagName !== 'BUTTON') {
-            setDragging(true);
-            selectByClientY(event.clientY);
-          }
-        }}
-      >
-        {selectionTop != null && (
-          <div
-            className="absolute rounded-[8px] border-l-[3px] pointer-events-none z-10 transition-all duration-75 ease-out"
-            style={{
-              left: LABEL_W,
-              right: 4,
-              top: selectionTop,
-              height: selectionHeight,
-              borderColor: 'var(--accent)',
-              background:
-                'color-mix(in srgb, var(--accent) 12%, transparent)',
-            }}
-          />
-        )}
+      {/* Time periods */}
+      <div className="flex flex-col gap-2">
+        {TIME_PERIODS.map((period) => {
+          const hasPeriodSelected = selectedHour != null && period.hours.includes(selectedHour);
 
-        <div className="relative py-2 pb-32">
-          {slots.map((minutes) => {
-            const isHour = minutes % 60 === 0;
-            const hour = Math.floor(minutes / 60);
-            return (
+          return (
+            <div key={period.id} className="rounded-[16px] overflow-hidden border border-[var(--border)]/40">
+              {/* Period label */}
               <div
-                key={minutes}
-                className="flex relative items-center"
-                style={{ height: SLOT_PX }}
+                className="flex items-center gap-2 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest"
+                style={{ color: period.color }}
               >
-                <div
-                  className={cn(
-                    'shrink-0 pr-3 text-right tabular-nums flex items-center justify-end select-none transition-colors',
-                    isHour
-                      ? 'text-[12px] font-bold text-[var(--ink)]'
-                      : 'text-[10px] text-[var(--muted)] opacity-40'
-                  )}
-                  style={{ width: LABEL_W }}
-                >
-                  {isHour ? `${pad2(hour)}:00` : '·'}
-                </div>
-                <div
-                  className={cn(
-                    'absolute left-[54px] right-0 top-0 h-px pointer-events-none',
-                    isHour
-                      ? 'bg-[var(--border)] opacity-100'
-                      : 'bg-[var(--border)] opacity-40'
-                  )}
-                />
-                <button
-                  type="button"
-                  aria-label={`Выбрать ${pad2(hour)}:${pad2(minutes % 60)}`}
-                  className="flex-1 w-full h-full outline-none active:bg-[var(--surface-2)]/50"
-                  onClick={() => onChange(minutes)}
-                />
+                <span className="text-sm">{period.emoji}</span>
+                {period.label}
               </div>
-            );
-          })}
-        </div>
+
+              {/* Hour grid: 6 columns */}
+              <div className="grid grid-cols-6 gap-1 px-2 pb-2">
+                {period.hours.map((hour) => {
+                  const isSelected = selectedHour === hour;
+                  const isExpanded = expandedHour === hour;
+
+                  return (
+                    <div key={hour} className="flex flex-col">
+                      <button
+                        type="button"
+                        onClick={() => handleHourClick(hour)}
+                        className={cn(
+                          'relative h-11 rounded-[10px] text-[15px] font-bold tabular-nums transition-all duration-200 outline-none',
+                          'active:scale-95',
+                          isSelected
+                            ? 'text-[var(--accent-ink)] shadow-md z-10'
+                            : 'text-[var(--ink)] hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)]',
+                        )}
+                        style={
+                          isSelected
+                            ? {
+                              backgroundColor: 'var(--accent)',
+                              boxShadow: `0 4px 14px -4px var(--accent)`,
+                            }
+                            : undefined
+                        }
+                      >
+                        {pad2(hour)}
+                        {isExpanded && !isSelected && (
+                          <div
+                            className="absolute inset-0 rounded-[10px] border-2 pointer-events-none"
+                            style={{ borderColor: 'var(--accent)' }}
+                          />
+                        )}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Minute selector - slides out under the hour row */}
+              <AnimatePresence>
+                {expandedHour != null && period.hours.includes(expandedHour) && (
+                  <motion.div
+                    key={`minutes-${expandedHour}`}
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.2, ease: 'easeOut' }}
+                    className="overflow-hidden"
+                  >
+                    <div className="flex gap-2 px-2 pb-2.5 pt-0.5">
+                      {MINUTE_SLOTS.map((minute) => {
+                        const isActive =
+                          selectedHour === expandedHour && selectedMinute === minute;
+
+                        return (
+                          <button
+                            key={minute}
+                            type="button"
+                            onClick={() => handleMinuteClick(minute)}
+                            className={cn(
+                              'flex-1 h-10 rounded-[10px] text-[14px] font-bold tabular-nums transition-all duration-150 outline-none',
+                              'active:scale-95',
+                              isActive
+                                ? 'text-[var(--accent-ink)] shadow-sm'
+                                : 'bg-[var(--surface-2)]/60 text-[var(--ink)] hover:bg-[var(--surface-2)]',
+                            )}
+                            style={
+                              isActive
+                                ? {
+                                  backgroundColor: 'var(--accent)',
+                                }
+                                : undefined
+                            }
+                          >
+                            {pad2(expandedHour)}:{pad2(minute)}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
