@@ -392,7 +392,7 @@ export function usePlanner() {
 
   const runWithAuthRetry = useCallback(
     async <T extends { error: SupabaseErrorLike | null | undefined }>(
-      operation: () => Promise<T>
+      operation: () => PromiseLike<T> | T
     ) => {
       let result = await operation();
       if (!isSupabaseAuthError(result.error)) {
