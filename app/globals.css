@@ -10,8 +10,8 @@ body {
   -webkit-touch-callout: none;
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  -webkit-font-smoothing: subpixel-antialiased;
+  -moz-osx-font-smoothing: auto;
 }
 
 :root {
@@ -28,17 +28,17 @@ body {
   --bg: var(--tg-theme-bg-color, #f2f2f7);
   --surface: var(--tg-theme-secondary-bg-color, #ffffff);
   --surface-2: var(--tg-theme-section-bg-color, #ffffff);
-  --surface-glass: rgba(255, 255, 255, 0.8);
+  --surface-glass: rgba(255, 255, 255, 0.85);
   --ink: var(--tg-theme-text-color, #000000);
-  --muted: var(--tg-theme-hint-color, #8e8e93);
-  --border: rgba(0, 0, 0, 0.05);
+  --muted: var(--tg-theme-hint-color, #86868b);
+  --border: rgba(0, 0, 0, 0.08);
   --accent: var(--tg-theme-button-color, #007aff);
   --accent-ink: var(--tg-theme-button-text-color, #ffffff);
   --danger: var(--tg-theme-destructive-text-color, #ff3b30);
-  --shadow-soft: 0 4px 12px -2px rgba(0, 0, 0, 0.03);
-  --shadow-segment: 0 2px 8px rgba(0, 0, 0, 0.12);
-  --shadow-card: 0 0.5px 1.5px rgba(0, 0, 0, 0.03), 0 4px 16px rgba(0, 0, 0, 0.06);
-  --shadow-pop: 0 0 1px rgba(0, 0, 0, 0.04), 0 16px 40px -8px rgba(0, 0, 0, 0.16);
+  --shadow-soft: 0 4px 12px -2px rgba(0, 0, 0, 0.04);
+  --shadow-segment: 0 2px 8px rgba(0, 0, 0, 0.14);
+  --shadow-card: 0 0.5px 2px rgba(0, 0, 0, 0.04), 0 4px 16px rgba(0, 0, 0, 0.08);
+  --shadow-pop: 0 0 1px rgba(0, 0, 0, 0.06), 0 16px 40px -8px rgba(0, 0, 0, 0.18);
   --shadow-glow: 0 8px 32px -8px var(--accent);
 }
 
