@@ -339,203 +339,206 @@ export default function RecurringTasksSheet({
       >
         <div
           className={cn(
-            "shrink-0 w-full z-20 bg-[var(--surface)] select-none border-b border-[var(--border)]",
-            !isDesktop &&
-            "pt-4 pb-3 cursor-grab active:cursor-grabbing touch-none",
-            isDesktop && "px-6 pt-6 pb-4"
+            "shrink-0 w-full pt-4 pb-2 z-20 bg-[var(--surface)] select-none",
+            !isDesktop && "cursor-grab active:cursor-grabbing touch-none [touch-action:none]",
+            isDesktop && "p-6 pb-0"
           )}
           onPointerDown={(event) =>
             !isDesktop && !confirmAction ? dragControls.start(event) : undefined
           }
         >
           {!isDesktop && (
-            <div className="flex justify-center mb-3">
+            <div className="flex justify-center mb-4">
               <div className="w-12 h-1.5 rounded-full bg-[var(--muted)]/20" />
             </div>
           )}
 
           <div
             className={cn(
-              "flex items-start justify-between gap-3",
-              !isDesktop && "px-5"
+              "flex items-center justify-between pb-2",
+              isDesktop ? "mb-4" : "px-6"
             )}
           >
-            <div className="min-w-0 flex items-start gap-3">
-              <div className="shrink-0 flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--accent)]/10 text-[var(--accent)] shadow-sm">
-                <Repeat size={22} strokeWidth={2.5} />
-              </div>
-              <div className="min-w-0 pt-0.5">
-                <h2
-                  id="recurring-sheet-title"
-                  className="text-[20px] font-bold font-[var(--font-display)] text-[var(--ink)] leading-tight"
-                >
-                  Повторяющиеся задачи
-                </h2>
-                <div className="mt-1.5 flex items-center gap-2">
-                  <div className="px-2.5 py-1 rounded-lg bg-[var(--surface-2)] border border-[var(--border)] text-[11px] font-bold text-[var(--muted)] uppercase tracking-wider">
-                    {recurringTasks.length === 0
-                      ? "Пока пусто"
-                      : formatSeriesCountLabel(recurringTasks.length)}
-                  </div>
-                </div>
-              </div>
-            </div>
             <button
               type="button"
               onClick={handleClose}
-              className="p-2 bg-[var(--surface-2)] rounded-full text-[var(--muted)] hover:text-[var(--ink)] transition-colors active:scale-95"
+              className={cn(
+                "w-10 h-10 flex items-center justify-center rounded-full text-[var(--muted)] hover:bg-[var(--surface-2)] hover:text-[var(--ink)] transition-colors active:scale-90",
+                !isDesktop && "-ml-2"
+              )}
               aria-label="Закрыть"
             >
-              <X size={20} />
+              <X size={24} strokeWidth={2.5} />
             </button>
+
+            {recurringTasks.length > 0 && (
+              <div className="px-2.5 py-1 rounded-lg bg-[var(--surface-2)] border border-[var(--border)] text-[11px] font-bold text-[var(--muted)] uppercase tracking-wider">
+                {formatSeriesCountLabel(recurringTasks.length)}
+              </div>
+            )}
           </div>
         </div>
 
         <div
           className={cn(
-            "flex-1 overflow-y-auto overflow-x-hidden bg-[var(--bg)]",
+            "flex-1 overflow-y-auto overflow-x-hidden no-scrollbar touch-pan-y",
             isDesktop
-              ? "p-5"
-              : "px-4 pt-4 pb-[calc(1rem+max(env(safe-area-inset-bottom),var(--tg-content-safe-bottom,0px)))]"
+              ? "p-8 pt-0"
+              : "px-0 pt-0 pb-[max(env(safe-area-inset-bottom),32px)]"
           )}
         >
-          {recurringTasks.length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center text-center text-[var(--muted)] py-8">
-              <div className="relative h-20 w-20 rounded-3xl border border-[var(--border)] bg-[var(--surface)] flex items-center justify-center mb-5 shadow-[var(--shadow-card)] overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-br from-[var(--accent)] to-transparent opacity-10 pointer-events-none" />
-                <Repeat size={32} strokeWidth={2} className="text-[var(--accent)] relative z-10" />
+          <div className={cn("shrink-0", isDesktop ? "mb-6" : "px-6 py-2")}>
+            <h2
+              id="recurring-sheet-title"
+              className={cn(
+                "font-bold text-[var(--ink)] font-[var(--font-display)] leading-tight tracking-tight",
+                isDesktop ? "text-[40px]" : "text-[32px]"
+              )}
+            >
+              Повторяющиеся задачи
+            </h2>
+          </div>
+
+          <div className={cn(isDesktop ? "" : "px-6")}>
+
+            {recurringTasks.length === 0 ? (
+              <div className="h-full flex flex-col items-center justify-center text-center text-[var(--muted)] py-8">
+                <div className="relative h-20 w-20 rounded-3xl border border-[var(--border)] bg-[var(--surface)] flex items-center justify-center mb-5 shadow-[var(--shadow-card)] overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-br from-[var(--accent)] to-transparent opacity-10 pointer-events-none" />
+                  <Repeat size={32} strokeWidth={2} className="text-[var(--accent)] relative z-10" />
+                </div>
+                <p className="text-[16px] font-bold text-[var(--ink)]">
+                  Нет повторяющихся задач
+                </p>
+                <p className="mt-2 text-[13px] max-w-[260px] leading-relaxed opacity-80">
+                  Создайте задачу с повтором в окне добавления, чтобы управлять
+                  ею здесь.
+                </p>
               </div>
-              <p className="text-[16px] font-bold text-[var(--ink)]">
-                Нет повторяющихся задач
-              </p>
-              <p className="mt-2 text-[13px] max-w-[260px] leading-relaxed opacity-80">
-                Создайте задачу с повтором в окне добавления, чтобы управлять
-                ею здесь.
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-3" role="list">
-              {recurringTasks.map((series) => {
-                const isExpanded = expandedSeriesId === series.id;
-                const nextDates = isExpanded ? calculateNextOccurrences(series) : [];
+            ) : (
+              <div className="space-y-3" role="list">
+                {recurringTasks.map((series) => {
+                  const isExpanded = expandedSeriesId === series.id;
+                  const nextDates = isExpanded ? calculateNextOccurrences(series) : [];
 
-                return (
-                  <article
-                    key={series.id}
-                    role="listitem"
-                    className="relative bg-[var(--surface)] rounded-[24px] border border-[var(--border)] overflow-hidden shadow-[var(--shadow-card)] group/card"
-                  >
-                    {/* Subtle accent gradient overlay */}
-                    <div className="absolute inset-0 bg-gradient-to-br from-[var(--accent)] to-transparent opacity-[0.03] pointer-events-none" />
-
-                    <button
-                      type="button"
-                      aria-expanded={isExpanded}
-                      aria-controls={`series-panel-${series.id}`}
-                      className="relative z-10 w-full p-4 text-left transition-colors hover:bg-[var(--surface-2)]/40 active:bg-[var(--surface-2)]/60"
-                      onClick={() => {
-                        impact("light");
-                        setExpandedSeriesId(isExpanded ? null : series.id);
-                      }}
+                  return (
+                    <article
+                      key={series.id}
+                      role="listitem"
+                      className="relative bg-[var(--surface)] rounded-[24px] border border-[var(--border)] overflow-hidden shadow-[var(--shadow-card)] group/card"
                     >
-                      <div className="flex items-center gap-3">
-                        <div className={cn(
-                          "shrink-0 flex h-10 w-10 items-center justify-center rounded-xl shadow-sm transition-colors",
-                          isExpanded
-                            ? "bg-[var(--accent)] text-[var(--accent-ink)]"
-                            : "bg-[var(--accent)]/10 text-[var(--accent)]"
-                        )}>
-                          <Repeat size={20} strokeWidth={2.5} />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <h3 className="font-bold text-[var(--ink)] text-[17px] truncate leading-tight">
-                            {series.title}
-                          </h3>
-                          <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                            <span className="inline-flex items-center gap-1 rounded-full bg-[var(--accent)]/8 px-2.5 py-0.5 text-[11px] font-bold text-[var(--accent)]">
-                              <Clock size={12} />
-                              {formatStartTime(series.start_minutes)}
-                            </span>
-                            <span className="inline-flex items-center gap-1 rounded-full bg-[var(--surface-2)] border border-[var(--border)]/60 px-2.5 py-0.5 text-[11px] font-bold text-[var(--muted)]">
-                              <Repeat size={11} />
-                              {formatRepeatLabel(series)}
-                            </span>
-                          </div>
-                        </div>
-                        <ChevronRight
-                          size={18}
-                          className={cn(
-                            "text-[var(--muted)] transition-transform duration-200 shrink-0",
-                            isExpanded && "rotate-90"
-                          )}
-                        />
-                      </div>
-                    </button>
+                      {/* Subtle accent gradient overlay */}
+                      <div className="absolute inset-0 bg-gradient-to-br from-[var(--accent)] to-transparent opacity-[0.03] pointer-events-none" />
 
-                    <AnimatePresence initial={false}>
-                      {isExpanded && (
-                        <motion.div
-                          id={`series-panel-${series.id}`}
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: "auto", opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          transition={{ duration: reduceMotion ? 0 : 0.2 }}
-                          className="relative z-10"
-                        >
-                          <div className="px-4 pb-4 pt-3 border-t border-[var(--border)]/60">
-                            <div className="flex items-center gap-2 mb-3">
-                              <Calendar size={12} className="text-[var(--muted)]" />
-                              <h4 className="text-[11px] font-bold text-[var(--muted)] uppercase tracking-widest">
-                                Ближайшие {UPCOMING_OCCURRENCES_COUNT} повторов
-                              </h4>
+                      <button
+                        type="button"
+                        aria-expanded={isExpanded}
+                        aria-controls={`series-panel-${series.id}`}
+                        className="relative z-10 w-full p-4 text-left transition-colors hover:bg-[var(--surface-2)]/40 active:bg-[var(--surface-2)]/60"
+                        onClick={() => {
+                          impact("light");
+                          setExpandedSeriesId(isExpanded ? null : series.id);
+                        }}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={cn(
+                            "shrink-0 flex h-10 w-10 items-center justify-center rounded-xl shadow-sm transition-colors",
+                            isExpanded
+                              ? "bg-[var(--accent)] text-[var(--accent-ink)]"
+                              : "bg-[var(--accent)]/10 text-[var(--accent)]"
+                          )}>
+                            <Repeat size={20} strokeWidth={2.5} />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <h3 className="font-bold text-[var(--ink)] text-[17px] truncate leading-tight">
+                              {series.title}
+                            </h3>
+                            <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                              <span className="inline-flex items-center gap-1 rounded-full bg-[var(--accent)]/8 px-2.5 py-0.5 text-[11px] font-bold text-[var(--accent)]">
+                                <Clock size={12} />
+                                {formatStartTime(series.start_minutes)}
+                              </span>
+                              <span className="inline-flex items-center gap-1 rounded-full bg-[var(--surface-2)] border border-[var(--border)]/60 px-2.5 py-0.5 text-[11px] font-bold text-[var(--muted)]">
+                                <Repeat size={11} />
+                                {formatRepeatLabel(series)}
+                              </span>
                             </div>
-                            <div className="space-y-1.5">
-                              {nextDates.map((date) => (
-                                <div
-                                  key={date.toISOString()}
-                                  className="flex items-center justify-between rounded-2xl bg-[var(--surface-2)]/50 pl-3.5 pr-1 py-1 transition-colors hover:bg-[var(--surface-2)]"
-                                >
-                                  <div className="flex items-center gap-2.5">
-                                    <div className="h-2 w-2 rounded-full bg-[var(--accent)]/40 shrink-0" />
-                                    <span className="text-[14px] font-semibold text-[var(--ink)]">
-                                      {format(date, "d MMMM (EEEE)", {
-                                        locale: ru,
-                                      })}
-                                    </span>
-                                  </div>
-                                  <button
-                                    type="button"
-                                    onClick={() => requestDeleteDate(series, date)}
-                                    className="h-9 w-9 flex items-center justify-center text-[var(--muted)] rounded-xl active:scale-95 hover:bg-[var(--danger)]/10 hover:text-[var(--danger)] transition-colors"
-                                    aria-label={`Удалить повтор за ${format(
-                                      date,
-                                      "d MMMM",
-                                      { locale: ru }
-                                    )}`}
+                          </div>
+                          <ChevronRight
+                            size={18}
+                            className={cn(
+                              "text-[var(--muted)] transition-transform duration-200 shrink-0",
+                              isExpanded && "rotate-90"
+                            )}
+                          />
+                        </div>
+                      </button>
+
+                      <AnimatePresence initial={false}>
+                        {isExpanded && (
+                          <motion.div
+                            id={`series-panel-${series.id}`}
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: "auto", opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: reduceMotion ? 0 : 0.2 }}
+                            className="relative z-10"
+                          >
+                            <div className="px-4 pb-4 pt-3 border-t border-[var(--border)]/60">
+                              <div className="flex items-center gap-2 mb-3">
+                                <Calendar size={12} className="text-[var(--muted)]" />
+                                <h4 className="text-[11px] font-bold text-[var(--muted)] uppercase tracking-widest">
+                                  Ближайшие {UPCOMING_OCCURRENCES_COUNT} повторов
+                                </h4>
+                              </div>
+                              <div className="space-y-1.5">
+                                {nextDates.map((date) => (
+                                  <div
+                                    key={date.toISOString()}
+                                    className="flex items-center justify-between rounded-2xl bg-[var(--surface-2)]/50 pl-3.5 pr-1 py-1 transition-colors hover:bg-[var(--surface-2)]"
                                   >
-                                    <Trash2 size={14} />
-                                  </button>
-                                </div>
-                              ))}
-                            </div>
+                                    <div className="flex items-center gap-2.5">
+                                      <div className="h-2 w-2 rounded-full bg-[var(--accent)]/40 shrink-0" />
+                                      <span className="text-[14px] font-semibold text-[var(--ink)]">
+                                        {format(date, "d MMMM (EEEE)", {
+                                          locale: ru,
+                                        })}
+                                      </span>
+                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={() => requestDeleteDate(series, date)}
+                                      className="h-9 w-9 flex items-center justify-center text-[var(--muted)] rounded-xl active:scale-95 hover:bg-[var(--danger)]/10 hover:text-[var(--danger)] transition-colors"
+                                      aria-label={`Удалить повтор за ${format(
+                                        date,
+                                        "d MMMM",
+                                        { locale: ru }
+                                      )}`}
+                                    >
+                                      <Trash2 size={14} />
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
 
-                            <button
-                              type="button"
-                              onClick={() => requestDeleteSeries(series)}
-                              className="mt-4 h-11 w-full flex items-center justify-center gap-2 bg-[var(--danger)]/10 text-[var(--danger)] font-bold rounded-2xl border border-[var(--danger)]/15 active:scale-[0.98] transition-all hover:bg-[var(--danger)]/15 text-[14px]"
-                            >
-                              <Trash2 size={16} />
-                              Удалить все повторы
-                            </button>
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </article>
-                );
-              })}
-            </div>
-          )}
+                              <button
+                                type="button"
+                                onClick={() => requestDeleteSeries(series)}
+                                className="mt-4 h-11 w-full flex items-center justify-center gap-2 bg-[var(--danger)]/10 text-[var(--danger)] font-bold rounded-2xl border border-[var(--danger)]/15 active:scale-[0.98] transition-all hover:bg-[var(--danger)]/15 text-[14px]"
+                              >
+                                <Trash2 size={16} />
+                                Удалить все повторы
+                              </button>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </article>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
 
         <AnimatePresence>
