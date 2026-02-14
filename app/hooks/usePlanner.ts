@@ -40,6 +40,16 @@ type TaskRow = {
   remind_at?: string | null;
 };
 
+type ReorderTaskUpdate = {
+  id: string;
+  title: string;
+  duration: number;
+  date: string;
+  completed: boolean;
+  telegram_id: string;
+  position: number;
+};
+
 type TelegramAuthPayload = {
   token?: string;
   error?: string;
@@ -324,6 +334,8 @@ export function usePlanner() {
   const toggleRequestRef = useRef(new Map<string, number>());
   const pendingInsertRef = useRef(new Map<string, TaskRow>());
   const pendingMutationRef = useRef(new Map<string, Record<string, unknown>>());
+  const pendingReorderUpdatesRef = useRef(new Map<string, ReorderTaskUpdate>());
+  const reorderPersistTimerRef = useRef<number | null>(null);
   const authRefreshPromiseRef = useRef<Promise<boolean> | null>(null);
 
   const applyAuthSession = useCallback(
@@ -436,6 +448,41 @@ export function usePlanner() {
       console.error('Flush pending task mutation failed', error);
     }
   }, [runWithAuthRetry]);
+
+  const flushPendingReorder = useCallback(async () => {
+    if (!userId) {
+      pendingReorderUpdatesRef.current.clear();
+      return;
+    }
+
+    const updates = Array.from(pendingReorderUpdatesRef.current.values());
+    pendingReorderUpdatesRef.current.clear();
+    if (updates.length === 0) {
+      return;
+    }
+
+    const { error } = await runWithAuthRetry(() =>
+      supabase.from('tasks').upsert(updates, { onConflict: 'id' })
+    );
+    if (error) {
+      console.error('Reorder failed', error);
+    }
+  }, [userId, runWithAuthRetry]);
+
+  const scheduleReorderPersist = useCallback(() => {
+    if (!userId || pendingReorderUpdatesRef.current.size === 0) {
+      return;
+    }
+
+    if (reorderPersistTimerRef.current != null) {
+      window.clearTimeout(reorderPersistTimerRef.current);
+    }
+
+    reorderPersistTimerRef.current = window.setTimeout(() => {
+      reorderPersistTimerRef.current = null;
+      void flushPendingReorder();
+    }, 160);
+  }, [userId, flushPendingReorder]);
 
   const activeMonthKey = useMemo(
     () => format(selectedDate, 'yyyy-MM'),
@@ -819,6 +866,14 @@ export function usePlanner() {
   }, []);
 
   useEffect(() => {
+    return () => {
+      if (reorderPersistTimerRef.current != null) {
+        window.clearTimeout(reorderPersistTimerRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
     let isCancelled = false;
 
     const initAuth = async () => {
@@ -1182,7 +1237,7 @@ export function usePlanner() {
     );
   }, [viewMode]);
 
-  const handleReorder = async (nextOrder: Task[]) => {
+  const handleReorder = (nextOrder: Task[]) => {
     const selectedDateKey = formatDateOnly(selectedDate);
     const positionsById = new Map(
       nextOrder.map((task, index) => [task.id, index])
@@ -1204,7 +1259,7 @@ export function usePlanner() {
 
     const updates = nextOrder
       .filter((task) => isUuid(task.id))
-      .map((task) => ({
+      .map<ReorderTaskUpdate>((task) => ({
         id: task.id,
         title: task.title,
         duration: task.duration,
@@ -1218,13 +1273,10 @@ export function usePlanner() {
       return;
     }
 
-    const { error } = await runWithAuthRetry(() =>
-      supabase.from('tasks').upsert(updates, { onConflict: 'id' })
-    );
-
-    if (error) {
-      console.error('Reorder failed', error);
-    }
+    updates.forEach((update) => {
+      pendingReorderUpdatesRef.current.set(update.id, update);
+    });
+    scheduleReorderPersist();
   };
 
   const addTask = async (
