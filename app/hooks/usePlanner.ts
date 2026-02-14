@@ -11,6 +11,7 @@ import {
   startOfDay,
   startOfMonth,
   startOfWeek,
+  subDays,
   subMonths,
   subWeeks,
 } from 'date-fns';
@@ -1227,13 +1228,13 @@ export function usePlanner() {
 
   const goToPreviousPeriod = useCallback(() => {
     setSelectedDate((current) =>
-      viewMode === 'month' ? subMonths(current, 1) : subWeeks(current, 1)
+      viewMode === 'month' ? subMonths(current, 1) : subDays(current, 1)
     );
   }, [viewMode]);
 
   const goToNextPeriod = useCallback(() => {
     setSelectedDate((current) =>
-      viewMode === 'month' ? addMonths(current, 1) : addWeeks(current, 1)
+      viewMode === 'month' ? addMonths(current, 1) : addDays(current, 1)
     );
   }, [viewMode]);
 
