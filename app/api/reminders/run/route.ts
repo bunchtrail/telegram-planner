@@ -3,6 +3,28 @@ import { createClient } from '@supabase/supabase-js';
 
 export const runtime = 'nodejs';
 
+const getCronSecret = () =>
+  process.env.CRON_SECRET ?? process.env.REMINDERS_CRON_SECRET;
+
+const getAuthToken = (request: Request) => {
+  const authHeader = request.headers.get('authorization');
+  if (!authHeader) return null;
+
+  const [scheme, token] = authHeader.split(' ');
+  if (!scheme || !token || scheme.toLowerCase() !== 'bearer') return null;
+  return token.trim();
+};
+
+const isCronAuthorized = (request: Request) => {
+  const secret = getCronSecret();
+  if (!secret) return false;
+
+  const url = new URL(request.url);
+  const key = url.searchParams.get('key');
+  const token = getAuthToken(request);
+  return key === secret || token === secret;
+};
+
 const getSupabaseAdmin = () => {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -18,15 +40,7 @@ const getSupabaseAdmin = () => {
   });
 };
 
-export async function POST(request: Request) {
-  const secret = process.env.REMINDERS_CRON_SECRET;
-  const url = new URL(request.url);
-  const key = url.searchParams.get('key');
-
-  if (!secret || key !== secret) {
-    return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
-  }
-
+const runReminders = async () => {
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
   if (!botToken) {
     return NextResponse.json({ error: 'missing bot token' }, { status: 500 });
@@ -50,6 +64,7 @@ export async function POST(request: Request) {
     .eq('completed', false)
     .eq('is_goal', false)
     .not('telegram_id', 'is', null)
+    .order('remind_at', { ascending: true })
     .limit(50);
 
   if (error) {
@@ -103,4 +118,23 @@ export async function POST(request: Request) {
     processed: due?.length ?? 0,
     sent: sentIds.length,
   });
+};
+
+const handleRequest = async (request: Request) => {
+  if (!isCronAuthorized(request)) {
+    return NextResponse.json(
+      { error: 'unauthorized' },
+      { status: 401, headers: { 'Cache-Control': 'no-store' } }
+    );
+  }
+
+  return runReminders();
+};
+
+export async function GET(request: Request) {
+  return handleRequest(request);
+}
+
+export async function POST(request: Request) {
+  return handleRequest(request);
 }

@@ -7,6 +7,8 @@ Supabase setup
    - `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`
    - `SUPABASE_JWT_SECRET` (same value as in your Supabase project settings)
    - `TELEGRAM_BOT_TOKEN`
+   - `SUPABASE_SERVICE_ROLE_KEY` (for reminders worker route)
+   - `CRON_SECRET` (recommended) or `REMINDERS_CRON_SECRET` (fallback)
    - Optional for local dev: `NEXT_PUBLIC_TELEGRAM_INIT_DATA`
 
 3) JWT + RLS
