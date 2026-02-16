@@ -542,33 +542,33 @@ export default function RecurringTasksSheet({
                                 transition={{ duration: reduceMotion ? 0 : 0.3, type: "spring", bounce: 0, opacity: { duration: 0.2 } }}
                                 className="relative z-10"
                               >
-                                <div className="px-5 pb-5 pt-2">
-                                  <div className="ml-[23px] pl-8 border-l-2 border-[var(--border)] dashed border-dashed space-y-6 pb-2 pt-2 relative">
+                                <div className="px-5 pb-5 pt-1">
+                                  <div className="ml-[27px] pl-7 border-l-2 border-dashed border-[var(--border)]/60 space-y-3 pb-2 pt-2 relative">
 
-                                    <div className="absolute top-0 bottom-0 left-[-1px] w-[2px] bg-gradient-to-b from-[var(--border)] to-transparent pointer-events-none" />
-
-                                    <div className="mb-4 -ml-[41px] flex items-center gap-3">
-                                      <div className="h-2 w-2 rounded-full bg-[var(--border)]" />
-                                      <span className="text-[11px] font-bold text-[var(--muted)] uppercase tracking-wider bg-[var(--surface-2)]/50 px-2 py-0.5 rounded-md">
+                                    <div className="mb-3 -ml-[36px] flex items-center gap-2.5">
+                                      <div className="h-2.5 w-2.5 rounded-full bg-[var(--muted)]/40 ring-2 ring-[var(--surface)]" />
+                                      <span className="text-[11px] font-bold text-[var(--muted)]/70 uppercase tracking-wider">
                                         Ближайшие повторы
                                       </span>
                                     </div>
 
                                     {nextDates.map((date, idx) => (
                                       <motion.div
-                                        initial={{ x: -10, opacity: 0 }}
+                                        initial={{ x: -8, opacity: 0 }}
                                         animate={{ x: 0, opacity: 1 }}
-                                        transition={{ delay: idx * 0.05 }}
+                                        transition={{ delay: idx * 0.04 }}
                                         key={date.toISOString()}
                                         className="relative group/item"
                                       >
-                                        <div className="absolute -left-[39px] top-1/2 -translate-y-1/2 h-3 w-3 rounded-full border-[2px] border-[var(--surface)] bg-[var(--accent)] shadow-sm z-10" />
-                                        <div className="absolute -left-[39px] top-1/2 -translate-y-1/2 h-3 w-3 rounded-full bg-[var(--accent)] animate-ping opacity-20" />
+                                        <div className="absolute -left-[32px] top-1/2 -translate-y-1/2 h-2.5 w-2.5 rounded-full border-2 border-[var(--surface)] bg-[var(--accent)] z-10" />
+                                        {idx === 0 && (
+                                          <div className="absolute -left-[32px] top-1/2 -translate-y-1/2 h-2.5 w-2.5 rounded-full bg-[var(--accent)] opacity-30 animate-[pulse_2s_ease-in-out_infinite]" />
+                                        )}
 
-                                        <div className="flex items-center justify-between p-3 rounded-2xl bg-[var(--surface-2)]/50 border border-transparent hover:border-[var(--border)] hover:bg-[var(--surface-2)] transition-all group-hover/item:shadow-sm">
+                                        <div className="flex items-center justify-between p-2.5 rounded-xl bg-[var(--surface-2)]/40 border border-[var(--border)]/50 hover:bg-[var(--surface-2)] transition-all">
                                           <div className="flex items-center gap-3">
                                             <div className="h-10 w-10 flex flex-col items-center justify-center rounded-xl bg-[var(--surface)] border border-[var(--border)] shadow-sm">
-                                              <span className="text-[10px] uppercase font-bold text-[var(--danger)] leading-none mb-0.5">
+                                              <span className="text-[10px] uppercase font-bold text-[var(--accent)] leading-none mb-0.5">
                                                 {format(date, "MMM", { locale: ru }).slice(0, 3)}
                                               </span>
                                               <span className="text-[16px] font-bold text-[var(--ink)] leading-none">
@@ -576,10 +576,10 @@ export default function RecurringTasksSheet({
                                               </span>
                                             </div>
                                             <div className="flex flex-col">
-                                              <span className="text-[15px] font-semibold text-[var(--ink)]">
+                                              <span className="text-[15px] font-semibold text-[var(--ink)] capitalize">
                                                 {format(date, "EEEE", { locale: ru })}
                                               </span>
-                                              <span className="text-[13px] text-[var(--muted)]">
+                                              <span className="text-[12px] text-[var(--muted)]">
                                                 {isSameYear(date, new Date())
                                                   ? format(date, "d MMMM", { locale: ru })
                                                   : format(date, "d MMM yyyy", { locale: ru })
@@ -594,14 +594,14 @@ export default function RecurringTasksSheet({
                                               e.stopPropagation();
                                               requestDeleteDate(series, date);
                                             }}
-                                            className="h-9 w-9 flex items-center justify-center text-[var(--muted)] rounded-xl active:scale-90 hover:bg-[var(--danger)]/10 hover:text-[var(--danger)] transition-all opacity-0 group-hover/item:opacity-100 focus:opacity-100"
+                                            className="h-8 w-8 flex items-center justify-center text-[var(--muted)]/60 rounded-lg active:scale-90 hover:bg-[var(--danger)]/10 hover:text-[var(--danger)] transition-all"
                                             aria-label={`Удалить повтор за ${format(
                                               date,
                                               "d MMMM",
                                               { locale: ru }
                                             )}`}
                                           >
-                                            <Trash2 size={18} />
+                                            <X size={16} strokeWidth={2.5} />
                                           </button>
                                         </div>
                                       </motion.div>
@@ -609,18 +609,18 @@ export default function RecurringTasksSheet({
                                   </div>
 
                                   <motion.button
-                                    initial={{ opacity: 0, y: 10 }}
+                                    initial={{ opacity: 0, y: 8 }}
                                     animate={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: 0.2 }}
+                                    transition={{ delay: 0.15 }}
                                     type="button"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       requestDeleteSeries(series);
                                     }}
-                                    className="mt-6 w-full h-12 flex items-center justify-center gap-2.5 bg-[var(--danger)]/5 text-[var(--danger)] font-bold rounded-2xl border border-[var(--danger)]/20 active:scale-[0.98] transition-all hover:bg-[var(--danger)]/10 text-[15px] group/btn"
+                                    className="mt-4 w-full h-11 flex items-center justify-center gap-2 bg-[var(--danger)]/8 text-[var(--danger)] font-bold rounded-xl border border-[var(--danger)]/15 active:scale-[0.98] transition-all hover:bg-[var(--danger)]/12 text-[14px]"
                                   >
-                                    <Trash2 size={18} className="transition-transform group-hover/btn:scale-110" />
-                                    <span>Остановить всю серию</span>
+                                    <Trash2 size={16} />
+                                    <span>Остановить серию</span>
                                   </motion.button>
                                 </div>
                               </motion.div>
