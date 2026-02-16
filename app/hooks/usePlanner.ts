@@ -13,7 +13,6 @@ import {
   startOfWeek,
   subDays,
   subMonths,
-  subWeeks,
 } from 'date-fns';
 import { DEFAULT_TASK_COLOR } from '../lib/constants';
 import { isDesktop as checkIsDesktop } from '../lib/platform';
@@ -21,6 +20,9 @@ import { setSupabaseAccessToken, supabase } from '../lib/supabase';
 import type { Task, TaskChecklistItem, TaskRepeat } from '../types/task';
 
 const DEFAULT_DURATION = 30;
+const TASK_TITLE_MAX_LENGTH = 160;
+const TASK_DURATION_MIN = 1;
+const TASK_DURATION_MAX = 24 * 60;
 type PlannerViewMode = 'week' | 'month';
 
 type TaskRow = {
@@ -193,6 +195,21 @@ const parseRemindBefore = (value?: number | string | null) => {
   const numeric = typeof value === 'string' ? Number(value) : value;
   if (!Number.isFinite(numeric)) return 0;
   return Math.max(0, Math.min(1440, Math.floor(numeric)));
+};
+
+const normalizeTaskTitle = (value: string) => value.trim();
+
+const isTaskTitleValid = (value: string) =>
+  value.length > 0 && value.length <= TASK_TITLE_MAX_LENGTH;
+
+const normalizeTaskDuration = (value: number) => {
+  if (!Number.isFinite(value)) {
+    return DEFAULT_DURATION;
+  }
+  return Math.max(
+    TASK_DURATION_MIN,
+    Math.min(TASK_DURATION_MAX, Math.floor(value))
+  );
 };
 
 const computeRemindAtIso = (
@@ -1289,13 +1306,14 @@ export function usePlanner() {
     startMinutes: number | null = null,
     remindBeforeMinutes = 0
   ) => {
-    const trimmedTitle = title.trim();
-    if (!trimmedTitle) {
+    const trimmedTitle = normalizeTaskTitle(title);
+    if (!isTaskTitleValid(trimmedTitle)) {
       return;
     }
     if (!userId) {
       return;
     }
+    const normalizedDuration = normalizeTaskDuration(duration);
     const resolvedColor = normalizeHex(color) ?? DEFAULT_TASK_COLOR;
     const normalizedStartMinutes = parseSmallInt(startMinutes);
     const normalizedRemindBefore = parseRemindBefore(remindBeforeMinutes);
@@ -1316,7 +1334,7 @@ export function usePlanner() {
       const pendingRow: TaskRow = {
         id: tempId,
         title: trimmedTitle,
-        duration,
+        duration: normalizedDuration,
         date: selectedDateKey,
         completed: false,
         position: nextPosition,
@@ -1334,7 +1352,7 @@ export function usePlanner() {
         clientId: tempId,
         id: tempId,
         title: trimmedTitle,
-        duration,
+        duration: normalizedDuration,
         date: selectedDate,
         completed: false,
         position: nextPosition,
@@ -1378,6 +1396,7 @@ export function usePlanner() {
         console.error('Add task failed', error);
         pendingMutationRef.current.delete(tempId);
         setTasks((prev) => prev.filter((t) => t.id !== tempId));
+        setRefetchKey((prev) => prev + 1);
       } else if (data) {
         setTasks((prev) =>
           prev.map((t) => (t.id === tempId ? { ...t, id: data.id } : t))
@@ -1400,7 +1419,7 @@ export function usePlanner() {
         .insert({
           telegram_id: userId,
           title: trimmedTitle,
-          duration,
+          duration: normalizedDuration,
           repeat: repeat === 'daily' ? 'daily' : 'weekly',
           weekday: repeat === 'weekly' ? getDay(selectedDate) : null,
           start_date: selectedDateKey,
@@ -1422,7 +1441,7 @@ export function usePlanner() {
     const pendingRow: TaskRow = {
       id: tempId,
       title: trimmedTitle,
-      duration,
+      duration: normalizedDuration,
       date: selectedDateKey,
       completed: false,
       position: nextPosition,
@@ -1440,7 +1459,7 @@ export function usePlanner() {
       clientId: tempId,
       id: tempId,
       title: trimmedTitle,
-      duration,
+      duration: normalizedDuration,
       date: selectedDate,
       completed: false,
       position: nextPosition,
@@ -1484,6 +1503,10 @@ export function usePlanner() {
       console.error('Add recurring task instance failed', error);
       pendingMutationRef.current.delete(tempId);
       setTasks((prev) => prev.filter((t) => t.id !== tempId));
+      await runWithAuthRetry(() =>
+        supabase.from('task_series').delete().eq('id', seriesId)
+      );
+      setRefetchKey((prev) => prev + 1);
       return;
     }
 
@@ -1527,8 +1550,16 @@ export function usePlanner() {
     if (!existingTask) return;
 
     const appliedUpdates: Partial<Task> = {};
-    if (updates.title !== undefined) appliedUpdates.title = updates.title;
-    if (updates.duration !== undefined) appliedUpdates.duration = updates.duration;
+    if (updates.title !== undefined) {
+      const normalizedTitle = normalizeTaskTitle(updates.title);
+      if (!isTaskTitleValid(normalizedTitle)) {
+        return;
+      }
+      appliedUpdates.title = normalizedTitle;
+    }
+    if (updates.duration !== undefined) {
+      appliedUpdates.duration = normalizeTaskDuration(updates.duration);
+    }
     if (updates.color !== undefined) {
       appliedUpdates.color = normalizeHex(updates.color) ?? DEFAULT_TASK_COLOR;
     }
@@ -1881,6 +1912,13 @@ export function usePlanner() {
 
     if (deleteError) {
       restoreInState();
+      await runWithAuthRetry(() =>
+        supabase
+          .from('task_series_skips')
+          .delete()
+          .eq('series_id', taskToDelete.seriesId)
+          .eq('date', dateKey)
+      );
       return null;
     }
 

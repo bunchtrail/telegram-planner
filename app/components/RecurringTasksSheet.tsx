@@ -10,14 +10,11 @@ import {
 } from "framer-motion";
 import {
   AlertTriangle,
-  Calendar,
   ChevronRight,
   Clock,
   Repeat,
   Trash2,
   X,
-  MoreVertical,
-  ArrowRight,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { addDays, format, getDay, startOfDay, isSameYear } from "date-fns";
@@ -458,7 +455,7 @@ export default function RecurringTasksSheet({
               ) : (
                 <div className="space-y-4 pb-20" role="list">
                   <LayoutGroup>
-                    {recurringTasks.map((series, i) => {
+                    {recurringTasks.map((series) => {
                       const isExpanded = expandedSeriesId === series.id;
                       const nextDates = isExpanded ? calculateNextOccurrences(series) : [];
 

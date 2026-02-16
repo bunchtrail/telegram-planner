@@ -30,7 +30,6 @@ import { cn } from "../lib/cn";
 import { DEFAULT_TASK_COLOR, TASK_COLOR_OPTIONS } from "../lib/constants";
 import { useHaptic } from "../hooks/useHaptic";
 import type { TaskRepeat } from "../types/task";
-import { isIOSDevice } from "../lib/platform";
 import { useKeyboardInset } from "../hooks/useKeyboardInset";
 import TimeGridPicker from "./TimeGridPicker";
 
@@ -53,6 +52,7 @@ const REPEAT_COUNT_MIN = 1;
 const REPEAT_COUNT_MAX = 365;
 const DEFAULT_REPEAT_COUNT_DAILY = 7;
 const DEFAULT_REPEAT_COUNT_WEEKLY = 4;
+const TASK_TITLE_MAX_LENGTH = 160;
 
 type TaskSheetProps = {
   onClose: () => void;
@@ -123,12 +123,8 @@ export default function TaskSheet({
   const dragControls = useDragControls();
   const { impact, notification } = useHaptic();
   const prefersReducedMotion = useReducedMotion();
-  const isIOS = isIOSDevice();
-  const keyboardHeight = useKeyboardInset();
-  // Only fully disable motion for prefers-reduced-motion.
-  // On iOS, keep basic spring transitions but skip heavy GPU effects.
+  useKeyboardInset();
   const reduceMotion = Boolean(prefersReducedMotion);
-  const reduceHeavyEffects = reduceMotion || isIOS;
   const formatMinutes = (value: number) =>
     `${String(Math.floor(value / 60)).padStart(2, "0")}:${String(
       value % 60,
@@ -173,6 +169,11 @@ export default function TaskSheet({
     const trimmed = title.trim();
 
     if (!trimmed) {
+      notification("error");
+      inputRef.current?.focus({ preventScroll: true });
+      return;
+    }
+    if (trimmed.length > TASK_TITLE_MAX_LENGTH) {
       notification("error");
       inputRef.current?.focus({ preventScroll: true });
       return;
@@ -738,6 +739,7 @@ export default function TaskSheet({
               rows={1}
               value={title}
               onChange={(event) => setTitle(event.target.value)}
+              maxLength={TASK_TITLE_MAX_LENGTH}
               onKeyDown={(event) => {
                 if (event.key === "Enter" && !event.shiftKey) {
                   event.preventDefault();

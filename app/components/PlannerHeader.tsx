@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useState } from "react";
 import { format } from "date-fns";
 import { ru } from "date-fns/locale";
 import { ChevronLeft, ChevronRight, Clock, Flame, Repeat } from "lucide-react";
@@ -95,16 +95,17 @@ export default function PlannerHeader({
 }: PlannerHeaderProps) {
   const { impact } = useHaptic();
   const prefersReducedMotion = useReducedMotion();
-  const prevDateRef = useRef(selectedDate);
-  const directionRef = useRef(0);
+  const [direction, setDirection] = useState(0);
 
-  // Determine slide direction: 1 = forward (slide left), -1 = backward (slide right)
-  if (selectedDate.getTime() !== prevDateRef.current.getTime()) {
-    directionRef.current = selectedDate > prevDateRef.current ? 1 : -1;
-    prevDateRef.current = selectedDate;
-  }
-
-  const direction = directionRef.current;
+  const updateDirectionForDate = (nextDate: Date) => {
+    const nextTime = nextDate.getTime();
+    const currentTime = selectedDate.getTime();
+    if (nextTime === currentTime) {
+      setDirection(0);
+      return;
+    }
+    setDirection(nextTime > currentTime ? 1 : -1);
+  };
   const dateKey = format(selectedDate, "yyyy-MM-dd");
   const isToday = dateKey === format(new Date(), "yyyy-MM-dd");
   const hasTime = hours > 0 || minutes > 0;
@@ -130,6 +131,7 @@ export default function PlannerHeader({
                 type="button"
                 onClick={() => {
                   impact("light");
+                  setDirection(-1);
                   onPrev();
                 }}
                 className="p-2 rounded-xl hover:bg-[var(--border)] text-[var(--muted)] active:scale-90 transition-all flex-shrink-0"
@@ -143,6 +145,7 @@ export default function PlannerHeader({
                   type="button"
                   onClick={() => {
                     impact("light");
+                    updateDirectionForDate(new Date());
                     onToday();
                   }}
                   className="flex flex-col items-center active:opacity-60 transition-opacity w-full"
@@ -182,6 +185,7 @@ export default function PlannerHeader({
                 type="button"
                 onClick={() => {
                   impact("light");
+                  setDirection(1);
                   onNext();
                 }}
                 className="p-2 rounded-xl hover:bg-[var(--border)] text-[var(--muted)] active:scale-90 transition-all flex-shrink-0"
@@ -218,9 +222,6 @@ export default function PlannerHeader({
                   type="button"
                   onClick={() => {
                     impact("light");
-                    // Assuming Repeat icon comes from lucide-react, I need to make sure it's imported.
-                    // I'll use a text label or icon. Let's use an icon.
-                    // Wait, I need to import Repeat icon if I use it.
                     onOpenRecurring();
                   }}
                   aria-label="Повторяющиеся задачи"
@@ -300,13 +301,19 @@ export default function PlannerHeader({
                     <WeekStrip
                       weekDays={weekDays}
                       selectedDate={selectedDate}
-                      onSelectDate={onSelectDate}
+                      onSelectDate={(date) => {
+                        updateDirectionForDate(date);
+                        onSelectDate(date);
+                      }}
                     />
                   ) : (
                     <MonthGrid
                       days={monthDays}
                       selectedDate={selectedDate}
-                      onSelectDate={onSelectDate}
+                      onSelectDate={(date) => {
+                        updateDirectionForDate(date);
+                        onSelectDate(date);
+                      }}
                       taskDates={taskDates}
                     />
                   )}

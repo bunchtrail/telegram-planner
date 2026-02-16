@@ -51,13 +51,6 @@ const TIME_PERIODS: { id: TimePeriod; label: string; emoji: string; hours: numbe
   },
 ];
 
-function getPeriodForHour(hour: number): TimePeriod {
-  if (hour < 6) return 'night';
-  if (hour < 12) return 'morning';
-  if (hour < 18) return 'day';
-  return 'evening';
-}
-
 type TimeGridPickerProps = {
   valueMinutes: number | null;
   durationMinutes: number;
@@ -120,8 +113,6 @@ export default function TimeGridPicker({
       {/* Time periods */}
       <div className="flex flex-col gap-2">
         {TIME_PERIODS.map((period) => {
-          const hasPeriodSelected = selectedHour != null && period.hours.includes(selectedHour);
-
           return (
             <div key={period.id} className="rounded-[16px] overflow-hidden border border-[var(--border)]/40">
               {/* Period label */}
