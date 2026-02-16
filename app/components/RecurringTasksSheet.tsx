@@ -645,7 +645,7 @@ export default function RecurringTasksSheet({
                 className="absolute inset-0 z-30 pointer-events-auto flex items-center justify-center"
               >
                 <div
-                  className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                  className="absolute inset-0 bg-black/20"
                   onClick={() => setConfirmAction(null)}
                 />
 
@@ -660,15 +660,12 @@ export default function RecurringTasksSheet({
                   )}
                 >
                   <div className="flex flex-col items-center text-center">
-                    <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[var(--danger)]/10 text-[var(--danger)] ring-4 ring-[var(--danger)]/5">
-                      <AlertTriangle size={32} strokeWidth={2} />
-                    </div>
-
-                    <h3 className="text-[20px] font-bold text-[var(--ink)] font-[var(--font-display)] leading-tight mb-2">
-                      {confirmTitle}
+                    <h3 className="text-[17px] font-bold text-[var(--ink)] font-[var(--font-display)] leading-tight mb-2 flex items-center gap-2">
+                      <AlertTriangle size={20} className="text-[var(--danger)]" />
+                      <span>{confirmTitle}</span>
                     </h3>
 
-                    <p className="text-[15px] leading-relaxed text-[var(--muted)] mb-8 max-w-[280px]">
+                    <p className="text-[14px] leading-relaxed text-[var(--muted)] mb-6 max-w-[260px]">
                       {confirmDescription}
                     </p>
 
@@ -676,14 +673,14 @@ export default function RecurringTasksSheet({
                       <button
                         type="button"
                         onClick={() => setConfirmAction(null)}
-                        className="h-12 rounded-2xl bg-[var(--surface-2)] text-[var(--ink)] font-bold active:scale-[0.97] transition-all text-[15px] hover:bg-[var(--border)]"
+                        className="h-10 rounded-xl bg-[var(--surface-2)] text-[var(--ink)] font-semibold active:scale-[0.97] transition-all text-[14px] hover:bg-[var(--border)]"
                       >
                         Отмена
                       </button>
                       <button
                         type="button"
                         onClick={handleConfirmAction}
-                        className="h-12 rounded-2xl bg-[var(--danger)] text-white font-bold active:scale-[0.97] transition-all shadow-lg shadow-[var(--danger)]/30 text-[15px] hover:bg-[var(--danger)]/90"
+                        className="h-10 rounded-xl bg-[var(--danger)] text-white font-semibold active:scale-[0.97] transition-all shadow-md shadow-[var(--danger)]/20 text-[14px] hover:bg-[var(--danger)]/90"
                       >
                         {confirmAction.type === "delete-series"
                           ? "Остановить"
