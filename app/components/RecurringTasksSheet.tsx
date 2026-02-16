@@ -466,9 +466,6 @@ export default function RecurringTasksSheet({
                         <motion.article
                           layout={isSettled ? "position" : undefined}
                           key={series.id}
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          transition={{ delay: i * 0.04 }}
                           role="listitem"
                           className={cn(
                             "relative bg-[var(--surface)] border border-[var(--border)] overflow-hidden transition-all duration-300",
