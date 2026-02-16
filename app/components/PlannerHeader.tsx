@@ -1,7 +1,8 @@
+import { useRef } from "react";
 import { format } from "date-fns";
 import { ru } from "date-fns/locale";
 import { ChevronLeft, ChevronRight, Clock, Flame, Repeat } from "lucide-react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import MonthGrid from "./MonthGrid";
 import WeekStrip from "./WeekStrip";
 import { cn } from "../lib/cn";
@@ -93,11 +94,26 @@ export default function PlannerHeader({
   onOpenRecurring,
 }: PlannerHeaderProps) {
   const { impact } = useHaptic();
-  const isToday =
-    format(selectedDate, "yyyy-MM-dd") === format(new Date(), "yyyy-MM-dd");
+  const prefersReducedMotion = useReducedMotion();
+  const prevDateRef = useRef(selectedDate);
+  const directionRef = useRef(0);
+
+  // Determine slide direction: 1 = forward (slide left), -1 = backward (slide right)
+  if (selectedDate.getTime() !== prevDateRef.current.getTime()) {
+    directionRef.current = selectedDate > prevDateRef.current ? 1 : -1;
+    prevDateRef.current = selectedDate;
+  }
+
+  const direction = directionRef.current;
+  const dateKey = format(selectedDate, "yyyy-MM-dd");
+  const isToday = dateKey === format(new Date(), "yyyy-MM-dd");
   const hasTime = hours > 0 || minutes > 0;
   const progressPercentage =
     totalCount > 0 ? Math.min(100, (completedCount / totalCount) * 100) : 0;
+
+  const slideOffset = prefersReducedMotion ? 0 : 20;
+  const slideDuration = prefersReducedMotion ? 0 : 0.2;
+  const slideEase: [number, number, number, number] = [0.25, 0.1, 0.25, 1];
 
   return (
     <header className="relative z-30 flex flex-col transition-all">
@@ -122,31 +138,43 @@ export default function PlannerHeader({
                 <ChevronLeft size={24} />
               </button>
 
-              <div className="flex-1 flex flex-col items-center justify-center min-w-0">
+              <div className="flex-1 flex flex-col items-center justify-center min-w-0 overflow-hidden">
                 <button
                   type="button"
                   onClick={() => {
                     impact("light");
                     onToday();
                   }}
-                  className="flex flex-col items-center active:opacity-60 transition-opacity"
+                  className="flex flex-col items-center active:opacity-60 transition-opacity w-full"
                 >
-                  <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-[var(--muted)] leading-none mb-1">
-                    <span>{format(selectedDate, "LLLL", { locale: ru })}</span>
-                    {hasTime && (
-                      <div className="flex items-center gap-1 text-[var(--accent)]">
-                        <span className="w-0.5 h-0.5 rounded-full bg-[var(--muted)]" />
-                        <Clock size={10} strokeWidth={3} />
-                        <span className="whitespace-nowrap">
-                          {hours > 0 ? `${hours}ч` : ""} {" "}
-                          {minutes > 0 ? `${minutes}м` : ""}
-                        </span>
+                  <AnimatePresence mode="wait" initial={false}>
+                    <motion.div
+                      key={dateKey}
+                      initial={{ opacity: 0, x: direction * slideOffset }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: direction * -slideOffset }}
+                      transition={{ duration: slideDuration, ease: slideEase }}
+                      style={{ backfaceVisibility: "hidden" }}
+                      className="flex flex-col items-center w-full"
+                    >
+                      <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-[var(--muted)] leading-none mb-1">
+                        <span>{format(selectedDate, "LLLL", { locale: ru })}</span>
+                        {hasTime && (
+                          <div className="flex items-center gap-1 text-[var(--accent)]">
+                            <span className="w-0.5 h-0.5 rounded-full bg-[var(--muted)]" />
+                            <Clock size={10} strokeWidth={3} />
+                            <span className="whitespace-nowrap">
+                              {hours > 0 ? `${hours}ч` : ""} {" "}
+                              {minutes > 0 ? `${minutes}м` : ""}
+                            </span>
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                  <h1 className="text-[20px] font-bold capitalize text-[var(--ink)] font-[var(--font-display)] leading-none tracking-tight truncate max-w-full">
-                    {format(selectedDate, "d, EEEE", { locale: ru })}
-                  </h1>
+                      <h1 className="text-[20px] font-bold capitalize text-[var(--ink)] font-[var(--font-display)] leading-none tracking-tight truncate max-w-full">
+                        {format(selectedDate, "d, EEEE", { locale: ru })}
+                      </h1>
+                    </motion.div>
+                  </AnimatePresence>
                 </button>
               </div>
 
