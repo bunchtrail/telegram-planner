@@ -305,13 +305,16 @@ export default function TaskSheet({
 			<div
 				className="rounded-[24px] border overflow-hidden transition-colors duration-200"
 				style={{
-					background: startMinutes != null
-						? `color-mix(in srgb, ${color} 4%, var(--surface-2))`
-						: 'color-mix(in srgb, var(--surface-2) 50%, transparent)',
-					borderColor: startMinutes != null
-						? `color-mix(in srgb, ${color} 20%, var(--border))`
-						: 'color-mix(in srgb, var(--border) 50%, transparent)',
-				}}>
+					background:
+						startMinutes != null
+							? `color-mix(in srgb, ${color} 4%, var(--surface-2))`
+							: 'color-mix(in srgb, var(--surface-2) 50%, transparent)',
+					borderColor:
+						startMinutes != null
+							? `color-mix(in srgb, ${color} 20%, var(--border))`
+							: 'color-mix(in srgb, var(--border) 50%, transparent)',
+				}}
+			>
 				<button
 					type="button"
 					onClick={() => setShowTimePicker((prev) => !prev)}
@@ -325,7 +328,8 @@ export default function TaskSheet({
 					<span
 						className="text-[17px] font-bold tabular-nums transition-colors"
 						style={{
-							color: startMinutes != null ? color : 'var(--muted)',
+							color:
+								startMinutes != null ? color : 'var(--muted)',
 						}}
 					>
 						{startMinutes != null
@@ -336,7 +340,9 @@ export default function TaskSheet({
 						<div
 							className={cn(
 								'text-[12px] font-bold transition-transform flex items-center gap-1',
-								showTimePicker ? 'text-[var(--muted)]' : 'text-[var(--accent)]',
+								showTimePicker
+									? 'text-[var(--muted)]'
+									: 'text-[var(--accent)]',
 							)}
 						>
 							{showTimePicker ? 'Свернуть' : 'Выбрать'}
@@ -511,12 +517,14 @@ export default function TaskSheet({
 			<div
 				className="rounded-[24px] overflow-hidden border transition-colors duration-200"
 				style={{
-					background: repeat !== 'none'
-						? 'color-mix(in srgb, var(--accent) 4%, var(--surface-2))'
-						: 'color-mix(in srgb, var(--surface-2) 40%, transparent)',
-					borderColor: repeat !== 'none'
-						? 'color-mix(in srgb, var(--accent) 20%, var(--border))'
-						: 'color-mix(in srgb, var(--border) 50%, transparent)',
+					background:
+						repeat !== 'none'
+							? 'color-mix(in srgb, var(--accent) 4%, var(--surface-2))'
+							: 'color-mix(in srgb, var(--surface-2) 40%, transparent)',
+					borderColor:
+						repeat !== 'none'
+							? 'color-mix(in srgb, var(--accent) 20%, var(--border))'
+							: 'color-mix(in srgb, var(--border) 50%, transparent)',
 				}}
 			>
 				<button
@@ -873,11 +881,11 @@ export default function TaskSheet({
 														);
 													}}
 													className={cn(
-													'h-9 px-4 rounded-2xl text-[13px] font-bold border transition-all duration-200 active:scale-[0.94]',
-													remindBeforeMinutes ===
-														value
-														? 'bg-[var(--accent)] text-[var(--accent-ink)] border-[var(--accent)]/60 shadow-sm'
-														: 'bg-[var(--surface-2)] text-[var(--ink)] border-transparent hover:border-[var(--border)]',
+														'h-9 px-4 rounded-2xl text-[13px] font-bold border transition-all duration-200 active:scale-[0.94]',
+														remindBeforeMinutes ===
+															value
+															? 'bg-[var(--accent)] text-[var(--accent-ink)] border-[var(--accent)]/60 shadow-sm'
+															: 'bg-[var(--surface-2)] text-[var(--ink)] border-transparent hover:border-[var(--border)]',
 													)}
 												>
 													{value === 0
