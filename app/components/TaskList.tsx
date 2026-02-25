@@ -1,5 +1,10 @@
 import { useEffect, useRef } from 'react';
-import { AnimatePresence, LayoutGroup, Reorder, useReducedMotion } from 'framer-motion';
+import {
+	AnimatePresence,
+	LayoutGroup,
+	Reorder,
+	useReducedMotion,
+} from 'framer-motion';
 import { Calendar } from 'lucide-react';
 import type { Task } from '../types/task';
 import TaskItem from './TaskItem';

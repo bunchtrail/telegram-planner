@@ -909,9 +909,7 @@ const TaskItem = memo(function TaskItem({
 									<ul className="space-y-1">
 										{reduceMotion ? (
 											task.checklist.map((item, idx) => (
-												<li
-													key={subtaskKeys[idx]}
-												>
+												<li key={subtaskKeys[idx]}>
 													<div className="group flex items-center gap-3 w-full bg-[var(--surface-2)]/50 rounded-2xl px-3 py-2.5 border border-[var(--border)]/30">
 														<button
 															type="button"
@@ -973,7 +971,9 @@ const TaskItem = memo(function TaskItem({
 												{task.checklist.map(
 													(item, idx) => (
 														<motion.li
-															key={subtaskKeys[idx]}
+															key={
+																subtaskKeys[idx]
+															}
 															initial={{
 																opacity: 0,
 																height: 0,
