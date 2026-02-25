@@ -22,7 +22,6 @@ import { ru } from "date-fns/locale";
 import { cn } from "../lib/cn";
 import { useHaptic } from "../hooks/useHaptic";
 import type { TaskSeriesRow, TaskSeriesSkipRow } from "../hooks/usePlanner";
-import { isIOSDevice } from "../lib/platform";
 
 const SHEET_TRANSITION = {
   type: "spring",
@@ -117,8 +116,7 @@ export default function RecurringTasksSheet({
   const dialogRef = useRef<HTMLDivElement>(null);
   const { impact, notification } = useHaptic();
   const prefersReducedMotion = useReducedMotion();
-  const isIOS = isIOSDevice();
-  const reduceMotion = prefersReducedMotion || isIOS;
+  const reduceMotion = Boolean(prefersReducedMotion);
 
   const handleClose = useCallback(() => {
     setConfirmAction(null);

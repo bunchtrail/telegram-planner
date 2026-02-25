@@ -41,7 +41,8 @@ export default function FocusOverlay({
   const dialogRef = useRef<HTMLDivElement>(null);
   const prefersReducedMotion = useReducedMotion();
   const isIOS = isIOSDevice();
-  const reduceMotion = prefersReducedMotion || isIOS;
+  const reduceMotion = Boolean(prefersReducedMotion);
+  const reduceHeavyEffects = reduceMotion || isIOS;
   const [tickNow, setTickNow] = useState(() => Date.now());
 
   useEffect(() => {
@@ -130,7 +131,7 @@ export default function FocusOverlay({
       </h2>
 
       <div className="relative w-72 h-72 flex items-center justify-center mb-12">
-        {isActive && !reduceMotion && (
+        {isActive && !reduceHeavyEffects && (
           <motion.div
             animate={{ scale: [1, 1.1, 1], opacity: [0.2, 0.05, 0.2] }}
             transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}

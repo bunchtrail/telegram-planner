@@ -7,7 +7,6 @@ import { format, subDays, isSameDay, startOfDay } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import type { Task } from '../types/task';
 import { cn } from '../lib/cn';
-import { isIOSDevice } from '../lib/platform';
 
 type StatsModalProps = {
   onClose: () => void;
@@ -24,8 +23,7 @@ export default function StatsModal({
 }: StatsModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
   const prefersReducedMotion = useReducedMotion();
-  const isIOS = isIOSDevice();
-  const reduceMotion = prefersReducedMotion || isIOS;
+  const reduceMotion = Boolean(prefersReducedMotion);
 
   const stats = useMemo(() => {
     // Период: 7 дней, заканчивая selectedDate включительно
