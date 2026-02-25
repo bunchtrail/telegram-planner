@@ -83,8 +83,8 @@ export default function TimeGridPicker({
 	const expandedPeriod = useMemo(
 		() =>
 			expandedHour != null
-				? TIME_PERIODS.find((p) => p.hours.includes(expandedHour)) ??
-					null
+				? (TIME_PERIODS.find((p) => p.hours.includes(expandedHour)) ??
+					null)
 				: null,
 		[expandedHour],
 	);
@@ -92,8 +92,8 @@ export default function TimeGridPicker({
 	const selectedPeriod = useMemo(
 		() =>
 			selectedHour != null
-				? TIME_PERIODS.find((p) => p.hours.includes(selectedHour)) ??
-					null
+				? (TIME_PERIODS.find((p) => p.hours.includes(selectedHour)) ??
+					null)
 				: null,
 		[selectedHour],
 	);
@@ -150,7 +150,11 @@ export default function TimeGridPicker({
 							initial={{ opacity: 0, scale: 0.85, y: -4 }}
 							animate={{ opacity: 1, scale: 1, y: 0 }}
 							exit={{ opacity: 0, scale: 0.85, y: 4 }}
-							transition={{ type: 'spring', stiffness: 400, damping: 28 }}
+							transition={{
+								type: 'spring',
+								stiffness: 400,
+								damping: 28,
+							}}
 							className="flex items-center gap-1.5 px-3 py-1 rounded-full text-[13px] font-bold tabular-nums"
 							style={{
 								color: selectedPeriod?.color ?? 'var(--accent)',
@@ -169,8 +173,12 @@ export default function TimeGridPicker({
 			{/* Time periods */}
 			<div className="flex flex-col gap-2">
 				{TIME_PERIODS.map((period) => {
-					const isActivePeriod = expandedHour != null && period.hours.includes(expandedHour);
-					const hasSelectedInPeriod = selectedHour != null && period.hours.includes(selectedHour);
+					const isActivePeriod =
+						expandedHour != null &&
+						period.hours.includes(expandedHour);
+					const hasSelectedInPeriod =
+						selectedHour != null &&
+						period.hours.includes(selectedHour);
 
 					return (
 						<div
@@ -187,7 +195,11 @@ export default function TimeGridPicker({
 								className="absolute inset-0 pointer-events-none"
 								style={{
 									background: `linear-gradient(135deg, ${period.bgFrom}, ${period.bgTo})`,
-									opacity: isActivePeriod ? 0.18 : hasSelectedInPeriod ? 0.1 : 0.07,
+									opacity: isActivePeriod
+										? 0.18
+										: hasSelectedInPeriod
+											? 0.1
+											: 0.07,
 									transition: 'opacity 0.25s ease',
 								}}
 							/>
@@ -201,7 +213,9 @@ export default function TimeGridPicker({
 										background: `color-mix(in srgb, ${period.color} 14%, var(--surface-2))`,
 									}}
 								>
-									<span className="text-[13px] leading-none">{period.emoji}</span>
+									<span className="text-[13px] leading-none">
+										{period.emoji}
+									</span>
 									{period.label}
 								</span>
 							</div>
@@ -213,10 +227,15 @@ export default function TimeGridPicker({
 									const isExpanded = expandedHour === hour;
 
 									return (
-										<div key={hour} className="flex flex-col">
+										<div
+											key={hour}
+											className="flex flex-col"
+										>
 											<button
 												type="button"
-												onClick={() => handleHourClick(hour)}
+												onClick={() =>
+													handleHourClick(hour)
+												}
 												className={cn(
 													'relative h-11 rounded-[11px] text-[15px] font-bold tabular-nums transition-all duration-200 outline-none active:scale-[0.88]',
 													isSelected
@@ -228,7 +247,8 @@ export default function TimeGridPicker({
 												style={
 													isSelected
 														? {
-																backgroundColor: period.color,
+																backgroundColor:
+																	period.color,
 																boxShadow: `0 4px 16px -4px ${period.color}`,
 															}
 														: isExpanded
@@ -248,52 +268,71 @@ export default function TimeGridPicker({
 
 							{/* Minute selector */}
 							<AnimatePresence>
-								{expandedHour != null && period.hours.includes(expandedHour) && (
-									<motion.div
-										key={`minutes-${expandedHour}`}
-										initial={{ height: 0, opacity: 0 }}
-										animate={{ height: 'auto', opacity: 1 }}
-										exit={{ height: 0, opacity: 0 }}
-										transition={{ duration: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
-										className="overflow-hidden relative"
-									>
-										<div
-											className="mx-2 mb-2.5 mt-0.5 h-px opacity-20"
-											style={{ background: expandedPeriod?.color }}
-										/>
-										<div className="grid grid-cols-4 gap-1.5 px-2 pb-3">
-											{MINUTE_SLOTS.map((minute) => {
-												const isActive =
-													selectedHour === expandedHour &&
-													selectedMinute === minute;
+								{expandedHour != null &&
+									period.hours.includes(expandedHour) && (
+										<motion.div
+											key={`minutes-${expandedHour}`}
+											initial={{ height: 0, opacity: 0 }}
+											animate={{
+												height: 'auto',
+												opacity: 1,
+											}}
+											exit={{ height: 0, opacity: 0 }}
+											transition={{
+												duration: 0.2,
+												ease: [0.25, 0.1, 0.25, 1],
+											}}
+											className="overflow-hidden relative"
+										>
+											<div
+												className="mx-2 mb-2.5 mt-0.5 h-px opacity-20"
+												style={{
+													background:
+														expandedPeriod?.color,
+												}}
+											/>
+											<div className="grid grid-cols-4 gap-1.5 px-2 pb-3">
+												{MINUTE_SLOTS.map((minute) => {
+													const isActive =
+														selectedHour ===
+															expandedHour &&
+														selectedMinute ===
+															minute;
 
-												return (
-													<button
-														key={minute}
-														type="button"
-														onClick={() => handleMinuteClick(minute)}
-														className={cn(
-															'relative h-10 rounded-[10px] text-[13px] font-bold tabular-nums transition-all duration-150 outline-none active:scale-[0.9]',
-															isActive ? 'text-white' : 'text-[var(--ink)]',
-														)}
-														style={
-															isActive
-																? {
-																		backgroundColor: expandedPeriod?.color,
-																		boxShadow: `0 4px 14px -4px ${expandedPeriod?.color}`,
-																	}
-																: {
-																		background: `color-mix(in srgb, ${expandedPeriod?.color} 10%, var(--surface-2))`,
-																	}
-														}
-													>
-														:{pad2(minute)}
-													</button>
-												);
-											})}
-										</div>
-									</motion.div>
-								)}
+													return (
+														<button
+															key={minute}
+															type="button"
+															onClick={() =>
+																handleMinuteClick(
+																	minute,
+																)
+															}
+															className={cn(
+																'relative h-10 rounded-[10px] text-[13px] font-bold tabular-nums transition-all duration-150 outline-none active:scale-[0.9]',
+																isActive
+																	? 'text-white'
+																	: 'text-[var(--ink)]',
+															)}
+															style={
+																isActive
+																	? {
+																			backgroundColor:
+																				expandedPeriod?.color,
+																			boxShadow: `0 4px 14px -4px ${expandedPeriod?.color}`,
+																		}
+																	: {
+																			background: `color-mix(in srgb, ${expandedPeriod?.color} 10%, var(--surface-2))`,
+																		}
+															}
+														>
+															:{pad2(minute)}
+														</button>
+													);
+												})}
+											</div>
+										</motion.div>
+									)}
 							</AnimatePresence>
 						</div>
 					);
