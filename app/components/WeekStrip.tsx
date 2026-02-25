@@ -1,102 +1,103 @@
-import { useEffect, useRef } from "react";
-import { format, isSameDay } from "date-fns";
-import { ru } from "date-fns/locale";
-import { cn } from "../lib/cn";
-import { useHaptic } from "../hooks/useHaptic";
-import { useReducedMotion } from "framer-motion";
-import { isIOSDevice } from "../lib/platform";
+import { useEffect, useRef } from 'react';
+import { format, isSameDay } from 'date-fns';
+import { ru } from 'date-fns/locale';
+import { cn } from '../lib/cn';
+import { useHaptic } from '../hooks/useHaptic';
+import { useReducedMotion } from 'framer-motion';
+import { isIOSDevice } from '../lib/platform';
 
 type WeekStripProps = {
-  weekDays: Date[];
-  selectedDate: Date;
-  onSelectDate: (date: Date) => void;
+	weekDays: Date[];
+	selectedDate: Date;
+	onSelectDate: (date: Date) => void;
 };
 
 export default function WeekStrip({
-  weekDays,
-  selectedDate,
-  onSelectDate,
+	weekDays,
+	selectedDate,
+	onSelectDate,
 }: WeekStripProps) {
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const { selection } = useHaptic();
-  const prefersReducedMotion = useReducedMotion();
-  const isIOS = isIOSDevice();
-  const reduceMotion = prefersReducedMotion || isIOS;
+	const scrollContainerRef = useRef<HTMLDivElement>(null);
+	const { selection } = useHaptic();
+	const prefersReducedMotion = useReducedMotion();
+	const isIOS = isIOSDevice();
+	const reduceMotion = prefersReducedMotion || isIOS;
 
-  useEffect(() => {
-    const selectedButton = scrollContainerRef.current?.querySelector(
-      'button[aria-pressed="true"]',
-    );
-    if (selectedButton) {
-      selectedButton.scrollIntoView({
-        behavior: reduceMotion ? "auto" : "smooth",
-        block: "nearest",
-        inline: "center",
-      });
-    }
-  }, [selectedDate, reduceMotion]);
+	useEffect(() => {
+		const selectedButton = scrollContainerRef.current?.querySelector(
+			'button[aria-pressed="true"]',
+		);
+		if (selectedButton) {
+			selectedButton.scrollIntoView({
+				behavior: reduceMotion ? 'auto' : 'smooth',
+				block: 'nearest',
+				inline: 'center',
+			});
+		}
+	}, [selectedDate, reduceMotion]);
 
-  const handleDateClick = (day: Date) => {
-    if (!isSameDay(day, selectedDate)) {
-      selection();
-      onSelectDate(day);
-    }
-  };
+	const handleDateClick = (day: Date) => {
+		if (!isSameDay(day, selectedDate)) {
+			selection();
+			onSelectDate(day);
+		}
+	};
 
-  return (
-    <div
-      ref={scrollContainerRef}
-      className="no-scrollbar flex justify-between gap-1 overflow-x-auto px-2 pt-1 select-none snap-x snap-mandatory overscroll-x-contain [-webkit-overflow-scrolling:touch]"
-    >
-      {weekDays.map((day) => {
-        const isSelected = isSameDay(day, selectedDate);
-        const isToday = isSameDay(day, new Date());
+	return (
+		<div
+			ref={scrollContainerRef}
+			className="no-scrollbar flex justify-between gap-1 overflow-x-auto px-2 pt-1 select-none snap-x snap-mandatory overscroll-x-contain [-webkit-overflow-scrolling:touch]"
+		>
+			{weekDays.map((day) => {
+				const isSelected = isSameDay(day, selectedDate);
+				const isToday = isSameDay(day, new Date());
 
-        return (
-          <button
-            key={day.toString()}
-            type="button"
-            onClick={() => handleDateClick(day)}
-            aria-pressed={isSelected}
-            aria-current={isSelected ? "date" : undefined}
-            aria-label={format(day, "EEEE, d MMMM", { locale: ru })}
-            className={cn(
-              "snap-center relative flex h-[68px] flex-1 min-w-[50px] max-w-[64px] flex-col items-center justify-center rounded-[32px] transition-all duration-300 outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] touch-manipulation",
-              isSelected
-                ? "bg-[var(--ink)] text-[var(--bg)] shadow-lg scale-100 z-10"
-                : "bg-transparent text-[var(--muted)] hover:bg-[var(--surface-2)] active:scale-95",
-              !isSelected &&
-                isToday &&
-                "bg-[var(--surface-2)] text-[var(--accent)] font-semibold",
-            )}
-          >
-            <span
-              className={cn(
-                "text-[9px] font-bold uppercase tracking-wider mb-0.5 transition-opacity",
-                isSelected ? "opacity-100" : "opacity-60",
-              )}
-            >
-              {format(day, "EE", { locale: ru })}
-            </span>
-            <span
-              className={cn(
-                "text-[18px] font-[var(--font-display)] leading-none",
-                isSelected ? "font-bold" : "font-medium",
-              )}
-            >
-              {format(day, "d")}
-            </span>
+				return (
+					<button
+						key={day.toString()}
+						type="button"
+						onClick={() => handleDateClick(day)}
+						aria-pressed={isSelected}
+						aria-current={isSelected ? 'date' : undefined}
+						aria-label={format(day, 'EEEE, d MMMM', { locale: ru })}
+						className={cn(
+							'snap-center relative flex h-[68px] flex-1 min-w-[50px] max-w-[64px] flex-col items-center justify-center rounded-[32px] transition-[transform,opacity] duration-200 outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] touch-manipulation',
+							isSelected
+								? 'bg-[var(--ink)] text-[var(--bg)] shadow-lg scale-100 z-10'
+								: 'bg-transparent text-[var(--muted)] hover:bg-[var(--surface-2)] active:scale-95',
+							!isSelected &&
+								isToday &&
+								'bg-[var(--surface-2)] text-[var(--accent)] font-semibold',
+						)}
+					>
+						<span
+							className={cn(
+								'text-[9px] font-bold uppercase tracking-wider mb-0.5 transition-opacity',
+								isSelected ? 'opacity-100' : 'opacity-60',
+							)}
+						>
+							{format(day, 'EE', { locale: ru })}
+						</span>
+						<span
+							className={cn(
+								'text-[18px] font-[var(--font-display)] leading-none',
+								isSelected ? 'font-bold' : 'font-medium',
+							)}
+						>
+							{format(day, 'd')}
+						</span>
 
-            {!isSelected && isToday && (
-              <div className="absolute bottom-1.5 h-1 w-1 rounded-full bg-[var(--accent)]" />
-            )}
+						{!isSelected && isToday && (
+							<div className="absolute bottom-1.5 h-1 w-1 rounded-full bg-[var(--accent)]" />
+						)}
 
-            {isSelected && isToday && (
-              <div className="absolute bottom-1 h-0.5 w-3 rounded-full bg-white/60" />
-            )}
-          </button>
-        );
-      })}
-    </div>
-  );
+						{isSelected && isToday && (
+							<div className="absolute bottom-1 h-0.5 w-3 rounded-full bg-white/60" />
+						)}
+					</button>
+				);
+			})}
+		</div>
+	);
 }
+

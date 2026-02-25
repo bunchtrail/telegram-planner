@@ -1,141 +1,163 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 html,
 body {
-  height: 100%;
-  width: 100%;
-  overflow: hidden;
-  -webkit-user-select: none;
-  user-select: none;
-  -webkit-touch-callout: none;
-  -webkit-text-size-adjust: 100%;
-  text-size-adjust: 100%;
-  -webkit-font-smoothing: subpixel-antialiased;
-  -moz-osx-font-smoothing: auto;
+	height: 100%;
+	width: 100%;
+	overflow: hidden;
+	-webkit-user-select: none;
+	user-select: none;
+	-webkit-touch-callout: none;
+	-webkit-text-size-adjust: 100%;
+	text-size-adjust: 100%;
+	-webkit-font-smoothing: subpixel-antialiased;
+	-moz-osx-font-smoothing: auto;
 }
 
 :root {
-  color-scheme: light dark;
-  --tg-content-safe-top: 0px;
-  --tg-content-safe-right: 0px;
-  --tg-content-safe-bottom: 0px;
-  --tg-content-safe-left: 0px;
-  --tg-safe-top: 0px;
-  --tg-safe-right: 0px;
-  --tg-safe-bottom: 0px;
-  --tg-safe-left: 0px;
-  --keyboard-height: 0px;
-  --bg: var(--tg-theme-bg-color, #f2f2f7);
-  --surface: var(--tg-theme-secondary-bg-color, #ffffff);
-  --surface-2: var(--tg-theme-section-bg-color, #ffffff);
-  --surface-glass: rgba(255, 255, 255, 0.85);
-  --ink: var(--tg-theme-text-color, #000000);
-  --muted: var(--tg-theme-hint-color, #86868b);
-  --border: rgba(0, 0, 0, 0.08);
-  --accent: var(--tg-theme-button-color, #007aff);
-  --accent-ink: var(--tg-theme-button-text-color, #ffffff);
-  --danger: var(--tg-theme-destructive-text-color, #ff3b30);
-  --shadow-soft: 0 4px 12px -2px rgba(0, 0, 0, 0.04);
-  --shadow-segment: 0 2px 8px rgba(0, 0, 0, 0.14);
-  --shadow-card: 0 0.5px 2px rgba(0, 0, 0, 0.04), 0 4px 16px rgba(0, 0, 0, 0.08);
-  --shadow-pop: 0 0 1px rgba(0, 0, 0, 0.06), 0 16px 40px -8px rgba(0, 0, 0, 0.18);
-  --shadow-glow: 0 8px 32px -8px var(--accent);
+	color-scheme: light dark;
+	--tg-content-safe-top: 0px;
+	--tg-content-safe-right: 0px;
+	--tg-content-safe-bottom: 0px;
+	--tg-content-safe-left: 0px;
+	--tg-safe-top: 0px;
+	--tg-safe-right: 0px;
+	--tg-safe-bottom: 0px;
+	--tg-safe-left: 0px;
+	--keyboard-height: 0px;
+	--bg: var(--tg-theme-bg-color, #f2f2f7);
+	--surface: var(--tg-theme-secondary-bg-color, #ffffff);
+	--surface-2: var(--tg-theme-section-bg-color, #ffffff);
+	--surface-glass: rgba(255, 255, 255, 0.85);
+	--ink: var(--tg-theme-text-color, #000000);
+	--muted: var(--tg-theme-hint-color, #86868b);
+	--border: rgba(0, 0, 0, 0.08);
+	--accent: var(--tg-theme-button-color, #007aff);
+	--accent-ink: var(--tg-theme-button-text-color, #ffffff);
+	--danger: var(--tg-theme-destructive-text-color, #ff3b30);
+	--shadow-soft: 0 4px 12px -2px rgba(0, 0, 0, 0.04);
+	--shadow-segment: 0 2px 8px rgba(0, 0, 0, 0.14);
+	--shadow-card:
+		0 0.5px 2px rgba(0, 0, 0, 0.04), 0 4px 16px rgba(0, 0, 0, 0.08);
+	--shadow-pop:
+		0 0 1px rgba(0, 0, 0, 0.06), 0 16px 40px -8px rgba(0, 0, 0, 0.18);
+	--shadow-glow: 0 8px 32px -8px var(--accent);
 }
 
 button,
 a,
 input,
 textarea {
-  -webkit-tap-highlight-color: transparent;
+	-webkit-tap-highlight-color: transparent;
 }
 
 input,
 textarea {
-  -webkit-user-select: text;
-  user-select: text;
-  transform: translate3d(0, 0, 0);
+	-webkit-user-select: text;
+	user-select: text;
+	transform: translate3d(0, 0, 0);
 }
 
 @theme inline {
-  --color-background: var(--bg);
-  --color-foreground: var(--ink);
-  --font-sans: var(--font-body);
-  --font-display: var(--font-display);
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    "Liberation Mono", "Courier New", monospace;
+	--color-background: var(--bg);
+	--color-foreground: var(--ink);
+	--font-sans: var(--font-body);
+	--font-display: var(--font-display);
+	--font-mono:
+		ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+		'Liberation Mono', 'Courier New', monospace;
 }
 
 body {
-  min-height: 100%;
-  position: fixed;
-  inset: 0;
-  background: var(--bg);
-  color: var(--ink);
-  font-family: var(--font-body), -apple-system, BlinkMacSystemFont, sans-serif;
-  overscroll-behavior: none;
-  overflow: hidden;
-  transition: height 0.25s ease-out;
+	min-height: 100%;
+	position: fixed;
+	inset: 0;
+	background: var(--bg);
+	color: var(--ink);
+	font-family:
+		var(--font-body),
+		-apple-system,
+		BlinkMacSystemFont,
+		sans-serif;
+	overscroll-behavior: none;
+	overflow: hidden;
 }
 
 .no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
+	-ms-overflow-style: none;
+	scrollbar-width: none;
 }
 
 .no-scrollbar::-webkit-scrollbar {
-  display: none;
+	display: none;
 }
 
 /* Glassmorphism Utility */
 .glass {
-  background: var(--surface-glass);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border-bottom: 0.5px solid rgba(0, 0, 0, 0.05);
+	background: var(--surface-glass);
+	backdrop-filter: blur(20px) saturate(180%);
+	-webkit-backdrop-filter: blur(20px) saturate(180%);
+	border-bottom: 0.5px solid rgba(0, 0, 0, 0.05);
 }
 
 .glass-clip {
-  -webkit-mask-image: linear-gradient(#fff, #fff);
-  mask-image: linear-gradient(#fff, #fff);
+	-webkit-mask-image: linear-gradient(#fff, #fff);
+	mask-image: linear-gradient(#fff, #fff);
 }
 
 .will-change-transform {
-  will-change: transform;
-  transform: translateZ(0);
-  -webkit-transform: translateZ(0);
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
-  perspective: 1000px;
+	will-change: transform;
+	transform: translateZ(0);
+	-webkit-transform: translateZ(0);
+	backface-visibility: hidden;
+	-webkit-backface-visibility: hidden;
+	perspective: 1000px;
 }
 
 /* iOS glassmorphism: use lighter blur + higher opacity as fallback */
 @supports (-webkit-touch-callout: none) {
-  .glass {
-    -webkit-backdrop-filter: blur(12px) saturate(140%);
-    backdrop-filter: blur(12px) saturate(140%);
-    background: rgba(255, 255, 255, 0.92);
-  }
+	.glass {
+		-webkit-backdrop-filter: blur(12px) saturate(140%);
+		backdrop-filter: blur(12px) saturate(140%);
+		background: rgba(255, 255, 255, 0.92);
+	}
 
-  @media (prefers-color-scheme: dark) {
-    .glass {
-      background: rgba(30, 30, 30, 0.92);
-    }
-  }
+	@media (prefers-color-scheme: dark) {
+		.glass {
+			background: rgba(30, 30, 30, 0.92);
+		}
+	}
 }
 
 @media (prefers-reduced-motion: reduce) {
-
-  *,
-  *::before,
-  *::after {
-    animation: none !important;
-    transition: none !important;
-    scroll-behavior: auto !important;
-  }
+	*,
+	*::before,
+	*::after {
+		animation: none !important;
+		transition: none !important;
+		scroll-behavior: auto !important;
+	}
 }
 
 /* Scrollable areas: prevent iOS rubber-band leaking */
 .scroll-container {
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior-y: contain;
+	-webkit-overflow-scrolling: touch;
+	overscroll-behavior-y: contain;
+}
+
+/* GPU-promoted layer for animated cards */
+.gpu-layer {
+	transform: translateZ(0);
+	-webkit-transform: translateZ(0);
+	backface-visibility: hidden;
+	-webkit-backface-visibility: hidden;
+}
+
+/* Backdrop overlay: use solid fallback on iOS to avoid blur during transitions */
+@supports (-webkit-touch-callout: none) {
+	.sheet-backdrop {
+		-webkit-backdrop-filter: none !important;
+		backdrop-filter: none !important;
+		background: rgba(0, 0, 0, 0.5) !important;
+	}
 }

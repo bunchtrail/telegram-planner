@@ -102,6 +102,12 @@ export default function FocusOverlay({
 			initial={{ y: reduceMotion ? 0 : '100%' }}
 			animate={{ y: 0 }}
 			exit={{ y: reduceMotion ? 0 : '100%' }}
+			transition={{
+				type: 'spring',
+				damping: 30,
+				stiffness: 350,
+				mass: 0.8,
+			}}
 			className="fixed inset-0 z-[60] bg-[var(--bg)] flex flex-col items-center justify-center px-6 text-center"
 			style={{
 				paddingTop:
@@ -161,7 +167,7 @@ export default function FocusOverlay({
 						r={normalizedRadius}
 						cx="144"
 						cy="144"
-						className="transition-all duration-1000 ease-linear"
+						className="transition-[stroke-dashoffset] duration-1000 ease-linear"
 					/>
 				</svg>
 

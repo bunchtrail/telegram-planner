@@ -27,7 +27,7 @@ const SHEET_TRANSITION = {
 	type: 'spring',
 	damping: 32,
 	stiffness: 400,
-	mass: 1,
+	mass: 0.8,
 } satisfies Transition;
 
 const MODAL_TRANSITION = {
@@ -318,7 +318,7 @@ export default function RecurringTasksSheet({
 					animate={{ opacity: 1 }}
 					exit={{ opacity: 0 }}
 					transition={{ duration: reduceMotion ? 0 : 0.3 }}
-					className="absolute inset-0 bg-black/40 backdrop-blur-md pointer-events-auto"
+					className="absolute inset-0 bg-black/40 backdrop-blur-md sheet-backdrop pointer-events-auto"
 					onClick={() => {
 						if (confirmAction) {
 							setConfirmAction(null);
