@@ -295,31 +295,38 @@ export default function TaskSheet({
 							setRemindBeforeMinutes(0);
 							setShowTimePicker(false);
 						}}
-						className="text-[11px] font-bold text-[var(--danger)] uppercase active:scale-95 transition-transform"
+						className="text-[11px] font-bold text-[var(--danger)] uppercase active:scale-95 transition-transform px-2.5 py-1 rounded-lg bg-[var(--danger)]/8 border border-[var(--danger)]/15"
 					>
 						Сбросить
 					</button>
 				)}
 			</div>
 
-			<div className="bg-[var(--surface-2)]/50 rounded-[24px] border border-[var(--border)]/50 overflow-hidden">
+			<div
+				className="rounded-[24px] border overflow-hidden transition-colors duration-200"
+				style={{
+					background: startMinutes != null
+						? `color-mix(in srgb, ${color} 4%, var(--surface-2))`
+						: 'color-mix(in srgb, var(--surface-2) 50%, transparent)',
+					borderColor: startMinutes != null
+						? `color-mix(in srgb, ${color} 20%, var(--border))`
+						: 'color-mix(in srgb, var(--border) 50%, transparent)',
+				}}>
 				<button
 					type="button"
 					onClick={() => setShowTimePicker((prev) => !prev)}
 					className={cn(
 						'w-full flex items-center justify-between p-4 transition-colors',
 						showTimePicker || isDesktop
-							? 'bg-[var(--surface-2)]'
-							: 'active:bg-[var(--surface-2)]',
+							? 'bg-transparent'
+							: 'active:bg-[var(--surface-2)]/50',
 					)}
 				>
 					<span
-						className={cn(
-							'text-[17px] font-bold tabular-nums',
-							startMinutes != null
-								? 'text-[var(--ink)]'
-								: 'text-[var(--muted)]',
-						)}
+						className="text-[17px] font-bold tabular-nums transition-colors"
+						style={{
+							color: startMinutes != null ? color : 'var(--muted)',
+						}}
 					>
 						{startMinutes != null
 							? formatMinutes(startMinutes)
@@ -328,12 +335,18 @@ export default function TaskSheet({
 					{!isDesktop && (
 						<div
 							className={cn(
-								'text-[13px] font-bold text-[var(--accent)] transition-transform flex items-center gap-1',
-								showTimePicker && 'rotate-180',
+								'text-[12px] font-bold transition-transform flex items-center gap-1',
+								showTimePicker ? 'text-[var(--muted)]' : 'text-[var(--accent)]',
 							)}
 						>
-							{showTimePicker ? 'Свернуть' : 'Изменить'}
-							<ChevronRight size={16} className="rotate-90" />
+							{showTimePicker ? 'Свернуть' : 'Выбрать'}
+							<ChevronRight
+								size={14}
+								className={cn(
+									'transition-transform duration-200',
+									showTimePicker ? '-rotate-90' : 'rotate-90',
+								)}
+							/>
 						</div>
 					)}
 				</button>
@@ -378,24 +391,35 @@ export default function TaskSheet({
 			</div>
 
 			<div className="flex gap-2 flex-wrap">
-				{DURATION_PRESETS.map((value) => (
-					<button
-						key={value}
-						type="button"
-						onClick={() => {
-							if (duration !== value) impact('light');
-							setDuration(value);
-						}}
-						className={cn(
-							'flex-shrink-0 h-11 px-5 rounded-2xl text-[15px] font-bold transition-[transform,colors] border duration-200',
-							duration === value
-								? 'bg-[var(--ink)] text-[var(--bg)] border-[var(--ink)] shadow-md scale-100'
-								: 'bg-[var(--surface-2)] text-[var(--ink)] border-transparent hover:border-[var(--border)] active:scale-95',
-						)}
-					>
-						{value} м
-					</button>
-				))}
+				{DURATION_PRESETS.map((value) => {
+					const isActive = duration === value;
+					return (
+						<button
+							key={value}
+							type="button"
+							onClick={() => {
+								if (!isActive) impact('light');
+								setDuration(value);
+							}}
+							className={cn(
+								'flex-shrink-0 h-11 px-5 rounded-2xl text-[15px] font-bold transition-all border duration-200',
+								isActive
+									? 'text-white border-transparent shadow-md'
+									: 'bg-[var(--surface-2)] text-[var(--ink)] border-transparent hover:border-[var(--border)] active:scale-[0.94]',
+							)}
+							style={
+								isActive
+									? {
+											background: color,
+											boxShadow: `0 4px 14px -4px ${color}60`,
+										}
+									: undefined
+							}
+						>
+							{value} м
+						</button>
+					);
+				})}
 			</div>
 		</div>
 	);
@@ -416,10 +440,10 @@ export default function TaskSheet({
 								setRemindBeforeMinutes(value);
 							}}
 							className={cn(
-								'h-9 px-4 rounded-2xl text-[13px] font-bold border transition-colors',
+								'h-9 px-4 rounded-2xl text-[13px] font-bold border transition-all duration-200 active:scale-[0.94]',
 								remindBeforeMinutes === value
-									? 'bg-[var(--accent)] text-[var(--accent-ink)] border-[var(--accent)] shadow-sm'
-									: 'bg-[var(--surface-2)] text-[var(--ink)] border-transparent',
+									? 'bg-[var(--accent)] text-[var(--accent-ink)] border-[var(--accent)]/60 shadow-sm'
+									: 'bg-[var(--surface-2)] text-[var(--ink)] border-transparent hover:border-[var(--border)]',
 							)}
 						>
 							{value === 0 ? 'В момент' : `За ${value} мин`}
@@ -435,7 +459,7 @@ export default function TaskSheet({
 				<Palette size={12} strokeWidth={3} /> Цвет задачи
 			</div>
 
-			<div className="flex gap-4 flex-wrap items-center">
+			<div className="flex gap-3 flex-wrap items-center">
 				{TASK_COLOR_OPTIONS.map((option) => {
 					const isSelected = color === option;
 					return (
@@ -447,19 +471,16 @@ export default function TaskSheet({
 								setColor(option);
 							}}
 							className={cn(
-								'relative w-12 h-12 flex-shrink-0 rounded-full flex items-center justify-center transition-[transform,opacity] duration-300 outline-none',
+								'relative w-11 h-11 flex-shrink-0 rounded-full flex items-center justify-center transition-all duration-300 outline-none',
 								isSelected
-									? 'scale-110 ring-2 ring-offset-2 ring-offset-[var(--surface)]'
-									: 'active:scale-95 hover:scale-105 opacity-80 hover:opacity-100',
+									? 'scale-[1.15]'
+									: 'active:scale-90 hover:scale-105 opacity-75 hover:opacity-100',
 							)}
 							style={{
 								backgroundColor: option,
 								boxShadow: isSelected
-									? `0 8px 20px -6px ${option}80`
-									: 'none',
-								borderColor: isSelected
-									? option
-									: 'transparent',
+									? `0 0 0 3px var(--surface), 0 0 0 5px ${option}, 0 6px 16px -4px ${option}60`
+									: `inset 0 0 0 1px rgba(0,0,0,0.08)`,
 							}}
 							aria-pressed={isSelected}
 							aria-label="Выбрать цвет"
@@ -475,7 +496,7 @@ export default function TaskSheet({
 									}}
 									className="text-white drop-shadow-md"
 								>
-									<Check size={22} strokeWidth={3.5} />
+									<Check size={20} strokeWidth={3.5} />
 								</motion.div>
 							)}
 						</button>
@@ -487,7 +508,17 @@ export default function TaskSheet({
 
 	const renderRepeatSection = () => (
 		<div className="shrink-0 mt-6">
-			<div className="bg-[var(--surface-2)]/40 rounded-[24px] overflow-hidden border border-[var(--border)]/50">
+			<div
+				className="rounded-[24px] overflow-hidden border transition-colors duration-200"
+				style={{
+					background: repeat !== 'none'
+						? 'color-mix(in srgb, var(--accent) 4%, var(--surface-2))'
+						: 'color-mix(in srgb, var(--surface-2) 40%, transparent)',
+					borderColor: repeat !== 'none'
+						? 'color-mix(in srgb, var(--accent) 20%, var(--border))'
+						: 'color-mix(in srgb, var(--border) 50%, transparent)',
+				}}
+			>
 				<button
 					type="button"
 					onClick={() => setShowRepeatOptions(!showRepeatOptions)}
@@ -496,10 +527,10 @@ export default function TaskSheet({
 					<div className="flex items-center gap-4">
 						<div
 							className={cn(
-								'flex h-10 w-10 items-center justify-center rounded-xl transition-colors shadow-sm',
+								'flex h-10 w-10 items-center justify-center rounded-xl transition-all duration-200',
 								repeat !== 'none'
-									? 'bg-[var(--accent)] text-[var(--accent-ink)]'
-									: 'bg-[var(--surface)] text-[var(--muted)]',
+									? 'bg-[var(--accent)] text-[var(--accent-ink)] shadow-sm'
+									: 'bg-[var(--surface)] text-[var(--muted)] border border-[var(--border)]/50',
 							)}
 						>
 							<Repeat size={20} strokeWidth={2.5} />
@@ -622,7 +653,7 @@ export default function TaskSheet({
 								<span className="text-[13px] font-bold text-[var(--muted)] uppercase tracking-wide">
 									{repeatCountLabel}
 								</span>
-								<div className="flex items-center gap-3 bg-[var(--surface)] rounded-xl shadow-sm border border-[var(--border)] p-1.5">
+								<div className="flex items-center gap-3 bg-[var(--surface)] rounded-2xl shadow-sm border border-[var(--border)]/60 p-1">
 									<button
 										type="button"
 										onClick={() => {
@@ -633,7 +664,7 @@ export default function TaskSheet({
 												),
 											);
 										}}
-										className="w-9 h-9 flex items-center justify-center text-[var(--ink)] hover:bg-[var(--surface-2)] active:scale-90 rounded-lg transition-[transform,colors] text-xl font-medium"
+										className="w-9 h-9 flex items-center justify-center text-[var(--ink)] hover:bg-[var(--surface-2)] active:scale-[0.88] rounded-xl transition-all text-xl font-medium"
 									>
 										-
 									</button>
@@ -650,7 +681,7 @@ export default function TaskSheet({
 												),
 											);
 										}}
-										className="w-9 h-9 flex items-center justify-center text-[var(--ink)] hover:bg-[var(--surface-2)] active:scale-90 rounded-lg transition-[transform,colors] text-xl font-medium"
+										className="w-9 h-9 flex items-center justify-center text-[var(--ink)] hover:bg-[var(--surface-2)] active:scale-[0.88] rounded-xl transition-all text-xl font-medium"
 									>
 										+
 									</button>
@@ -706,7 +737,7 @@ export default function TaskSheet({
 				>
 					{!isDesktop && (
 						<div className="flex justify-center mb-4">
-							<div className="w-12 h-1.5 rounded-full bg-[var(--muted)]/20" />
+							<div className="w-10 h-[5px] rounded-full bg-[var(--muted)]/16" />
 						</div>
 					)}
 
@@ -720,12 +751,12 @@ export default function TaskSheet({
 							type="button"
 							onClick={handleClose}
 							className={cn(
-								'w-10 h-10 flex items-center justify-center rounded-full text-[var(--muted)] hover:bg-[var(--surface-2)] hover:text-[var(--ink)] transition-colors active:scale-90',
+								'w-10 h-10 flex items-center justify-center rounded-xl text-[var(--muted)] bg-[var(--surface-2)]/60 border border-[var(--border)]/40 hover:bg-[var(--surface-2)] hover:text-[var(--ink)] transition-all active:scale-[0.90]',
 								!isDesktop && '-ml-2',
 							)}
 							aria-label="Закрыть"
 						>
-							<X size={24} strokeWidth={2.5} />
+							<X size={20} strokeWidth={2.5} />
 						</button>
 
 						{!isDesktop && (
@@ -733,7 +764,7 @@ export default function TaskSheet({
 								type="button"
 								onClick={() => formRef.current?.requestSubmit()}
 								className={cn(
-									'h-10 px-6 rounded-full font-bold text-[15px] shadow-lg transition-[transform,opacity] active:scale-95 hover:brightness-110 disabled:opacity-50 disabled:shadow-none disabled:active:scale-100 flex items-center gap-2',
+									'h-10 px-5 rounded-xl font-bold text-[15px] shadow-lg transition-all active:scale-[0.94] hover:brightness-110 disabled:opacity-40 disabled:shadow-none disabled:active:scale-100 flex items-center gap-2',
 									mode === 'create'
 										? 'bg-[var(--ink)] text-[var(--bg)] shadow-[var(--ink)]/20'
 										: 'bg-[var(--accent)] text-[var(--accent-ink)] shadow-[var(--accent)]/30',
@@ -749,7 +780,7 @@ export default function TaskSheet({
 								type="button"
 								onClick={() => formRef.current?.requestSubmit()}
 								className={cn(
-									'h-10 px-6 rounded-xl font-bold text-[15px] shadow-lg transition-[transform,opacity] active:scale-95 hover:brightness-110 disabled:opacity-50 disabled:shadow-none flex items-center gap-2',
+									'h-10 px-6 rounded-xl font-bold text-[15px] shadow-lg transition-all active:scale-[0.94] hover:brightness-110 disabled:opacity-40 disabled:shadow-none flex items-center gap-2',
 									mode === 'create'
 										? 'bg-[var(--ink)] text-[var(--bg)]'
 										: 'bg-[var(--accent)] text-[var(--accent-ink)]',
@@ -842,11 +873,11 @@ export default function TaskSheet({
 														);
 													}}
 													className={cn(
-														'h-9 px-4 rounded-2xl text-[13px] font-bold border transition-colors',
-														remindBeforeMinutes ===
-															value
-															? 'bg-[var(--accent)] text-[var(--accent-ink)] border-[var(--accent)] shadow-sm'
-															: 'bg-[var(--surface-2)] text-[var(--ink)] border-transparent',
+													'h-9 px-4 rounded-2xl text-[13px] font-bold border transition-all duration-200 active:scale-[0.94]',
+													remindBeforeMinutes ===
+														value
+														? 'bg-[var(--accent)] text-[var(--accent-ink)] border-[var(--accent)]/60 shadow-sm'
+														: 'bg-[var(--surface-2)] text-[var(--ink)] border-transparent hover:border-[var(--border)]',
 													)}
 												>
 													{value === 0
@@ -857,15 +888,15 @@ export default function TaskSheet({
 										</div>
 									</div>
 								)}
-								<div className="h-px bg-[var(--border)] mx-6 opacity-60 shrink-0" />
+								<div className="h-px mx-8 shrink-0 bg-gradient-to-r from-transparent via-[var(--border)]/50 to-transparent" />
 								<div className="shrink-0 px-6">
 									{renderDurationSection()}
 								</div>
-								<div className="h-px bg-[var(--border)] mx-6 opacity-60 shrink-0" />
+								<div className="h-px mx-8 shrink-0 bg-gradient-to-r from-transparent via-[var(--border)]/50 to-transparent" />
 								<div className="shrink-0 px-6">
 									{renderColorSection()}
 								</div>
-								<div className="h-px bg-[var(--border)] mx-6 opacity-60 shrink-0" />
+								<div className="h-px mx-8 shrink-0 bg-gradient-to-r from-transparent via-[var(--border)]/50 to-transparent" />
 								<div className="shrink-0 px-4 mb-6">
 									{renderRepeatSection()}
 								</div>
