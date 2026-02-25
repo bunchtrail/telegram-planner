@@ -105,8 +105,12 @@ body {
 }
 
 @keyframes shimmer {
-	0% { background-position: 100% 0; }
-	100% { background-position: -100% 0; }
+	0% {
+		background-position: 100% 0;
+	}
+	100% {
+		background-position: -100% 0;
+	}
 }
 
 .glass {
@@ -177,3 +181,4 @@ body {
 		background: rgba(0, 0, 0, 0.5) !important;
 	}
 }
+
