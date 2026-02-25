@@ -93,6 +93,22 @@ body {
 }
 
 /* Glassmorphism Utility */
+.skeleton-shimmer {
+	background: linear-gradient(
+		90deg,
+		var(--border) 0%,
+		var(--surface-2) 40%,
+		var(--border) 80%
+	);
+	background-size: 300% 100%;
+	animation: shimmer 1.6s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+	0% { background-position: 100% 0; }
+	100% { background-position: -100% 0; }
+}
+
 .glass {
 	background: var(--surface-glass);
 	backdrop-filter: blur(20px) saturate(180%);

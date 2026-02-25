@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { AnimatePresence, Reorder, useReducedMotion } from 'framer-motion';
-import { Calendar, Loader2 } from 'lucide-react';
+import { Calendar } from 'lucide-react';
 import type { Task } from '../types/task';
 import TaskItem from './TaskItem';
 import { cn } from '../lib/cn';
@@ -77,11 +77,39 @@ export default function TaskList({
 
   if (isLoading) {
     return (
-      <div className="flex h-full items-center justify-center">
-        <Loader2
-          className="animate-spin text-[var(--muted)] opacity-50"
-          size={32}
-        />
+      <div className={cn(
+        scrollClasses,
+        'flex flex-col gap-4',
+        isDesktop && 'gap-3'
+      )}>
+        {[0.92, 0.72, 0.84, 0.6, 0.76].map((w, i) => (
+          <div
+            key={i}
+            className={cn(
+              'bg-[var(--surface)] overflow-hidden',
+              isDesktop
+                ? 'rounded-[20px] border border-[var(--border)]'
+                : 'rounded-[28px] shadow-[var(--shadow-card)]'
+            )}
+          >
+            <div className={cn('flex items-start gap-4 pr-3', isDesktop ? 'p-6' : 'p-5')}>
+              <div className={cn(
+                'shrink-0 rounded-full border-[1.5px] border-[var(--border)] mt-1 skeleton-shimmer',
+                isDesktop ? 'h-7 w-7' : 'h-6 w-6'
+              )} />
+              <div className="flex-1 min-w-0 flex flex-col gap-2">
+                <div
+                  className="h-4 rounded-lg skeleton-shimmer"
+                  style={{ width: `${w * 100}%` }}
+                />
+                <div className="flex items-center gap-2">
+                  <div className="h-3 w-10 rounded-md skeleton-shimmer" />
+                  {i % 2 === 0 && <div className="h-3 w-14 rounded-md skeleton-shimmer" />}
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
     );
   }
