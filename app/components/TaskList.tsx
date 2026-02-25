@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { AnimatePresence, Reorder, useReducedMotion } from 'framer-motion';
+import { AnimatePresence, LayoutGroup, Reorder, useReducedMotion } from 'framer-motion';
 import { Calendar } from 'lucide-react';
 import type { Task } from '../types/task';
 import TaskItem from './TaskItem';
@@ -251,10 +251,12 @@ export default function TaskList({
 
 	return (
 		<div ref={scrollContainerRef} className={containerClassName}>
-			{renderGroup(activeTasks, false, 'active')}
-			{renderGroup(pinnedTasks, true, 'pinned')}
-			{renderGroup(normalTasks, true, 'normal')}
-			{renderGroup(completedTasks, false, 'completed')}
+			<LayoutGroup>
+				{renderGroup(activeTasks, false, 'active')}
+				{renderGroup(pinnedTasks, true, 'pinned')}
+				{renderGroup(normalTasks, true, 'normal')}
+				{renderGroup(completedTasks, false, 'completed')}
+			</LayoutGroup>
 			<div className="h-4" />
 		</div>
 	);

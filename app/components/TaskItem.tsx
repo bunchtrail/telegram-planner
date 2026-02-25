@@ -1,6 +1,7 @@
 import {
 	memo,
 	useLayoutEffect,
+	useMemo,
 	useRef,
 	useState,
 	useEffect,
@@ -227,6 +228,15 @@ const TaskItem = memo(function TaskItem({
 		totalSteps > 0 ? (completedSteps / totalSteps) * 100 : 0;
 	const isAllStepsDone = totalSteps > 0 && completedSteps === totalSteps;
 
+	const subtaskKeys = useMemo(() => {
+		const counts = new Map<string, number>();
+		return task.checklist.map((item) => {
+			const n = counts.get(item.text) ?? 0;
+			counts.set(item.text, n + 1);
+			return `${task.id}-step-${item.text}-${n}`;
+		});
+	}, [task.id, task.checklist]);
+
 	const targetMs = (task.duration || 30) * 60 * 1000;
 	const timeProgress = Math.min(100, (elapsedMs / targetMs) * 100);
 
@@ -289,6 +299,7 @@ const TaskItem = memo(function TaskItem({
 		<Reorder.Item
 			value={task.clientId}
 			id={task.clientId}
+			layoutId={listMotionEnabled ? task.clientId : undefined}
 			dragListener={false}
 			dragControls={dragControls}
 			layout={listMotionEnabled ? 'position' : undefined}
@@ -899,7 +910,7 @@ const TaskItem = memo(function TaskItem({
 										{reduceMotion ? (
 											task.checklist.map((item, idx) => (
 												<li
-													key={`${task.id}-subtask-${idx}`}
+													key={subtaskKeys[idx]}
 												>
 													<div className="group flex items-center gap-3 w-full bg-[var(--surface-2)]/50 rounded-2xl px-3 py-2.5 border border-[var(--border)]/30">
 														<button
@@ -962,7 +973,7 @@ const TaskItem = memo(function TaskItem({
 												{task.checklist.map(
 													(item, idx) => (
 														<motion.li
-															key={`${task.id}-subtask-${idx}`}
+															key={subtaskKeys[idx]}
 															initial={{
 																opacity: 0,
 																height: 0,
