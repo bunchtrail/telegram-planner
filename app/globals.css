@@ -94,22 +94,30 @@ body {
 
 /* Glassmorphism Utility */
 .skeleton-shimmer {
-	background: linear-gradient(
-		90deg,
-		var(--border) 0%,
-		var(--surface-2) 40%,
-		var(--border) 80%
-	);
-	background-size: 300% 100%;
-	animation: shimmer 1.6s ease-in-out infinite;
+	position: relative;
+	overflow: hidden;
+	background: var(--border);
 }
 
-@keyframes shimmer {
-	0% {
-		background-position: 100% 0;
+.skeleton-shimmer::after {
+	content: '';
+	position: absolute;
+	inset: 0;
+	background: linear-gradient(
+		100deg,
+		transparent 25%,
+		color-mix(in srgb, var(--surface-2) 75%, transparent) 50%,
+		transparent 75%
+	);
+	animation: shimmer-wave 1.8s ease-in-out infinite;
+}
+
+@keyframes shimmer-wave {
+	from {
+		transform: translateX(-100%);
 	}
-	100% {
-		background-position: -100% 0;
+	to {
+		transform: translateX(200%);
 	}
 }
 

@@ -367,9 +367,15 @@ const TaskItem = memo(function TaskItem({
 
 			<div
 				className={cn(
-					'flex flex-col relative z-10 rounded-[inherit]',
-					isExpanded && !isActive && 'bg-[var(--muted)]/5',
+					'flex flex-col relative z-10 rounded-[inherit] transition-colors duration-200',
 				)}
+				style={
+					isExpanded && !isActive
+						? {
+								background: `color-mix(in srgb, ${task.color} 5%, var(--surface))`,
+							}
+						: undefined
+				}
 			>
 				<div
 					className={cn(
@@ -696,11 +702,22 @@ const TaskItem = memo(function TaskItem({
 										onToggleActive(task.id);
 									}}
 									className={cn(
-										'w-full h-[52px] md:h-[60px] rounded-[18px] flex items-center justify-center gap-2 text-[14px] md:text-[16px] font-bold transition-[transform,colors] duration-200 active:scale-[0.98] relative overflow-hidden',
+										'w-full h-[52px] md:h-[60px] rounded-[18px] flex items-center justify-center gap-2 text-[14px] md:text-[16px] font-bold transition-all duration-200 active:scale-[0.97] relative overflow-hidden',
 										isActive
-											? 'bg-[var(--task-color)] text-[var(--bg)] shadow-lg shadow-[var(--task-color)]/20'
-											: 'bg-[var(--surface-2)] text-[var(--ink)] hover:bg-[var(--border)]',
+											? 'text-[var(--bg)]'
+											: 'text-[var(--ink)]',
 									)}
+									style={
+										isActive
+											? {
+													background: task.color,
+													boxShadow: `0 6px 20px -4px ${task.color}40`,
+												}
+											: {
+													background: `color-mix(in srgb, ${task.color} 10%, var(--surface-2))`,
+													border: `1px solid color-mix(in srgb, ${task.color} 20%, transparent)`,
+												}
+									}
 								>
 									{isActive && (
 										<motion.div
@@ -752,13 +769,15 @@ const TaskItem = memo(function TaskItem({
 											setPendingDate(null);
 											handleMoveTomorrow();
 										}}
-										className="col-span-1 flex flex-col items-center justify-center gap-1 h-[64px] md:h-[72px] rounded-[18px] bg-[var(--surface-2)] text-[var(--ink)] active:scale-95 transition-[transform,colors] duration-200 relative overflow-hidden group hover:bg-[var(--border)]"
+										className="col-span-1 flex flex-col items-center justify-center gap-1.5 h-[64px] md:h-[72px] rounded-[18px] bg-[var(--surface-2)] text-[var(--ink)] active:scale-[0.96] transition-all duration-200 relative overflow-hidden group border border-[var(--border)]/40 hover:border-[var(--border)]"
 									>
-										<Sunrise
-											size={20}
-											className="text-[var(--accent)] mb-0.5"
-										/>
-										<span className="text-[12px] font-bold">
+										<div className="w-8 h-8 rounded-xl bg-[var(--accent)]/10 flex items-center justify-center">
+											<Sunrise
+												size={18}
+												className="text-[var(--accent)]"
+											/>
+										</div>
+										<span className="text-[11px] font-bold uppercase tracking-wide">
 											Завтра
 										</span>
 									</button>
@@ -826,18 +845,28 @@ const TaskItem = memo(function TaskItem({
 									</div>
 								</div>
 
-								<div className="bg-[var(--surface-2)]/30 rounded-[20px] p-3 border border-[var(--border)]/50">
+								<div className="bg-[var(--surface)] rounded-[20px] p-3 border border-[var(--border)]/40 shadow-sm">
 									<div className="flex items-center justify-between mb-3 pl-1 pr-1">
-										<div className="text-[11px] font-bold text-[var(--muted)] uppercase tracking-wider flex items-center gap-2">
+										<div className="text-[11px] font-bold text-[var(--muted)] uppercase tracking-widest flex items-center gap-2">
 											<span>Подзадачи</span>
-											<span className="bg-[var(--surface-2)] px-1.5 py-0.5 rounded text-[var(--ink)] tabular-nums">
+											<span
+												className="px-2 py-0.5 rounded-full text-[10px] tabular-nums font-bold transition-colors duration-300"
+												style={{
+													color: isAllStepsDone
+														? task.color
+														: 'var(--ink)',
+													background: isAllStepsDone
+														? `color-mix(in srgb, ${task.color} 15%, var(--surface-2))`
+														: 'var(--surface-2)',
+												}}
+											>
 												{completedSteps}/{totalSteps}
 											</span>
 										</div>
 									</div>
 
 									{totalSteps > 0 && (
-										<div className="h-1.5 w-full bg-[var(--surface-2)] rounded-full mb-4 overflow-hidden">
+										<div className="h-1 w-full bg-[var(--surface-2)] rounded-full mb-4 overflow-hidden">
 											<motion.div
 												className="h-full transition-colors duration-500"
 												style={{
@@ -872,7 +901,7 @@ const TaskItem = memo(function TaskItem({
 												<li
 													key={`${task.id}-subtask-${idx}`}
 												>
-													<div className="group flex items-center gap-3 w-full bg-[var(--surface)] rounded-xl px-2.5 py-2 border border-transparent shadow-sm">
+													<div className="group flex items-center gap-3 w-full bg-[var(--surface-2)]/50 rounded-2xl px-3 py-2.5 border border-[var(--border)]/30">
 														<button
 															type="button"
 															onClick={() =>
@@ -952,7 +981,7 @@ const TaskItem = memo(function TaskItem({
 																duration: 0.2,
 															}}
 														>
-															<div className="group flex items-center gap-3 w-full bg-[var(--surface)] hover:bg-[var(--surface-2)] rounded-xl px-2.5 py-2 transition-colors border border-transparent hover:border-[var(--border)]/50 shadow-sm">
+															<div className="group flex items-center gap-3 w-full bg-[var(--surface-2)]/50 hover:bg-[var(--surface-2)] rounded-2xl px-3 py-2.5 transition-colors border border-[var(--border)]/30 hover:border-[var(--border)]/60">
 																<button
 																	type="button"
 																	onClick={() =>
@@ -1037,7 +1066,7 @@ const TaskItem = memo(function TaskItem({
 										onSubmit={addSubtask}
 										className="mt-2 relative group"
 									>
-										<div className="flex items-center gap-3 w-full bg-transparent rounded-xl px-2.5 py-1.5 border border-dashed border-[var(--border)] hover:border-[var(--accent)] hover:bg-[var(--surface)] transition-[border-color,background-color] focus-within:border-[var(--accent)] focus-within:bg-[var(--surface)] focus-within:shadow-sm">
+										<div className="flex items-center gap-3 w-full bg-transparent rounded-2xl px-3 py-2 border border-dashed border-[var(--border)]/60 hover:border-[var(--accent)]/50 hover:bg-[var(--surface-2)]/30 transition-all duration-200 focus-within:border-[var(--accent)] focus-within:bg-[var(--surface)] focus-within:shadow-sm">
 											<div className="flex-shrink-0 w-5 h-5 flex items-center justify-center text-[var(--muted)]">
 												<Plus size={16} />
 											</div>
@@ -1071,7 +1100,7 @@ const TaskItem = memo(function TaskItem({
 								</div>
 
 								{!isDesktop ? (
-									<div className="grid grid-cols-2 gap-2">
+									<div className="grid grid-cols-3 gap-2">
 										<button
 											type="button"
 											onClick={(event) => {
@@ -1082,10 +1111,10 @@ const TaskItem = memo(function TaskItem({
 												});
 											}}
 											className={cn(
-												'col-span-1 h-10 rounded-xl flex items-center justify-center gap-2 text-xs font-bold transition-colors active:scale-95',
+												'col-span-1 h-11 rounded-2xl flex flex-col items-center justify-center gap-0.5 text-[10px] font-bold uppercase tracking-wide transition-all duration-200 active:scale-[0.94] border',
 												task.isPinned
-													? 'bg-[var(--ink)] text-[var(--bg)]'
-													: 'bg-[var(--surface-2)] text-[var(--ink)]',
+													? 'bg-[var(--ink)] text-[var(--bg)] border-[var(--ink)]'
+													: 'bg-[var(--surface-2)] text-[var(--muted)] border-[var(--border)]/40 hover:text-[var(--ink)]',
 											)}
 											aria-pressed={task.isPinned}
 										>
@@ -1097,9 +1126,6 @@ const TaskItem = memo(function TaskItem({
 														: ''
 												}
 											/>
-											{task.isPinned
-												? 'Открепить'
-												: 'Закрепить'}
 										</button>
 
 										<button
@@ -1108,9 +1134,9 @@ const TaskItem = memo(function TaskItem({
 												event.stopPropagation();
 												onEdit(task);
 											}}
-											className="col-span-1 flex items-center justify-center gap-2 h-10 rounded-xl bg-[var(--surface-2)] text-[var(--ink)] font-bold text-[12px] active:scale-95 transition-[transform,colors] duration-200 hover:bg-[var(--border)]"
+											className="col-span-1 flex flex-col items-center justify-center gap-0.5 h-11 rounded-2xl bg-[var(--surface-2)] text-[var(--muted)] font-bold text-[10px] uppercase tracking-wide active:scale-[0.94] transition-all duration-200 border border-[var(--border)]/40 hover:text-[var(--ink)]"
 										>
-											<Pencil size={16} /> Изменить
+											<Pencil size={14} />
 										</button>
 
 										<button
@@ -1119,9 +1145,9 @@ const TaskItem = memo(function TaskItem({
 												event.stopPropagation();
 												onDelete(task.id);
 											}}
-											className="col-span-2 flex items-center justify-center gap-2 h-[52px] rounded-[18px] bg-[var(--danger)]/10 text-[var(--danger)] font-bold text-[13px] active:scale-95 transition-[transform,colors] duration-200 hover:bg-[var(--danger)]/20"
+											className="col-span-1 flex flex-col items-center justify-center gap-0.5 h-11 rounded-2xl bg-[var(--danger)]/8 text-[var(--danger)] font-bold text-[10px] uppercase tracking-wide active:scale-[0.94] transition-all duration-200 border border-[var(--danger)]/15 hover:bg-[var(--danger)]/15"
 										>
-											<Trash2 size={18} /> Удалить
+											<Trash2 size={14} />
 										</button>
 									</div>
 								) : (
@@ -1131,9 +1157,9 @@ const TaskItem = memo(function TaskItem({
 											event.stopPropagation();
 											onDelete(task.id);
 										}}
-										className="w-full flex items-center justify-center gap-2 h-[52px] rounded-[18px] bg-[var(--danger)]/10 text-[var(--danger)] font-bold text-[13px] active:scale-95 transition-[transform,colors] duration-200 hover:bg-[var(--danger)]/20"
+										className="w-full flex items-center justify-center gap-2 h-11 rounded-2xl bg-[var(--danger)]/8 text-[var(--danger)] font-bold text-[12px] active:scale-[0.96] transition-all duration-200 border border-[var(--danger)]/15 hover:bg-[var(--danger)]/15"
 									>
-										<Trash2 size={18} /> Удалить задачу
+										<Trash2 size={16} /> Удалить
 									</button>
 								)}
 							</>
@@ -1144,9 +1170,9 @@ const TaskItem = memo(function TaskItem({
 									event.stopPropagation();
 									onDelete(task.id);
 								}}
-								className="w-full flex items-center justify-center gap-2 h-[52px] rounded-[18px] bg-[var(--surface-2)] text-[var(--danger)] font-bold text-[13px] active:scale-95 transition-[transform,colors] duration-200 hover:bg-[var(--danger)]/10"
+								className="w-full flex items-center justify-center gap-2 h-11 rounded-2xl bg-[var(--danger)]/8 text-[var(--danger)] font-bold text-[12px] active:scale-[0.96] transition-all duration-200 border border-[var(--danger)]/15 hover:bg-[var(--danger)]/15"
 							>
-								<Trash2 size={18} /> Удалить задачу
+								<Trash2 size={16} /> Удалить
 							</button>
 						)}
 					</div>
