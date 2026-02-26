@@ -296,7 +296,7 @@ export default function PlannerApp() {
 					className="relative z-30 flex-none border-t border-[var(--border)] bg-[var(--surface)]"
 					style={{
 						paddingBottom:
-							'max(env(safe-area-inset-bottom), var(--tg-content-safe-bottom, 0px))',
+							'calc(max(env(safe-area-inset-bottom), var(--tg-content-safe-bottom, 0px)) + var(--keyboard-height, 0px))',
 					}}
 				>
 					<div className="flex">

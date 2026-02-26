@@ -109,50 +109,23 @@ export default function HabitsTab({
 
 	return (
 		<div className={scrollClasses}>
-			{/* Week header row */}
-			<div className="flex items-center gap-2 mb-4 px-1">
+			{/* Column day labels */}
+			<div className="flex items-center gap-2 mb-2 px-1">
 				<div className="w-10 shrink-0" />
 				<div className="flex-1 min-w-0" />
 				<div className="flex gap-1">
-					{weekDays.map((day) => {
-						const isToday =
-							format(day, 'yyyy-MM-dd') ===
-							format(new Date(), 'yyyy-MM-dd');
-						return (
-							<div
-								key={day.toISOString()}
-								className={cn(
-									'w-9 h-9 flex flex-col items-center justify-center rounded-xl text-center',
-									isToday && 'bg-[var(--accent)]/10',
-								)}
-							>
-								<span
-									className={cn(
-										'text-[9px] font-bold uppercase tracking-wider',
-										isToday
-											? 'text-[var(--accent)]'
-											: 'text-[var(--muted)]',
-									)}
-								>
-									{format(day, 'EEE', { locale: ru }).slice(
-										0,
-										2,
-									)}
-								</span>
-								<span
-									className={cn(
-										'text-[11px] font-bold tabular-nums',
-										isToday
-											? 'text-[var(--accent)]'
-											: 'text-[var(--ink)]',
-									)}
-								>
-									{format(day, 'd')}
-								</span>
-							</div>
-						);
-					})}
+					{weekDays.map((day) => (
+						<div
+							key={day.toISOString()}
+							className="w-9 flex items-center justify-center"
+						>
+							<span className="text-[9px] font-bold uppercase tracking-wider text-[var(--muted)]">
+								{format(day, 'EEEEEE', { locale: ru })}
+							</span>
+						</div>
+					))}
 				</div>
+				<div className="w-6 shrink-0" />
 			</div>
 
 			{/* Habits list */}
@@ -319,6 +292,16 @@ export default function HabitsTab({
 										if (e.key === 'Escape')
 											setShowAddForm(false);
 									}}
+									onFocus={(e) =>
+										setTimeout(
+											() =>
+												e.target.scrollIntoView({
+													behavior: 'smooth',
+													block: 'center',
+												}),
+											300,
+										)
+									}
 								/>
 
 								{/* Icon picker */}
@@ -406,7 +389,7 @@ export default function HabitsTab({
 						'fixed z-40 flex h-14 w-14 items-center justify-center rounded-full bg-[var(--accent)] text-[var(--accent-ink)] shadow-lg',
 						isDesktop
 							? 'bottom-8 right-8'
-							: 'bottom-[calc(6rem+max(env(safe-area-inset-bottom),var(--tg-content-safe-bottom,0px)))] right-[max(1rem,env(safe-area-inset-right),var(--tg-content-safe-right,0px))]',
+							: 'bottom-[calc(5.5rem+var(--keyboard-height,0px)+max(env(safe-area-inset-bottom),var(--tg-content-safe-bottom,0px)))] right-[max(1rem,env(safe-area-inset-right),var(--tg-content-safe-right,0px))]',
 					)}
 					aria-label="Добавить привычку"
 				>
