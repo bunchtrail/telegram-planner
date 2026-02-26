@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { format } from 'date-fns';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Clock } from 'lucide-react';
+import { Clock, ListTodo, Sparkles } from 'lucide-react';
 import TaskSheet from './TaskSheet';
 import FloatingActionButton from './FloatingActionButton';
 import PlannerHeader from './PlannerHeader';
@@ -12,6 +12,7 @@ import FocusOverlay from './FocusOverlay';
 import StatsModal from './StatsModal';
 import DesktopPlanner from './DesktopPlanner';
 import RecurringTasksSheet from './RecurringTasksSheet';
+import HabitsTab from './HabitsTab';
 import { usePlanner } from '../hooks/usePlanner';
 import { useHaptic } from '../hooks/useHaptic';
 import { useReward } from '../hooks/useReward';
@@ -51,6 +52,14 @@ export default function PlannerApp() {
     updateTask,
     moveTask,
     isLoading,
+    runWithAuthRetry,
+    habits,
+    habitsLoading,
+    addHabit,
+    deleteHabit,
+    toggleHabitLog,
+    isHabitChecked,
+    pomodoroStats,
   } = planner;
   const fabRef = useRef<HTMLButtonElement>(null);
   const [undoTask, setUndoTask] = useState<Task | null>(null);
@@ -65,6 +74,7 @@ export default function PlannerApp() {
   const [showStats, setShowStats] = useState(false);
   const [showRecurring, setShowRecurring] = useState(false);
   const [showFocus, setShowFocus] = useState(false);
+  const [activeTab, setActiveTab] = useState<'tasks' | 'habits'>('tasks');
 
   const activeTaskObj = useMemo(
     () => tasks.find((task) => task.id === activeTaskId) ?? null,
@@ -249,24 +259,64 @@ export default function PlannerApp() {
         </div>
 
         <main className="relative h-full w-full flex-1 overflow-hidden">
-          <TaskList
-            dateKey={format(selectedDate, 'yyyy-MM-dd')}
-            tasks={currentTasks}
-            isLoading={isLoading}
-            onToggle={handleTaskToggle}
-            onDelete={handleDelete}
-            onEdit={handleOpenEdit}
-            onMove={handleMoveTask}
-            onAdd={handleOpenCreate}
-            onReorder={handleReorder}
-            onToggleActive={toggleActiveTask}
-            updateTask={updateTask}
-          />
+          {activeTab === 'tasks' ? (
+            <TaskList
+              dateKey={format(selectedDate, 'yyyy-MM-dd')}
+              tasks={currentTasks}
+              isLoading={isLoading}
+              onToggle={handleTaskToggle}
+              onDelete={handleDelete}
+              onEdit={handleOpenEdit}
+              onMove={handleMoveTask}
+              onAdd={handleOpenCreate}
+              onReorder={handleReorder}
+              onToggleActive={toggleActiveTask}
+              updateTask={updateTask}
+            />
+          ) : (
+            <HabitsTab
+              habits={habits}
+              isLoading={habitsLoading}
+              isChecked={isHabitChecked}
+              onToggleLog={toggleHabitLog}
+              onAddHabit={addHabit}
+              onDeleteHabit={deleteHabit}
+              selectedDate={selectedDate}
+            />
+          )}
           <div className="pointer-events-none absolute bottom-0 left-0 right-0 z-20 h-16 bg-gradient-to-t from-[var(--bg)] to-transparent" />
         </main>
 
+        {/* Tab bar */}
+        <div className="relative z-30 flex-none border-t border-[var(--border)] bg-[var(--surface)]"
+          style={{
+            paddingBottom: 'max(env(safe-area-inset-bottom), var(--tg-content-safe-bottom, 0px))',
+          }}
+        >
+          <div className="flex">
+            <button
+              onClick={() => setActiveTab('tasks')}
+              className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 transition-colors ${
+                activeTab === 'tasks' ? 'text-[var(--accent)]' : 'text-[var(--muted)]'
+              }`}
+            >
+              <ListTodo size={22} />
+              <span className="text-[10px] font-bold">Задачи</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('habits')}
+              className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 transition-colors ${
+                activeTab === 'habits' ? 'text-[var(--accent)]' : 'text-[var(--muted)]'
+              }`}
+            >
+              <Sparkles size={22} />
+              <span className="text-[10px] font-bold">Привычки</span>
+            </button>
+          </div>
+        </div>
+
         <AnimatePresence>
-          {!isAddOpen && (
+          {!isAddOpen && activeTab === 'tasks' && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -316,6 +366,7 @@ export default function PlannerApp() {
               tasks={tasks}
               selectedDate={selectedDate}
               onClose={() => setShowStats(false)}
+              pomodoroStats={pomodoroStats}
             />
           )}
 
@@ -336,6 +387,7 @@ export default function PlannerApp() {
               isActive={activeTaskId === activeTaskObj.id}
               onToggleTimer={() => toggleActiveTask(activeTaskObj.id)}
               onClose={() => setShowFocus(false)}
+              runWithAuthRetry={runWithAuthRetry}
             />
           )}
         </AnimatePresence>

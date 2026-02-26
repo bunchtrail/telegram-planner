@@ -23,6 +23,8 @@ import {
 import { useTasks } from './useTasks';
 import { useStreak } from './useStreak';
 import { useRecurringTasks } from './useRecurringTasks';
+import { useHabits } from './useHabits';
+import { usePomodoroStats } from './usePomodoroStats';
 
 type PlannerViewMode = 'week' | 'month';
 
@@ -277,6 +279,29 @@ export function usePlanner() {
   // --- Streak (TanStack Query) ---
 
   const streak = useStreak({ userId, runWithAuthRetry });
+
+  // --- Habits ---
+
+  const weekStart = useMemo(
+    () => startOfWeek(selectedDate, { weekStartsOn: 1 }),
+    [selectedDate],
+  );
+  const weekEnd = useMemo(() => addDays(weekStart, 6), [weekStart]);
+
+  const habitsData = useHabits({
+    userId,
+    weekStartKey: formatDateOnly(weekStart),
+    weekEndKey: formatDateOnly(weekEnd),
+    runWithAuthRetry,
+  });
+
+  // --- Pomodoro Stats ---
+
+  const pomodoroStats = usePomodoroStats({
+    userId,
+    weekEndDate: formatDateOnly(selectedDate),
+    runWithAuthRetry,
+  });
 
   // --- Recurring tasks (TanStack Query) ---
 
@@ -622,5 +647,14 @@ export function usePlanner() {
     deleteTaskSeries,
     skipTaskSeriesDate,
     isDesktop,
+    runWithAuthRetry,
+    userId,
+    habits: habitsData.habits,
+    habitsLoading: habitsData.isLoading,
+    addHabit: habitsData.addHabit,
+    deleteHabit: habitsData.deleteHabit,
+    toggleHabitLog: habitsData.toggleLog,
+    isHabitChecked: habitsData.isChecked,
+    pomodoroStats,
   };
 }

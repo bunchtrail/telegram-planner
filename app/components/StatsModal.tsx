@@ -2,10 +2,11 @@
 
 import { useEffect, useMemo, useRef } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
-import { Clock, Flame, Target, X, Zap } from 'lucide-react';
+import { Clock, Flame, Target, Timer, X, Zap } from 'lucide-react';
 import { format, subDays, isSameDay, startOfDay } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import type { Task } from '../types/task';
+import type { PomodoroWeeklyStats } from '../hooks/usePomodoroStats';
 import { cn } from '../lib/cn';
 
 type StatsModalProps = {
@@ -13,6 +14,7 @@ type StatsModalProps = {
 	streak: number;
 	tasks: Task[];
 	selectedDate: Date;
+	pomodoroStats: PomodoroWeeklyStats;
 };
 
 export default function StatsModal({
@@ -20,6 +22,7 @@ export default function StatsModal({
 	streak,
 	tasks,
 	selectedDate,
+	pomodoroStats,
 }: StatsModalProps) {
 	const dialogRef = useRef<HTMLDivElement>(null);
 	const prefersReducedMotion = useReducedMotion();
@@ -282,6 +285,47 @@ export default function StatsModal({
 										? 'Задач / час'
 										: 'Нет фокуса'}
 								</div>
+							</div>
+						</div>
+
+						{/* Pomodoro Focus Hours */}
+						<div className="col-span-2 bg-[var(--surface-2)]/40 border border-[var(--border)] rounded-[20px] p-4 flex flex-col gap-3 shadow-sm relative overflow-hidden">
+							<div className="flex items-center justify-between">
+								<div className="flex items-center gap-2 text-[var(--muted)]">
+									<Timer size={16} />
+									<span className="text-[11px] font-bold uppercase tracking-wider">
+										Помодоро за неделю
+									</span>
+								</div>
+								<div className="text-right">
+									<span className="text-xl font-bold text-[var(--ink)] tabular-nums">
+										{pomodoroStats.totalPomodoros}
+									</span>
+									<span className="text-xs text-[var(--muted)] font-medium ml-1">
+										/ {pomodoroStats.totalFocusHours.toFixed(1)} ч
+									</span>
+								</div>
+							</div>
+							<div className="flex items-end gap-1 h-10">
+								{pomodoroStats.days.map((day, i) => {
+									const maxP = Math.max(1, ...pomodoroStats.days.map((d) => d.pomodoros));
+									const h = day.pomodoros > 0 ? Math.max(4, (day.pomodoros / maxP) * 100) : 4;
+									return (
+										<div key={i} className="flex-1 flex items-end justify-center">
+											<motion.div
+												initial={{ height: 0 }}
+												animate={{ height: `${h}%` }}
+												transition={{ type: 'spring', stiffness: 180, damping: 20, delay: i * 0.04 }}
+												className={cn(
+													'w-full rounded-full min-h-[4px]',
+													day.pomodoros > 0
+														? 'bg-[var(--accent)]'
+														: 'bg-[var(--border)]',
+												)}
+											/>
+										</div>
+									);
+								})}
 							</div>
 						</div>
 					</div>

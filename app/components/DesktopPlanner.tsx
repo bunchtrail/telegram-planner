@@ -9,7 +9,9 @@ import {
   ChevronRight,
   Clock,
   Flame,
+  ListTodo,
   Plus,
+  Sparkles,
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import MonthGrid from './MonthGrid';
@@ -17,6 +19,7 @@ import TaskList from './TaskList';
 import TaskSheet from './TaskSheet';
 import FocusOverlay from './FocusOverlay';
 import StatsModal from './StatsModal';
+import HabitsTab from './HabitsTab';
 import { useHaptic } from '../hooks/useHaptic';
 import { useReward } from '../hooks/useReward';
 import type { Task, TaskRepeat } from '../types/task';
@@ -49,8 +52,17 @@ export default function DesktopPlanner({ planner }: DesktopPlannerProps) {
     updateTask,
     moveTask,
     isLoading,
+    runWithAuthRetry,
+    habits,
+    habitsLoading,
+    addHabit,
+    deleteHabit,
+    toggleHabitLog,
+    isHabitChecked,
+    pomodoroStats,
   } = planner;
 
+  const [activeTab, setActiveTab] = useState<'tasks' | 'habits'>('tasks');
   const { impact, notification } = useHaptic();
   const { fire } = useReward();
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -329,23 +341,60 @@ export default function DesktopPlanner({ planner }: DesktopPlannerProps) {
           )}
         </header>
 
+        {/* Desktop tab bar */}
+        <div className="shrink-0 flex gap-1 px-12 bg-[var(--bg)]/80 backdrop-blur border-b border-[var(--border)]">
+          <button
+            onClick={() => setActiveTab('tasks')}
+            className={`flex items-center gap-2 px-5 py-3 text-sm font-bold transition-colors border-b-2 ${
+              activeTab === 'tasks'
+                ? 'border-[var(--accent)] text-[var(--accent)]'
+                : 'border-transparent text-[var(--muted)] hover:text-[var(--ink)]'
+            }`}
+          >
+            <ListTodo size={18} /> Задачи
+          </button>
+          <button
+            onClick={() => setActiveTab('habits')}
+            className={`flex items-center gap-2 px-5 py-3 text-sm font-bold transition-colors border-b-2 ${
+              activeTab === 'habits'
+                ? 'border-[var(--accent)] text-[var(--accent)]'
+                : 'border-transparent text-[var(--muted)] hover:text-[var(--ink)]'
+            }`}
+          >
+            <Sparkles size={18} /> Привычки
+          </button>
+        </div>
+
         <div className="flex-1 overflow-hidden relative">
           <div className="absolute inset-0 overflow-y-auto px-12 py-10 max-w-6xl mx-auto w-full no-scrollbar">
-            <TaskList
-              dateKey={format(selectedDate, 'yyyy-MM-dd')}
-              tasks={currentTasks}
-              isLoading={isLoading}
-              onToggle={handleTaskToggle}
-              onDelete={handleDelete}
-              onEdit={handleOpenEdit}
-              onMove={moveTask}
-              onAdd={handleOpenCreate}
-              onReorder={handleReorder}
-              onToggleActive={toggleActiveTask}
-              updateTask={updateTask}
-              isDesktop
-              className="pl-0 pr-0"
-            />
+            {activeTab === 'tasks' ? (
+              <TaskList
+                dateKey={format(selectedDate, 'yyyy-MM-dd')}
+                tasks={currentTasks}
+                isLoading={isLoading}
+                onToggle={handleTaskToggle}
+                onDelete={handleDelete}
+                onEdit={handleOpenEdit}
+                onMove={moveTask}
+                onAdd={handleOpenCreate}
+                onReorder={handleReorder}
+                onToggleActive={toggleActiveTask}
+                updateTask={updateTask}
+                isDesktop
+                className="pl-0 pr-0"
+              />
+            ) : (
+              <HabitsTab
+                habits={habits}
+                isLoading={habitsLoading}
+                isChecked={isHabitChecked}
+                onToggleLog={toggleHabitLog}
+                onAddHabit={addHabit}
+                onDeleteHabit={deleteHabit}
+                selectedDate={selectedDate}
+                isDesktop
+              />
+            )}
             <div className="h-32" />
           </div>
         </div>
@@ -384,6 +433,7 @@ export default function DesktopPlanner({ planner }: DesktopPlannerProps) {
             tasks={tasks}
             selectedDate={selectedDate}
             onClose={() => setShowStats(false)}
+            pomodoroStats={pomodoroStats}
           />
         )}
 
@@ -393,6 +443,7 @@ export default function DesktopPlanner({ planner }: DesktopPlannerProps) {
             isActive={activeTaskId === activeTaskObj.id}
             onToggleTimer={() => toggleActiveTask(activeTaskObj.id)}
             onClose={() => setShowFocus(false)}
+            runWithAuthRetry={runWithAuthRetry}
           />
         )}
 
