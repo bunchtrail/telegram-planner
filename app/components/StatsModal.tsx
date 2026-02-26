@@ -302,20 +302,44 @@ export default function StatsModal({
 										{pomodoroStats.totalPomodoros}
 									</span>
 									<span className="text-xs text-[var(--muted)] font-medium ml-1">
-										/ {pomodoroStats.totalFocusHours.toFixed(1)} ч
+										/{' '}
+										{pomodoroStats.totalFocusHours.toFixed(
+											1,
+										)}{' '}
+										ч
 									</span>
 								</div>
 							</div>
 							<div className="flex items-end gap-1 h-10">
 								{pomodoroStats.days.map((day, i) => {
-									const maxP = Math.max(1, ...pomodoroStats.days.map((d) => d.pomodoros));
-									const h = day.pomodoros > 0 ? Math.max(4, (day.pomodoros / maxP) * 100) : 4;
+									const maxP = Math.max(
+										1,
+										...pomodoroStats.days.map(
+											(d) => d.pomodoros,
+										),
+									);
+									const h =
+										day.pomodoros > 0
+											? Math.max(
+													4,
+													(day.pomodoros / maxP) *
+														100,
+												)
+											: 4;
 									return (
-										<div key={i} className="flex-1 flex items-end justify-center">
+										<div
+											key={i}
+											className="flex-1 flex items-end justify-center"
+										>
 											<motion.div
 												initial={{ height: 0 }}
 												animate={{ height: `${h}%` }}
-												transition={{ type: 'spring', stiffness: 180, damping: 20, delay: i * 0.04 }}
+												transition={{
+													type: 'spring',
+													stiffness: 180,
+													damping: 20,
+													delay: i * 0.04,
+												}}
 												className={cn(
 													'w-full rounded-full min-h-[4px]',
 													day.pomodoros > 0

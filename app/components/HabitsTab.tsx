@@ -9,7 +9,18 @@ import { cn } from '../lib/cn';
 import { TASK_COLOR_OPTIONS } from '../lib/constants';
 import type { Habit } from '../types/habit';
 
-const HABIT_ICONS = ['💧', '🏃', '📖', '🧘', '💊', '🥗', '😴', '✍️', '🎯', '💪'];
+const HABIT_ICONS = [
+	'💧',
+	'🏃',
+	'📖',
+	'🧘',
+	'💊',
+	'🥗',
+	'😴',
+	'✍️',
+	'🎯',
+	'💪',
+];
 
 type HabitsTabProps = {
 	habits: Habit[];
@@ -78,10 +89,16 @@ export default function HabitsTab({
 						key={i}
 						className="bg-[var(--surface)] rounded-[24px] shadow-[var(--shadow-card)] p-5"
 					>
-						<div className="h-5 rounded-lg skeleton-shimmer" style={{ width: `${w * 100}%` }} />
+						<div
+							className="h-5 rounded-lg skeleton-shimmer"
+							style={{ width: `${w * 100}%` }}
+						/>
 						<div className="flex gap-2 mt-3">
 							{Array.from({ length: 7 }).map((_, j) => (
-								<div key={j} className="w-9 h-9 rounded-full skeleton-shimmer" />
+								<div
+									key={j}
+									className="w-9 h-9 rounded-full skeleton-shimmer"
+								/>
 							))}
 						</div>
 					</div>
@@ -98,7 +115,9 @@ export default function HabitsTab({
 				<div className="flex-1 min-w-0" />
 				<div className="flex gap-1">
 					{weekDays.map((day) => {
-						const isToday = format(day, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
+						const isToday =
+							format(day, 'yyyy-MM-dd') ===
+							format(new Date(), 'yyyy-MM-dd');
 						return (
 							<div
 								key={day.toISOString()}
@@ -110,15 +129,22 @@ export default function HabitsTab({
 								<span
 									className={cn(
 										'text-[9px] font-bold uppercase tracking-wider',
-										isToday ? 'text-[var(--accent)]' : 'text-[var(--muted)]',
+										isToday
+											? 'text-[var(--accent)]'
+											: 'text-[var(--muted)]',
 									)}
 								>
-									{format(day, 'EEE', { locale: ru }).slice(0, 2)}
+									{format(day, 'EEE', { locale: ru }).slice(
+										0,
+										2,
+									)}
 								</span>
 								<span
 									className={cn(
 										'text-[11px] font-bold tabular-nums',
-										isToday ? 'text-[var(--accent)]' : 'text-[var(--ink)]',
+										isToday
+											? 'text-[var(--accent)]'
+											: 'text-[var(--ink)]',
 									)}
 								>
 									{format(day, 'd')}
@@ -150,15 +176,26 @@ export default function HabitsTab({
 								<button
 									className={cn(
 										'shrink-0 flex flex-col items-center gap-0.5 w-10 transition-colors',
-										deletingId === habit.id ? 'text-[var(--danger)]' : 'text-[var(--ink)]',
+										deletingId === habit.id
+											? 'text-[var(--danger)]'
+											: 'text-[var(--ink)]',
 									)}
 									onClick={() => handleDelete(habit.id)}
-									aria-label={deletingId === habit.id ? 'Подтвердить удаление' : 'Удалить привычку'}
+									aria-label={
+										deletingId === habit.id
+											? 'Подтвердить удаление'
+											: 'Удалить привычку'
+									}
 								>
 									{deletingId === habit.id ? (
-										<Trash2 size={20} className="text-[var(--danger)]" />
+										<Trash2
+											size={20}
+											className="text-[var(--danger)]"
+										/>
 									) : (
-										<span className="text-xl">{habit.icon}</span>
+										<span className="text-xl">
+											{habit.icon}
+										</span>
 									)}
 									<span className="text-[9px] font-bold truncate max-w-[40px] text-[var(--muted)]">
 										{habit.name}
@@ -170,14 +207,25 @@ export default function HabitsTab({
 								{/* Day checkboxes */}
 								<div className="flex gap-1">
 									{weekDays.map((day) => {
-										const dateKey = format(day, 'yyyy-MM-dd');
-										const checked = isChecked(habit.id, dateKey);
+										const dateKey = format(
+											day,
+											'yyyy-MM-dd',
+										);
+										const checked = isChecked(
+											habit.id,
+											dateKey,
+										);
 
 										return (
 											<motion.button
 												key={dateKey}
 												whileTap={{ scale: 0.85 }}
-												onClick={() => onToggleLog(habit.id, dateKey)}
+												onClick={() =>
+													onToggleLog(
+														habit.id,
+														dateKey,
+													)
+												}
 												className={cn(
 													'w-9 h-9 rounded-xl border-2 flex items-center justify-center transition-all duration-200',
 													checked
@@ -186,7 +234,10 @@ export default function HabitsTab({
 												)}
 												style={
 													checked
-														? { backgroundColor: habit.color }
+														? {
+																backgroundColor:
+																	habit.color,
+															}
 														: undefined
 												}
 												aria-label={`${habit.name} ${format(day, 'd MMM', { locale: ru })}`}
@@ -195,9 +246,17 @@ export default function HabitsTab({
 													<motion.div
 														initial={{ scale: 0 }}
 														animate={{ scale: 1 }}
-														transition={{ type: 'spring', stiffness: 500, damping: 25 }}
+														transition={{
+															type: 'spring',
+															stiffness: 500,
+															damping: 25,
+														}}
 													>
-														<Check size={16} strokeWidth={3} className="text-white" />
+														<Check
+															size={16}
+															strokeWidth={3}
+															className="text-white"
+														/>
 													</motion.div>
 												)}
 											</motion.button>
@@ -209,7 +268,12 @@ export default function HabitsTab({
 								<div className="shrink-0 w-6 text-center">
 									<span
 										className="text-[11px] font-bold tabular-nums"
-										style={{ color: checkedCount === 7 ? habit.color : 'var(--muted)' }}
+										style={{
+											color:
+												checkedCount === 7
+													? habit.color
+													: 'var(--muted)',
+										}}
 									>
 										{checkedCount}/7
 									</span>
@@ -226,7 +290,8 @@ export default function HabitsTab({
 							Нет привычек
 						</h3>
 						<p className="text-sm text-[var(--muted)] mb-6 max-w-[240px]">
-							Добавьте привычки для ежедневного трекинга — вода, спорт, чтение
+							Добавьте привычки для ежедневного трекинга — вода,
+							спорт, чтение
 						</p>
 					</div>
 				)}
@@ -251,7 +316,8 @@ export default function HabitsTab({
 									className="w-full bg-[var(--surface-2)] rounded-2xl px-4 py-3 text-[var(--ink)] placeholder:text-[var(--muted)] outline-none border border-[var(--border)] focus:border-[var(--accent)] transition-colors"
 									onKeyDown={(e) => {
 										if (e.key === 'Enter') handleSubmit();
-										if (e.key === 'Escape') setShowAddForm(false);
+										if (e.key === 'Escape')
+											setShowAddForm(false);
 									}}
 								/>
 
@@ -287,12 +353,21 @@ export default function HabitsTab({
 										{TASK_COLOR_OPTIONS.map((color) => (
 											<button
 												key={color}
-												onClick={() => setNewColor(color)}
+												onClick={() =>
+													setNewColor(color)
+												}
 												className={cn(
 													'w-8 h-8 rounded-full transition-all',
-													newColor === color && 'ring-2 ring-offset-2 ring-offset-[var(--surface)] scale-110',
+													newColor === color &&
+														'ring-2 ring-offset-2 ring-offset-[var(--surface)] scale-110',
 												)}
-												style={{ backgroundColor: color, boxShadow: newColor === color ? `0 0 0 2px ${color}` : undefined }}
+												style={{
+													backgroundColor: color,
+													boxShadow:
+														newColor === color
+															? `0 0 0 2px ${color}`
+															: undefined,
+												}}
 											/>
 										))}
 									</div>

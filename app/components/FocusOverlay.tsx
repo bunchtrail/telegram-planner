@@ -32,7 +32,9 @@ type FocusOverlayProps = {
 	isActive: boolean;
 	onToggleTimer: () => void;
 	onClose: () => void;
-	runWithAuthRetry: <T extends { error: SupabaseErrorLike | null | undefined }>(
+	runWithAuthRetry: <
+		T extends { error: SupabaseErrorLike | null | undefined },
+	>(
 		operation: () => PromiseLike<T> | T,
 	) => Promise<T>;
 };
@@ -96,19 +98,26 @@ export default function FocusOverlay({
 	// Progress logic per mode
 	const isPomodoro = mode === 'pomodoro';
 	const currentPhaseDuration = isPomodoro
-		? (pomodoro.phase === 'focus'
-				? POMODORO_FOCUS_MS
-				: pomodoro.phase === 'short_break'
-					? POMODORO_SHORT_BREAK_MS
-					: POMODORO_LONG_BREAK_MS)
+		? pomodoro.phase === 'focus'
+			? POMODORO_FOCUS_MS
+			: pomodoro.phase === 'short_break'
+				? POMODORO_SHORT_BREAK_MS
+				: POMODORO_LONG_BREAK_MS
 		: targetMs;
 
 	const displayTimeMs = isPomodoro ? pomodoro.timeLeftMs : elapsedMs;
 	const progress = isPomodoro
-		? Math.min(100, ((currentPhaseDuration - pomodoro.timeLeftMs) / currentPhaseDuration) * 100)
+		? Math.min(
+				100,
+				((currentPhaseDuration - pomodoro.timeLeftMs) /
+					currentPhaseDuration) *
+					100,
+			)
 		: Math.min(100, (elapsedMs / targetMs) * 100);
 
-	const ringColor = isPomodoro ? phaseColor(pomodoro.phase) : (task.color || 'var(--accent)');
+	const ringColor = isPomodoro
+		? phaseColor(pomodoro.phase)
+		: task.color || 'var(--accent)';
 
 	const radius = 136;
 	const stroke = 8;
@@ -295,24 +304,34 @@ export default function FocusOverlay({
 			{/* Pomodoro rounds indicator */}
 			{isPomodoro && (
 				<div className="flex items-center gap-2 mb-6">
-					{Array.from({ length: POMODOROS_BEFORE_LONG_BREAK }).map((_, i) => (
-						<div
-							key={i}
-							className="w-3 h-3 rounded-full transition-all duration-300"
-							style={{
-								backgroundColor:
-									i < pomodoro.round - (pomodoro.phase === 'focus' ? 1 : 0) + (pomodoro.phase !== 'focus' ? 1 : 0)
-										? 'var(--accent)'
-										: i === pomodoro.round - 1 && pomodoro.phase === 'focus'
-											? `color-mix(in srgb, var(--accent) 40%, transparent)`
-											: 'var(--surface-2)',
-								transform:
-									i === pomodoro.round - 1 && pomodoro.phase === 'focus' && pomodoro.isRunning
-										? 'scale(1.3)'
-										: 'scale(1)',
-							}}
-						/>
-					))}
+					{Array.from({ length: POMODOROS_BEFORE_LONG_BREAK }).map(
+						(_, i) => (
+							<div
+								key={i}
+								className="w-3 h-3 rounded-full transition-all duration-300"
+								style={{
+									backgroundColor:
+										i <
+										pomodoro.round -
+											(pomodoro.phase === 'focus'
+												? 1
+												: 0) +
+											(pomodoro.phase !== 'focus' ? 1 : 0)
+											? 'var(--accent)'
+											: i === pomodoro.round - 1 &&
+												  pomodoro.phase === 'focus'
+												? `color-mix(in srgb, var(--accent) 40%, transparent)`
+												: 'var(--surface-2)',
+									transform:
+										i === pomodoro.round - 1 &&
+										pomodoro.phase === 'focus' &&
+										pomodoro.isRunning
+											? 'scale(1.3)'
+											: 'scale(1)',
+								}}
+							/>
+						),
+					)}
 					{pomodoro.totalPomodoros > 0 && (
 						<span className="text-xs font-bold text-[var(--muted)] ml-2 tabular-nums">
 							×{pomodoro.totalPomodoros}
