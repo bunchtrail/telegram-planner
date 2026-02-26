@@ -27,7 +27,7 @@ const FloatingActionButton = forwardRef<
 			}}
 			transition={{ type: 'spring', stiffness: 400, damping: 25 }}
 			aria-label="Добавить задачу"
-			className="fixed z-20 flex h-14 w-14 touch-manipulation items-center justify-center rounded-[24px] bg-[var(--ink)] text-[var(--bg)] shadow-[var(--shadow-pop)] focus-visible:outline-none bottom-[calc(5.5rem+var(--keyboard-height,0px)+max(env(safe-area-inset-bottom),var(--tg-content-safe-bottom,0px)))] right-[calc(1.5rem+max(env(safe-area-inset-right),var(--tg-content-safe-right,0px)))] active:shadow-none"
+			className="fixed z-20 flex h-14 w-14 touch-manipulation items-center justify-center rounded-[24px] bg-[var(--ink)] text-[var(--bg)] shadow-[var(--shadow-pop)] focus-visible:outline-none bottom-[calc(5.5rem+max(env(safe-area-inset-bottom),var(--tg-content-safe-bottom,0px)))] right-[calc(1.5rem+max(env(safe-area-inset-right),var(--tg-content-safe-right,0px)))] active:shadow-none"
 		>
 			<div className="absolute inset-0 rounded-[24px] bg-gradient-to-tr from-white/10 to-transparent pointer-events-none" />
 			<Plus size={28} strokeWidth={2.5} />

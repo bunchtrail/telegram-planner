@@ -22,7 +22,8 @@ import type { Task, TaskRepeat } from '../types/task';
 export default function PlannerApp() {
 	const planner = usePlanner();
 	const { isDesktop } = planner;
-	useKeyboardInset();
+	const keyboardHeight = useKeyboardInset();
+	const isKeyboardOpen = keyboardHeight > 0;
 
 	const {
 		selectedDate,
@@ -291,12 +292,13 @@ export default function PlannerApp() {
 					<div className="pointer-events-none absolute bottom-0 left-0 right-0 z-20 h-16 bg-gradient-to-t from-[var(--bg)] to-transparent" />
 				</main>
 
-				{/* Tab bar */}
+				{/* Tab bar — hidden when keyboard is open */}
+				{!isKeyboardOpen && (
 				<div
 					className="relative z-30 flex-none border-t border-[var(--border)] bg-[var(--surface)]"
 					style={{
 						paddingBottom:
-							'calc(max(env(safe-area-inset-bottom), var(--tg-content-safe-bottom, 0px)) + var(--keyboard-height, 0px))',
+							'max(env(safe-area-inset-bottom), var(--tg-content-safe-bottom, 0px))',
 					}}
 				>
 					<div className="flex">
@@ -328,9 +330,10 @@ export default function PlannerApp() {
 						</button>
 					</div>
 				</div>
+				)}
 
 				<AnimatePresence>
-					{!isAddOpen && activeTab === 'tasks' && (
+					{!isAddOpen && activeTab === 'tasks' && !isKeyboardOpen && (
 						<motion.div
 							initial={{ opacity: 0 }}
 							animate={{ opacity: 1 }}

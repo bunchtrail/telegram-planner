@@ -389,7 +389,7 @@ export default function HabitsTab({
 						'fixed z-40 flex h-14 w-14 items-center justify-center rounded-full bg-[var(--accent)] text-[var(--accent-ink)] shadow-lg',
 						isDesktop
 							? 'bottom-8 right-8'
-							: 'bottom-[calc(5.5rem+var(--keyboard-height,0px)+max(env(safe-area-inset-bottom),var(--tg-content-safe-bottom,0px)))] right-[max(1rem,env(safe-area-inset-right),var(--tg-content-safe-right,0px))]',
+							: 'bottom-[calc(5.5rem+max(env(safe-area-inset-bottom),var(--tg-content-safe-bottom,0px)))] right-[max(1rem,env(safe-area-inset-right),var(--tg-content-safe-right,0px))]',
 					)}
 					aria-label="Добавить привычку"
 				>
