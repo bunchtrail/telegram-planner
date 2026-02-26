@@ -1,5 +1,7 @@
 import crypto from "crypto";
 import { NextResponse } from "next/server";
+import { validateRequest } from "@/lib/api-utils";
+import { TelegramAuthSchema } from "@/lib/validations/auth";
 
 export const runtime = "nodejs";
 
@@ -109,17 +111,10 @@ export async function POST(request: Request) {
     );
   }
 
-  const body = (await request.json().catch(() => null)) as
-    | { initData?: string }
-    | null;
-  const initData = body?.initData;
+  const { data, error } = await validateRequest(request, TelegramAuthSchema);
+  if (error) return error;
 
-  if (!initData || typeof initData !== "string") {
-    return NextResponse.json(
-      { error: "initData is required" },
-      { status: 400 },
-    );
-  }
+  const initData = data.initData;
 
   const verification = verifyInitData(initData, botToken);
   if (!verification.ok) {

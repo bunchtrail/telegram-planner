@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { ReminderRunHeaderSchema } from '@/lib/validations/reminders';
 
 export const runtime = 'nodejs';
 
@@ -16,8 +17,10 @@ export async function POST(request: Request) {
     );
   }
 
-  const providedSecret = request.headers.get('x-reminders-secret');
-  if (!providedSecret || providedSecret !== expectedSecret) {
+  const parsed = ReminderRunHeaderSchema.safeParse({
+    secret: request.headers.get('x-reminders-secret') ?? '',
+  });
+  if (!parsed.success || parsed.data.secret !== expectedSecret) {
     return NextResponse.json(
       { error: 'Unauthorized' },
       { status: 401, headers: NO_STORE_HEADERS }
