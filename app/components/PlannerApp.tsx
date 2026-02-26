@@ -294,42 +294,42 @@ export default function PlannerApp() {
 
 				{/* Tab bar — hidden when keyboard is open */}
 				{!isKeyboardOpen && (
-				<div
-					className="relative z-30 flex-none border-t border-[var(--border)] bg-[var(--surface)]"
-					style={{
-						paddingBottom:
-							'max(env(safe-area-inset-bottom), var(--tg-content-safe-bottom, 0px))',
-					}}
-				>
-					<div className="flex">
-						<button
-							onClick={() => setActiveTab('tasks')}
-							className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 transition-colors ${
-								activeTab === 'tasks'
-									? 'text-[var(--accent)]'
-									: 'text-[var(--muted)]'
-							}`}
-						>
-							<ListTodo size={22} />
-							<span className="text-[10px] font-bold">
-								Задачи
-							</span>
-						</button>
-						<button
-							onClick={() => setActiveTab('habits')}
-							className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 transition-colors ${
-								activeTab === 'habits'
-									? 'text-[var(--accent)]'
-									: 'text-[var(--muted)]'
-							}`}
-						>
-							<Sparkles size={22} />
-							<span className="text-[10px] font-bold">
-								Привычки
-							</span>
-						</button>
+					<div
+						className="relative z-30 flex-none border-t border-[var(--border)] bg-[var(--surface)]"
+						style={{
+							paddingBottom:
+								'max(env(safe-area-inset-bottom), var(--tg-content-safe-bottom, 0px))',
+						}}
+					>
+						<div className="flex">
+							<button
+								onClick={() => setActiveTab('tasks')}
+								className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 transition-colors ${
+									activeTab === 'tasks'
+										? 'text-[var(--accent)]'
+										: 'text-[var(--muted)]'
+								}`}
+							>
+								<ListTodo size={22} />
+								<span className="text-[10px] font-bold">
+									Задачи
+								</span>
+							</button>
+							<button
+								onClick={() => setActiveTab('habits')}
+								className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 transition-colors ${
+									activeTab === 'habits'
+										? 'text-[var(--accent)]'
+										: 'text-[var(--muted)]'
+								}`}
+							>
+								<Sparkles size={22} />
+								<span className="text-[10px] font-bold">
+									Привычки
+								</span>
+							</button>
+						</div>
 					</div>
-				</div>
 				)}
 
 				<AnimatePresence>
