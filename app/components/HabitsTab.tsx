@@ -144,9 +144,14 @@ export default function HabitsTab({
 										}
 									>
 										{deletingId === habit.id ? (
-											<Trash2 size={18} className="text-[var(--danger)]" />
+											<Trash2
+												size={18}
+												className="text-[var(--danger)]"
+											/>
 										) : (
-											<span className="text-lg">{habit.icon}</span>
+											<span className="text-lg">
+												{habit.icon}
+											</span>
 										)}
 									</button>
 									<span className="flex-1 min-w-0 text-sm font-bold text-[var(--ink)] truncate">
@@ -155,7 +160,10 @@ export default function HabitsTab({
 									<span
 										className="shrink-0 text-xs font-bold tabular-nums"
 										style={{
-											color: checkedCount === 7 ? habit.color : 'var(--muted)',
+											color:
+												checkedCount === 7
+													? habit.color
+													: 'var(--muted)',
 										}}
 									>
 										{checkedCount}/7
@@ -165,12 +173,21 @@ export default function HabitsTab({
 								{/* Day grid: labels + checkboxes, perfectly aligned via grid-cols-7 */}
 								<div className="grid grid-cols-7 gap-1">
 									{weekDays.map((day) => {
-										const dateKey = format(day, 'yyyy-MM-dd');
-										const checked = isChecked(habit.id, dateKey);
+										const dateKey = format(
+											day,
+											'yyyy-MM-dd',
+										);
+										const checked = isChecked(
+											habit.id,
+											dateKey,
+										);
 										const isToday = dateKey === todayKey;
 
 										return (
-											<div key={dateKey} className="flex flex-col items-center gap-1">
+											<div
+												key={dateKey}
+												className="flex flex-col items-center gap-1"
+											>
 												<span
 													className={cn(
 														'text-[9px] font-bold uppercase tracking-wide',
@@ -179,11 +196,18 @@ export default function HabitsTab({
 															: 'text-[var(--muted)]',
 													)}
 												>
-													{format(day, 'EEEEEE', { locale: ru })}
+													{format(day, 'EEEEEE', {
+														locale: ru,
+													})}
 												</span>
 												<motion.button
 													whileTap={{ scale: 0.85 }}
-													onClick={() => onToggleLog(habit.id, dateKey)}
+													onClick={() =>
+														onToggleLog(
+															habit.id,
+															dateKey,
+														)
+													}
 													className={cn(
 														'w-full aspect-square rounded-xl border-2 flex items-center justify-center transition-all duration-200',
 														checked
@@ -192,16 +216,35 @@ export default function HabitsTab({
 																? 'border-[var(--accent)]/60 bg-[var(--accent)]/5'
 																: 'border-[var(--border)] bg-transparent',
 													)}
-													style={checked ? { backgroundColor: habit.color } : undefined}
+													style={
+														checked
+															? {
+																	backgroundColor:
+																		habit.color,
+																}
+															: undefined
+													}
 													aria-label={`${habit.name} ${format(day, 'd MMM', { locale: ru })}`}
 												>
 													{checked && (
 														<motion.div
-															initial={{ scale: 0 }}
-															animate={{ scale: 1 }}
-															transition={{ type: 'spring', stiffness: 500, damping: 25 }}
+															initial={{
+																scale: 0,
+															}}
+															animate={{
+																scale: 1,
+															}}
+															transition={{
+																type: 'spring',
+																stiffness: 500,
+																damping: 25,
+															}}
 														>
-															<Check size={14} strokeWidth={3} className="text-white" />
+															<Check
+																size={14}
+																strokeWidth={3}
+																className="text-white"
+															/>
 														</motion.div>
 													)}
 												</motion.button>
