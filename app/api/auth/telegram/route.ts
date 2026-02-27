@@ -1,12 +1,12 @@
 import crypto from 'crypto';
-import { NextResponse } from 'next/server';
-import { validateRequest } from '@/app/lib/api-utils';
+import { errorNoStore, jsonNoStore } from '@/app/lib/api-response';
 import { TelegramAuthSchema } from '@/app/lib/validations/auth';
 
 export const runtime = 'nodejs';
 
 const MAX_AUTH_AGE_SECONDS = 24 * 60 * 60;
 const TOKEN_TTL_SECONDS = 24 * 60 * 60;
+const MAX_AUTH_FUTURE_SKEW_SECONDS = 60;
 
 type TelegramUser = {
 	id: number;
@@ -43,7 +43,7 @@ const verifyInitData = (initData: string, botToken: string) => {
 	const params = new URLSearchParams(initData);
 	const hash = params.get('hash');
 	if (!hash) {
-		return { ok: false, error: 'Missing hash' } as const;
+		return { ok: false } as const;
 	}
 
 	params.delete('hash');
@@ -67,34 +67,39 @@ const verifyInitData = (initData: string, botToken: string) => {
 		hashBuffer.length !== computedBuffer.length ||
 		!crypto.timingSafeEqual(hashBuffer, computedBuffer)
 	) {
-		return { ok: false, error: 'Invalid hash' } as const;
+		return { ok: false } as const;
 	}
 
 	const authDateRaw = params.get('auth_date');
 	const authDate = authDateRaw ? Number(authDateRaw) : 0;
 	if (!authDate) {
-		return { ok: false, error: 'Missing auth_date' } as const;
+		return { ok: false } as const;
 	}
 
-	const ageSeconds = Math.floor(Date.now() / 1000) - authDate;
+	const nowSeconds = Math.floor(Date.now() / 1000);
+	const ageSeconds = nowSeconds - authDate;
 	if (ageSeconds > MAX_AUTH_AGE_SECONDS) {
-		return { ok: false, error: 'Stale init data' } as const;
+		return { ok: false } as const;
+	}
+
+	if (authDate - nowSeconds > MAX_AUTH_FUTURE_SKEW_SECONDS) {
+		return { ok: false } as const;
 	}
 
 	const userRaw = params.get('user');
 	if (!userRaw) {
-		return { ok: false, error: 'Missing user' } as const;
+		return { ok: false } as const;
 	}
 
 	let user: TelegramUser;
 	try {
 		user = JSON.parse(userRaw) as TelegramUser;
 	} catch {
-		return { ok: false, error: 'Invalid user payload' } as const;
+		return { ok: false } as const;
 	}
 
 	if (!user?.id) {
-		return { ok: false, error: 'Missing user id' } as const;
+		return { ok: false } as const;
 	}
 
 	return { ok: true, user } as const;
@@ -105,23 +110,20 @@ export async function POST(request: Request) {
 	const jwtSecret = process.env.SUPABASE_JWT_SECRET;
 
 	if (!botToken || !jwtSecret) {
-		return NextResponse.json(
-			{ error: 'Server auth is not configured' },
-			{ status: 500 },
-		);
+		return errorNoStore(500, 'AUTH_NOT_CONFIGURED');
 	}
 
-	const { data, error } = await validateRequest(request, TelegramAuthSchema);
-	if (error) return error;
+	const body = await request
+		.json()
+		.catch(() => null) as unknown | null;
+	const parsed = TelegramAuthSchema.safeParse(body);
+	if (!parsed.success) return errorNoStore(400, 'INVALID_REQUEST');
 
-	const initData = data.initData;
+	const initData = parsed.data.initData;
 
 	const verification = verifyInitData(initData, botToken);
 	if (!verification.ok) {
-		return NextResponse.json(
-			{ error: verification.error },
-			{ status: 401 },
-		);
+		return errorNoStore(401, 'UNAUTHORIZED');
 	}
 
 	const telegramId = String(verification.user.id);
@@ -136,8 +138,9 @@ export async function POST(request: Request) {
 		TOKEN_TTL_SECONDS,
 	);
 
-	return NextResponse.json(
+	return jsonNoStore(
 		{
+			ok: true,
 			token,
 			user: {
 				id: telegramId,
@@ -146,11 +149,5 @@ export async function POST(request: Request) {
 				last_name: verification.user.last_name ?? null,
 			},
 		},
-		{
-			headers: {
-				'Cache-Control': 'no-store',
-			},
-		},
 	);
 }
-

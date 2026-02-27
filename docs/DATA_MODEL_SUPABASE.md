@@ -57,6 +57,28 @@
 - `get_user_streak(user_telegram_id text) -> int` — считает текущий стрик
   выполненных дней (считает “сегодня” как не сбрасывающий, если задач ещё нет).
 
+## Таблица `public.pomodoro_sessions`
+
+### Назначение
+
+Хранит завершённые фазы Pomodoro (focus/short_break/long_break).
+
+### Основные поля
+
+- `id uuid PK`
+- `telegram_id text not null default (auth.jwt()->>'telegram_id')`
+- `task_id uuid null FK -> tasks.id`
+- `duration_minutes smallint`
+- `type text in ('focus','short_break','long_break')`
+- `completed_at timestamptz`
+
+### RPC функции
+
+- `get_weekly_focus_stats(week_end_date date default current_date)` —
+  недельная статистика фокус-сессий текущего пользователя.
+  Важно: `telegram_id` берётся из JWT (`auth.jwt()->>'telegram_id'`),
+  а не из параметров клиента.
+
 ## Таблица `public.task_series`
 
 ### Назначение
@@ -108,7 +130,8 @@ RLS включен, политики работают через claim:
 - клиент НЕ должен отправлять telegram_id (по умолчанию он берётся из JWT).
 - любые попытки доступа к чужим данным будут блокироваться на уровне Postgres.
 
-RLS применяется ко всем таблицам: `tasks`, `task_series`, `task_series_skips`.
+RLS применяется ко всем таблицам: `tasks`, `task_series`, `task_series_skips`,
+`habits`, `habit_logs`, `pomodoro_sessions`.
 
 ## Realtime и DELETE события
 

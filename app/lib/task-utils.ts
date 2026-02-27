@@ -27,11 +27,6 @@ export type TaskRow = {
 
 export type ReorderTaskUpdate = {
 	id: string;
-	title: string;
-	duration: number;
-	date: string;
-	completed: boolean;
-	telegram_id: string;
 	position: number;
 };
 

@@ -5,8 +5,10 @@ Supabase setup
 
 2) Environment variables
    - `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - `SUPABASE_SERVICE_ROLE_KEY` (для server-side jobs, например reminders runner)
    - `SUPABASE_JWT_SECRET` (same value as in your Supabase project settings)
    - `TELEGRAM_BOT_TOKEN`
+   - `REMINDERS_RUN_SECRET` (секрет для `POST /api/reminders/run`)
    - Optional for local dev: `NEXT_PUBLIC_TELEGRAM_INIT_DATA`
 
 3) JWT + RLS

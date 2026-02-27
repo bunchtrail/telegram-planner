@@ -59,6 +59,7 @@ export default function DesktopPlanner({ planner }: DesktopPlannerProps) {
 		deleteHabit,
 		toggleHabitLog,
 		isHabitChecked,
+		isHabitLogPending,
 		pomodoroStats,
 	} = planner;
 
@@ -394,6 +395,7 @@ export default function DesktopPlanner({ planner }: DesktopPlannerProps) {
 								habits={habits}
 								isLoading={habitsLoading}
 								isChecked={isHabitChecked}
+								isLogPending={isHabitLogPending}
 								onToggleLog={toggleHabitLog}
 								onAddHabit={addHabit}
 								onDeleteHabit={deleteHabit}
@@ -511,4 +513,3 @@ export default function DesktopPlanner({ planner }: DesktopPlannerProps) {
 		</div>
 	);
 }
-

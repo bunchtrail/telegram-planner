@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import type { Habit, HabitLog } from '../types/habit';
@@ -40,6 +40,12 @@ const mapLogRow = (row: HabitLogRow): HabitLog => ({
 const buildHabitLogKey = (habitId: string, date: string) =>
 	`${habitId}:${date}`;
 
+const sortHabits = (habits: Habit[]) =>
+	[...habits].sort(
+		(left, right) =>
+			left.sortOrder - right.sortOrder || left.id.localeCompare(right.id),
+	);
+
 type UseHabitsConfig = {
 	userId: string | null;
 	weekStartKey: string; // yyyy-MM-dd
@@ -59,6 +65,11 @@ export function useHabits({
 }: UseHabitsConfig) {
 	const queryClient = useQueryClient();
 	const logMutationQueueRef = useRef(new Map<string, Promise<void>>());
+	const pendingLogKeysRef = useRef(new Set<string>());
+	const [pendingLogKeys, setPendingLogKeys] = useState<Set<string>>(
+		() => new Set(),
+	);
+	const [syncError, setSyncError] = useState<string | null>(null);
 
 	const habitsQueryKey = useMemo(() => [HABITS_QUERY_KEY, userId], [userId]);
 
@@ -66,6 +77,23 @@ export function useHabits({
 		() => [HABIT_LOGS_QUERY_KEY, userId, weekStartKey, weekEndKey],
 		[userId, weekStartKey, weekEndKey],
 	);
+
+	const isDateInRange = useCallback(
+		(date: string) => date >= weekStartKey && date <= weekEndKey,
+		[weekStartKey, weekEndKey],
+	);
+
+	const setLogPending = useCallback((key: string, pending: boolean) => {
+		const pendingKeys = pendingLogKeysRef.current;
+		if (pending) {
+			if (pendingKeys.has(key)) return;
+			pendingKeys.add(key);
+			setPendingLogKeys(new Set(pendingKeys));
+			return;
+		}
+		if (!pendingKeys.delete(key)) return;
+		setPendingLogKeys(new Set(pendingKeys));
+	}, []);
 
 	// --- Fetch habits ---
 	const habitsQuery = useQuery({
@@ -80,6 +108,7 @@ export function useHabits({
 			);
 			if (error) {
 				console.error('Fetch habits failed', error);
+				setSyncError('Не удалось загрузить привычки');
 				return [];
 			}
 			return (data as HabitRow[]).map(mapHabitRow);
@@ -100,6 +129,7 @@ export function useHabits({
 			);
 			if (error) {
 				console.error('Fetch habit logs failed', error);
+				setSyncError('Не удалось загрузить отметки привычек');
 				return [];
 			}
 			return (data as HabitLogRow[]).map(mapLogRow);
@@ -109,6 +139,11 @@ export function useHabits({
 
 	const habits = habitsQuery.data ?? [];
 	const logs = useMemo(() => logsQuery.data ?? [], [logsQuery.data]);
+	const logsIndex = useMemo(
+		() =>
+			new Set(logs.map((entry) => buildHabitLogKey(entry.habitId, entry.date))),
+		[logs],
+	);
 
 	const persistHabitLogState = useCallback(
 		async (habitId: string, date: string, checked: boolean) => {
@@ -148,11 +183,16 @@ export function useHabits({
 			const next = previous
 				.catch(() => undefined)
 				.then(() => persistHabitLogState(habitId, date, checked))
+				.then(() => {
+					setSyncError(null);
+				})
 				.catch((error: unknown) => {
 					console.error('Persist habit log failed', error);
+					setSyncError('Не удалось синхронизировать привычку');
 					void queryClient.invalidateQueries({ queryKey: logsQueryKey });
 				})
 				.finally(() => {
+					setLogPending(key, false);
 					if (logMutationQueueRef.current.get(key) === next) {
 						logMutationQueueRef.current.delete(key);
 					}
@@ -160,7 +200,7 @@ export function useHabits({
 
 			logMutationQueueRef.current.set(key, next);
 		},
-		[persistHabitLogState, queryClient, logsQueryKey],
+		[persistHabitLogState, queryClient, logsQueryKey, setLogPending],
 	);
 
 	// --- Add habit ---
@@ -188,9 +228,12 @@ export function useHabits({
 		},
 		onSuccess: (newHabit) => {
 			queryClient.setQueryData<Habit[]>(habitsQueryKey, (old) => [
-				...(old ?? []),
-				newHabit,
+				...sortHabits([...(old ?? []), newHabit]),
 			]);
+			setSyncError(null);
+		},
+		onError: () => {
+			setSyncError('Не удалось добавить привычку');
 		},
 	});
 
@@ -210,6 +253,10 @@ export function useHabits({
 			queryClient.setQueryData<HabitLog[]>(logsQueryKey, (old) =>
 				(old ?? []).filter((l) => l.habitId !== habitId),
 			);
+			setSyncError(null);
+		},
+		onError: () => {
+			setSyncError('Не удалось удалить привычку');
 		},
 	});
 
@@ -226,6 +273,10 @@ export function useHabits({
 
 	const toggleLog = useCallback(
 		(habitId: string, date: string) => {
+			const key = buildHabitLogKey(habitId, date);
+			if (pendingLogKeysRef.current.has(key)) return;
+
+			setLogPending(key, true);
 			void queryClient.cancelQueries({ queryKey: logsQueryKey });
 			const prev =
 				queryClient.getQueryData<HabitLog[]>(logsQueryKey) ?? [];
@@ -255,22 +306,129 @@ export function useHabits({
 
 			enqueueHabitLogPersist(habitId, date, nextChecked);
 		},
-		[queryClient, logsQueryKey, enqueueHabitLogPersist],
+		[queryClient, logsQueryKey, enqueueHabitLogPersist, setLogPending],
 	);
 
 	const isChecked = useCallback(
 		(habitId: string, date: string) =>
-			logs.some((l) => l.habitId === habitId && l.date === date),
-		[logs],
+			logsIndex.has(buildHabitLogKey(habitId, date)),
+		[logsIndex],
 	);
+
+	const isLogPending = useCallback(
+		(habitId: string, date: string) =>
+			pendingLogKeys.has(buildHabitLogKey(habitId, date)),
+		[pendingLogKeys],
+	);
+
+	useEffect(() => {
+		if (!userId) return;
+
+		const channel = supabase
+			.channel(`habits-${userId}`)
+			.on(
+				'postgres_changes',
+				{
+					event: '*',
+					schema: 'public',
+					table: 'habits',
+					filter: `telegram_id=eq.${userId}`,
+				},
+				(payload) => {
+					if (payload.eventType === 'DELETE') {
+						const oldRow = payload.old as HabitRow;
+						if (!oldRow?.id) return;
+						queryClient.setQueryData<Habit[]>(habitsQueryKey, (old) =>
+							(old ?? []).filter((habit) => habit.id !== oldRow.id),
+						);
+						return;
+					}
+
+					const row = payload.new as HabitRow;
+					if (!row?.id) return;
+					if (row.archived) {
+						queryClient.setQueryData<Habit[]>(habitsQueryKey, (old) =>
+							(old ?? []).filter((habit) => habit.id !== row.id),
+						);
+						return;
+					}
+					const mapped = mapHabitRow(row);
+					queryClient.setQueryData<Habit[]>(habitsQueryKey, (old) => {
+						const withoutCurrent = (old ?? []).filter(
+							(habit) => habit.id !== row.id,
+						);
+						return sortHabits([...withoutCurrent, mapped]);
+					});
+				},
+			)
+			.on(
+				'postgres_changes',
+				{
+					event: '*',
+					schema: 'public',
+					table: 'habit_logs',
+					filter: `telegram_id=eq.${userId}`,
+				},
+				(payload) => {
+					if (payload.eventType === 'DELETE') {
+						const oldRow = payload.old as HabitLogRow;
+						if (!oldRow?.id || !isDateInRange(oldRow.date)) return;
+						queryClient.setQueryData<HabitLog[]>(logsQueryKey, (old) =>
+							(old ?? []).filter((log) => log.id !== oldRow.id),
+						);
+						return;
+					}
+
+					const row = payload.new as HabitLogRow;
+					if (!row?.id || !isDateInRange(row.date)) return;
+					const mapped = mapLogRow(row);
+
+					queryClient.setQueryData<HabitLog[]>(logsQueryKey, (old) => {
+						const withoutCurrent = (old ?? []).filter(
+							(log) =>
+								!(
+									log.id === row.id ||
+									(log.habitId === mapped.habitId &&
+										log.date === mapped.date)
+								),
+						);
+						return [...withoutCurrent, mapped];
+					});
+				},
+			)
+			.subscribe();
+
+		return () => {
+			supabase.removeChannel(channel);
+		};
+	}, [
+		userId,
+		queryClient,
+		habitsQueryKey,
+		logsQueryKey,
+		isDateInRange,
+	]);
+
+	const isSyncing =
+		habitsQuery.isFetching ||
+		logsQuery.isFetching ||
+		addHabitMutation.isPending ||
+		deleteHabitMutation.isPending ||
+		pendingLogKeys.size > 0;
+
+	const clearSyncError = useCallback(() => setSyncError(null), []);
 
 	return {
 		habits,
 		logs,
 		isLoading: habitsQuery.isLoading || logsQuery.isLoading,
+		isSyncing,
+		syncError,
+		clearSyncError,
 		addHabit,
 		deleteHabit,
 		toggleLog,
 		isChecked,
+		isLogPending,
 	};
 }

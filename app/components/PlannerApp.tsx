@@ -60,6 +60,10 @@ export default function PlannerApp() {
 		deleteHabit,
 		toggleHabitLog,
 		isHabitChecked,
+		isHabitLogPending,
+		isSyncing,
+		syncError,
+		clearSyncError,
 		pomodoroStats,
 	} = planner;
 	const fabRef = useRef<HTMLButtonElement>(null);
@@ -76,6 +80,7 @@ export default function PlannerApp() {
 	const [showRecurring, setShowRecurring] = useState(false);
 	const [showFocus, setShowFocus] = useState(false);
 	const [activeTab, setActiveTab] = useState<'tasks' | 'habits'>('tasks');
+	const prevSyncErrorRef = useRef<string | null>(null);
 
 	const activeTaskObj = useMemo(
 		() => tasks.find((task) => task.id === activeTaskId) ?? null,
@@ -119,6 +124,13 @@ export default function PlannerApp() {
 			}
 		};
 	}, []);
+
+	useEffect(() => {
+		if (syncError && syncError !== prevSyncErrorRef.current) {
+			notification('error');
+		}
+		prevSyncErrorRef.current = syncError;
+	}, [syncError, notification]);
 
 	const handleDelete = async (id: string) => {
 		const deletedTask = await deleteTask(id);
@@ -283,6 +295,7 @@ export default function PlannerApp() {
 							habits={habits}
 							isLoading={habitsLoading}
 							isChecked={isHabitChecked}
+							isLogPending={isHabitLogPending}
 							onToggleLog={toggleHabitLog}
 							onAddHabit={addHabit}
 							onDeleteHabit={deleteHabit}
@@ -331,6 +344,49 @@ export default function PlannerApp() {
 						</div>
 					</div>
 				)}
+
+				<AnimatePresence>
+					{isSyncing && (
+						<motion.div
+							initial={{ opacity: 0, y: 8 }}
+							animate={{ opacity: 1, y: 0 }}
+							exit={{ opacity: 0, y: 8 }}
+							className="fixed z-40 top-[calc(max(env(safe-area-inset-top),var(--tg-content-safe-top,0px))+0.75rem)] right-[max(1rem,env(safe-area-inset-right),var(--tg-content-safe-right,0px))]"
+							role="status"
+							aria-live="polite"
+						>
+							<div className="rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-xs font-bold text-[var(--muted)] shadow-[var(--shadow-soft)]">
+								Синхронизация...
+							</div>
+						</motion.div>
+					)}
+				</AnimatePresence>
+
+				<AnimatePresence>
+					{syncError && (
+						<motion.div
+							initial={{ opacity: 0, y: 40, scale: 0.96 }}
+							animate={{ opacity: 1, y: 0, scale: 1 }}
+							exit={{ opacity: 0, y: 20, scale: 0.96 }}
+							className="fixed bottom-[calc(10.5rem+max(env(safe-area-inset-bottom),var(--tg-content-safe-bottom,0px)))] left-[max(1rem,env(safe-area-inset-left),var(--tg-content-safe-left,0px))] right-[max(1rem,env(safe-area-inset-right),var(--tg-content-safe-right,0px))] z-40 mx-auto max-w-sm"
+							role="status"
+							aria-live="polite"
+						>
+							<div className="flex items-center justify-between gap-3 rounded-2xl border border-[var(--danger)]/20 bg-[var(--surface)] px-4 py-3 text-sm shadow-[var(--shadow-pop)]">
+								<span className="text-[var(--ink)]">
+									{syncError}
+								</span>
+								<button
+									type="button"
+									onClick={clearSyncError}
+									className="rounded-full bg-[var(--surface-2)] px-3 py-1 text-xs font-bold text-[var(--muted)] transition-transform active:scale-95"
+								>
+									Ок
+								</button>
+							</div>
+						</motion.div>
+					)}
+				</AnimatePresence>
 
 				<AnimatePresence>
 					{!isAddOpen && activeTab === 'tasks' && !isKeyboardOpen && (
@@ -484,4 +540,3 @@ export default function PlannerApp() {
 		</>
 	);
 }
-

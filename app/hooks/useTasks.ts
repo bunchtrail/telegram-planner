@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { addDays, addWeeks, getDay, isSameDay } from 'date-fns';
 import { DEFAULT_TASK_COLOR } from '../lib/constants';
@@ -70,6 +70,9 @@ export function useTasks(config: UseTasksConfig) {
 		new Map<string, ReorderTaskUpdate>(),
 	);
 	const reorderPersistTimerRef = useRef<number | null>(null);
+	const seriesInvalidateTimerRef = useRef<number | null>(null);
+	const [isReorderSyncing, setIsReorderSyncing] = useState(false);
+	const [syncError, setSyncError] = useState<string | null>(null);
 
 	const queryKey = useMemo(
 		() => [TASKS_QUERY_KEY, userId, monthStartKey, monthEndKey],
@@ -94,6 +97,8 @@ export function useTasks(config: UseTasksConfig) {
 		[queryClient, userId, monthStartKey, monthEndKey],
 	);
 
+	const clearSyncError = useCallback(() => setSyncError(null), []);
+
 	// --- Pending mutation helpers ---
 
 	const queuePendingMutation = useCallback(
@@ -116,8 +121,10 @@ export function useTasks(config: UseTasksConfig) {
 			const { error } = await runWithAuthRetry(() =>
 				supabase.from('tasks').update(updates).eq('id', id),
 			);
-			if (error)
+			if (error) {
 				console.error('Flush pending task mutation failed', error);
+				setSyncError('Не удалось синхронизировать изменения задачи');
+			}
 		},
 		[runWithAuthRetry],
 	);
@@ -125,17 +132,48 @@ export function useTasks(config: UseTasksConfig) {
 	const flushPendingReorder = useCallback(async () => {
 		if (!userId) {
 			pendingReorderUpdatesRef.current.clear();
+			setIsReorderSyncing(false);
 			return;
 		}
 		const updates = Array.from(pendingReorderUpdatesRef.current.values());
 		pendingReorderUpdatesRef.current.clear();
 		if (updates.length === 0) return;
+		setIsReorderSyncing(true);
 
-		const { error } = await runWithAuthRetry(() =>
-			supabase.from('tasks').upsert(updates, { onConflict: 'id' }),
+		const results = await Promise.all(
+			updates.map(async (update) => {
+				const { error } = await runWithAuthRetry(() =>
+					supabase
+						.from('tasks')
+						.update({ position: update.position })
+						.eq('id', update.id),
+				);
+				return { id: update.id, error };
+			}),
 		);
-		if (error) console.error('Reorder failed', error);
-	}, [userId, runWithAuthRetry]);
+
+		const hasError = results.some((result) => Boolean(result.error));
+		if (hasError) {
+			console.error(
+				'Reorder failed',
+				results
+					.filter((result) => result.error)
+					.map((result) => result.error),
+			);
+			setSyncError('Не удалось синхронизировать порядок задач');
+			void queryClient.invalidateQueries({ queryKey });
+		}
+		setIsReorderSyncing(false);
+	}, [userId, runWithAuthRetry, queryClient, queryKey]);
+
+	const scheduleSeriesInvalidate = useCallback(() => {
+		if (seriesInvalidateTimerRef.current != null)
+			window.clearTimeout(seriesInvalidateTimerRef.current);
+		seriesInvalidateTimerRef.current = window.setTimeout(() => {
+			seriesInvalidateTimerRef.current = null;
+			void queryClient.invalidateQueries({ queryKey });
+		}, 180);
+	}, [queryClient, queryKey]);
 
 	const scheduleReorderPersist = useCallback(() => {
 		if (!userId || pendingReorderUpdatesRef.current.size === 0) return;
@@ -153,6 +191,8 @@ export function useTasks(config: UseTasksConfig) {
 		return () => {
 			if (reorderPersistTimerRef.current != null)
 				window.clearTimeout(reorderPersistTimerRef.current);
+			if (seriesInvalidateTimerRef.current != null)
+				window.clearTimeout(seriesInvalidateTimerRef.current);
 		};
 	}, []);
 
@@ -236,8 +276,10 @@ export function useTasks(config: UseTasksConfig) {
 						ignoreDuplicates: true,
 					}),
 				);
-				if (error)
+				if (error) {
 					console.error('Series instance upsert failed', error);
+					setSyncError('Не удалось синхронизировать повторяющиеся задачи');
+				}
 			}
 		},
 		[userId, runWithAuthRetry],
@@ -471,7 +513,7 @@ export function useTasks(config: UseTasksConfig) {
 					filter: `telegram_id=eq.${userId}`,
 				},
 				() => {
-					void queryClient.invalidateQueries({ queryKey });
+					scheduleSeriesInvalidate();
 				},
 			)
 			.on(
@@ -483,7 +525,7 @@ export function useTasks(config: UseTasksConfig) {
 					filter: `telegram_id=eq.${userId}`,
 				},
 				() => {
-					void queryClient.invalidateQueries({ queryKey });
+					scheduleSeriesInvalidate();
 				},
 			)
 			.subscribe();
@@ -549,6 +591,10 @@ export function useTasks(config: UseTasksConfig) {
 			if (context?.snapshot) {
 				queryClient.setQueryData<Task[]>(queryKey, context.snapshot);
 			}
+			setSyncError('Не удалось синхронизировать таймер задачи');
+		},
+		onSuccess: () => {
+			setSyncError(null);
 		},
 	});
 
@@ -608,6 +654,10 @@ export function useTasks(config: UseTasksConfig) {
 			if (context?.snapshot) {
 				queryClient.setQueryData<Task[]>(queryKey, context.snapshot);
 			}
+			setSyncError('Не удалось обновить статус задачи');
+		},
+		onSuccess: () => {
+			setSyncError(null);
 		},
 	});
 
@@ -660,6 +710,10 @@ export function useTasks(config: UseTasksConfig) {
 			if (context?.snapshot) {
 				queryClient.setQueryData<Task[]>(queryKey, context.snapshot);
 			}
+			setSyncError('Не удалось удалить задачу');
+		},
+		onSuccess: () => {
+			setSyncError(null);
 		},
 	});
 
@@ -821,12 +875,14 @@ export function useTasks(config: UseTasksConfig) {
 
 				if (error) {
 					console.error('Add task failed', error);
+					setSyncError('Не удалось добавить задачу');
 					pendingMutationRef.current.delete(tempId);
 					setTasksCache((prev) =>
 						prev.filter((t) => t.id !== tempId),
 					);
 					void queryClient.invalidateQueries({ queryKey });
 				} else if (data) {
+					setSyncError(null);
 					setTasksCache((prev) =>
 						prev.map((t) =>
 							t.id === tempId ? { ...t, id: data.id } : t,
@@ -870,7 +926,10 @@ export function useTasks(config: UseTasksConfig) {
 						.single(),
 				);
 
-			if (seriesError || !seriesData) return;
+			if (seriesError || !seriesData) {
+				setSyncError('Не удалось создать серию повторений');
+				return;
+			}
 
 			const series = seriesData as TaskSeriesRow;
 			const seriesId = series.id;
@@ -938,6 +997,7 @@ export function useTasks(config: UseTasksConfig) {
 
 			if (error) {
 				console.error('Add recurring task instance failed', error);
+				setSyncError('Не удалось добавить повторяющуюся задачу');
 				pendingMutationRef.current.delete(tempId);
 				setTasksCache((prev) => prev.filter((t) => t.id !== tempId));
 				await runWithAuthRetry(() =>
@@ -948,6 +1008,7 @@ export function useTasks(config: UseTasksConfig) {
 			}
 
 			if (data) {
+				setSyncError(null);
 				setTasksCache((prev) =>
 					prev.map((t) =>
 						t.id === tempId ? { ...t, id: data.id } : t,
@@ -1096,6 +1157,7 @@ export function useTasks(config: UseTasksConfig) {
 
 			if (error) {
 				console.error('Update task failed', error);
+				setSyncError('Не удалось обновить задачу');
 				// Rollback
 				setTasksCache((prev) =>
 					prev.map((task) => {
@@ -1121,6 +1183,8 @@ export function useTasks(config: UseTasksConfig) {
 						return { ...task, ...rollback };
 					}),
 				);
+			} else {
+				setSyncError(null);
 			}
 		},
 		[
@@ -1203,6 +1267,7 @@ export function useTasks(config: UseTasksConfig) {
 				);
 
 				if (skipError) {
+					setSyncError('Не удалось перенести задачу');
 					setTasksCache((prev) => {
 						const next = prev.filter((task) => task.id !== id);
 						if (isDateInMonth(taskToMove.date, activeMonthKey))
@@ -1229,6 +1294,7 @@ export function useTasks(config: UseTasksConfig) {
 			);
 
 			if (error) {
+				setSyncError('Не удалось перенести задачу');
 				setTasksCache((prev) => {
 					const next = prev.filter((task) => task.id !== id);
 					if (isDateInMonth(taskToMove.date, activeMonthKey))
@@ -1244,6 +1310,8 @@ export function useTasks(config: UseTasksConfig) {
 							.eq('date', currentDateKey),
 					);
 				}
+			} else {
+				setSyncError(null);
 			}
 		},
 		[
@@ -1308,6 +1376,7 @@ export function useTasks(config: UseTasksConfig) {
 			);
 
 			if (error) {
+				setSyncError('Не удалось восстановить задачу');
 				setTasksCache((prev) => prev.filter((t) => t.id !== task.id));
 				if (task.seriesId && skipRemoved) {
 					await runWithAuthRetry(() =>
@@ -1325,6 +1394,7 @@ export function useTasks(config: UseTasksConfig) {
 					);
 				}
 			} else if (data) {
+				setSyncError(null);
 				setTasksCache((prev) =>
 					prev.map((t) =>
 						t.id === task.id ? { ...t, id: data.id } : t,
@@ -1360,11 +1430,6 @@ export function useTasks(config: UseTasksConfig) {
 				.filter((task) => isUuid(task.id))
 				.map<ReorderTaskUpdate>((task) => ({
 					id: task.id,
-					title: task.title,
-					duration: task.duration,
-					date: formatDateOnly(task.date),
-					completed: task.completed,
-					telegram_id: userId,
 					position: positionsById.get(task.id) ?? task.position ?? 0,
 				}));
 
@@ -1383,9 +1448,19 @@ export function useTasks(config: UseTasksConfig) {
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [queryClient, userId, monthStartKey, monthEndKey]);
 
+	const isSyncing =
+		tasksQuery.isFetching ||
+		toggleActiveTaskMutation.isPending ||
+		toggleTaskMutation.isPending ||
+		deleteTaskMutation.isPending ||
+		isReorderSyncing;
+
 	return {
 		tasks,
 		isLoading: tasksQuery.isLoading,
+		isSyncing,
+		syncError,
+		clearSyncError,
 		addTask,
 		updateTask,
 		deleteTask,

@@ -12,7 +12,7 @@ import {
 	subMonths,
 } from 'date-fns';
 import { isDesktop as checkIsDesktop } from '../lib/platform';
-import { setSupabaseAccessToken, supabase } from '../lib/supabase';
+import { setSupabaseAccessToken } from '../lib/supabase';
 import type { Task } from '../types/task';
 import {
 	type SupabaseErrorLike,
@@ -257,6 +257,9 @@ export function usePlanner() {
 	const {
 		tasks,
 		isLoading: tasksLoading,
+		isSyncing: tasksSyncing,
+		syncError: tasksSyncError,
+		clearSyncError: clearTasksSyncError,
 		addTask,
 		updateTask,
 		deleteTask,
@@ -294,6 +297,25 @@ export function usePlanner() {
 		weekEndKey: formatDateOnly(weekEnd),
 		runWithAuthRetry,
 	});
+	const {
+		habits,
+		isLoading: habitsLoading,
+		isSyncing: habitsSyncing,
+		syncError: habitsSyncError,
+		clearSyncError: clearHabitsSyncError,
+		addHabit,
+		deleteHabit,
+		toggleLog: toggleHabitLog,
+		isChecked: isHabitChecked,
+		isLogPending: isHabitLogPending,
+	} = habitsData;
+
+	const isSyncing = tasksSyncing || habitsSyncing;
+	const syncError = tasksSyncError ?? habitsSyncError;
+	const clearSyncError = useCallback(() => {
+		clearTasksSyncError();
+		clearHabitsSyncError();
+	}, [clearTasksSyncError, clearHabitsSyncError]);
 
 	// --- Pomodoro Stats ---
 
@@ -661,12 +683,16 @@ export function usePlanner() {
 		isDesktop,
 		runWithAuthRetry,
 		userId,
-		habits: habitsData.habits,
-		habitsLoading: habitsData.isLoading,
-		addHabit: habitsData.addHabit,
-		deleteHabit: habitsData.deleteHabit,
-		toggleHabitLog: habitsData.toggleLog,
-		isHabitChecked: habitsData.isChecked,
+		isSyncing,
+		syncError,
+		clearSyncError,
+		habits,
+		habitsLoading,
+		addHabit,
+		deleteHabit,
+		toggleHabitLog,
+		isHabitChecked,
+		isHabitLogPending,
 		pomodoroStats,
 	};
 }

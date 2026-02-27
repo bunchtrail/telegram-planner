@@ -53,6 +53,11 @@ export function usePomodoro({ taskId, runWithAuthRetry }: UsePomodoroConfig) {
 	const [state, setState] = useState<PomodoroState>(initialState);
 	const intervalRef = useRef<number | null>(null);
 	const lastTickRef = useRef<number>(0);
+	const [isDocumentHidden, setIsDocumentHidden] = useState(() =>
+		typeof document === 'undefined'
+			? false
+			: document.visibilityState === 'hidden',
+	);
 
 	const clearTimer = useCallback(() => {
 		if (intervalRef.current != null) {
@@ -76,21 +81,28 @@ export function usePomodoro({ taskId, runWithAuthRetry }: UsePomodoroConfig) {
 		[taskId, runWithAuthRetry],
 	);
 
-	const advancePhase = useCallback(() => {
+	const advancePhase = useCallback((options?: { logCompleted?: boolean }) => {
+		const shouldLogCompleted = options?.logCompleted ?? true;
 		setState((prev) => {
 			const wasFocus = prev.phase === 'focus';
-			const newTotalPomodoros = wasFocus
+			const shouldCountFocus = wasFocus && shouldLogCompleted;
+			const newTotalPomodoros = shouldCountFocus
 				? prev.totalPomodoros + 1
 				: prev.totalPomodoros;
 
 			// Log completed phase
-			void logSession(prev.phase);
+			if (shouldLogCompleted) {
+				void logSession(prev.phase);
+			}
 
 			let nextPhase: PomodoroPhase;
 			let nextRound = prev.round;
 
 			if (wasFocus) {
-				if (newTotalPomodoros % POMODOROS_BEFORE_LONG_BREAK === 0) {
+				if (
+					shouldCountFocus &&
+					newTotalPomodoros % POMODOROS_BEFORE_LONG_BREAK === 0
+				) {
 					nextPhase = 'long_break';
 				} else {
 					nextPhase = 'short_break';
@@ -116,12 +128,22 @@ export function usePomodoro({ taskId, runWithAuthRetry }: UsePomodoroConfig) {
 	}, [logSession]);
 
 	useEffect(() => {
+		const onVisibilityChange = () => {
+			setIsDocumentHidden(document.visibilityState === 'hidden');
+		};
+		document.addEventListener('visibilitychange', onVisibilityChange);
+		return () =>
+			document.removeEventListener('visibilitychange', onVisibilityChange);
+	}, []);
+
+	useEffect(() => {
 		if (!state.isRunning) {
 			clearTimer();
 			return;
 		}
 
 		lastTickRef.current = Date.now();
+		const tickIntervalMs = isDocumentHidden ? 1000 : 250;
 		intervalRef.current = window.setInterval(() => {
 			const now = Date.now();
 			const delta = now - lastTickRef.current;
@@ -132,22 +154,24 @@ export function usePomodoro({ taskId, runWithAuthRetry }: UsePomodoroConfig) {
 				const next = prev.timeLeftMs - delta;
 				if (next <= 0) {
 					// Schedule advance on next tick to avoid setState-in-setState
-					queueMicrotask(() => advancePhase());
+					queueMicrotask(() =>
+						advancePhase({ logCompleted: true }),
+					);
 					return { ...prev, timeLeftMs: 0 };
 				}
 				return { ...prev, timeLeftMs: next };
 			});
-		}, 200);
+		}, tickIntervalMs);
 
 		return clearTimer;
-	}, [state.isRunning, clearTimer, advancePhase]);
+	}, [state.isRunning, clearTimer, advancePhase, isDocumentHidden]);
 
 	const toggle = useCallback(() => {
 		setState((prev) => ({ ...prev, isRunning: !prev.isRunning }));
 	}, []);
 
 	const skip = useCallback(() => {
-		advancePhase();
+		advancePhase({ logCompleted: false });
 	}, [advancePhase]);
 
 	const reset = useCallback(() => {

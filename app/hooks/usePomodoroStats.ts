@@ -42,9 +42,7 @@ export function usePomodoroStats({
 	const query = useQuery({
 		queryKey,
 		queryFn: async (): Promise<PomodoroWeeklyStats> => {
-			const params: Record<string, string> = {
-				user_telegram_id: userId!,
-			};
+			const params: Record<string, string> = {};
 			if (weekEndDate) params.week_end_date = weekEndDate;
 
 			const { data, error } = await runWithAuthRetry(() =>

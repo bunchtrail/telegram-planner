@@ -26,6 +26,7 @@ type HabitsTabProps = {
 	habits: Habit[];
 	isLoading: boolean;
 	isChecked: (habitId: string, date: string) => boolean;
+	isLogPending?: (habitId: string, date: string) => boolean;
 	onToggleLog: (habitId: string, date: string) => void;
 	onAddHabit: (name: string, icon: string, color: string) => void;
 	onDeleteHabit: (habitId: string) => void;
@@ -37,6 +38,7 @@ export default function HabitsTab({
 	habits,
 	isLoading,
 	isChecked,
+	isLogPending,
 	onToggleLog,
 	onAddHabit,
 	onDeleteHabit,
@@ -181,6 +183,9 @@ export default function HabitsTab({
 											habit.id,
 											dateKey,
 										);
+										const pending =
+											isLogPending?.(habit.id, dateKey) ??
+											false;
 										const isToday = dateKey === todayKey;
 
 										return (
@@ -202,14 +207,16 @@ export default function HabitsTab({
 												</span>
 												<motion.button
 													whileTap={{ scale: 0.85 }}
+													disabled={pending}
 													onClick={() =>
+														!pending &&
 														onToggleLog(
 															habit.id,
 															dateKey,
 														)
 													}
 													className={cn(
-														'w-full aspect-square rounded-xl border-2 flex items-center justify-center transition-all duration-200',
+														'w-full aspect-square rounded-xl border-2 flex items-center justify-center transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed',
 														checked
 															? 'border-transparent shadow-sm'
 															: isToday
@@ -225,6 +232,7 @@ export default function HabitsTab({
 															: undefined
 													}
 													aria-label={`${habit.name} ${format(day, 'd MMM', { locale: ru })}`}
+													aria-busy={pending}
 												>
 													{checked && (
 														<motion.div
