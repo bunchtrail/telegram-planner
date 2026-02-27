@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import type { Habit, HabitLog } from '../types/habit';
@@ -37,6 +37,9 @@ const mapLogRow = (row: HabitLogRow): HabitLog => ({
 	date: row.date,
 });
 
+const buildHabitLogKey = (habitId: string, date: string) =>
+	`${habitId}:${date}`;
+
 type UseHabitsConfig = {
 	userId: string | null;
 	weekStartKey: string; // yyyy-MM-dd
@@ -55,6 +58,7 @@ export function useHabits({
 	runWithAuthRetry,
 }: UseHabitsConfig) {
 	const queryClient = useQueryClient();
+	const logMutationQueueRef = useRef(new Map<string, Promise<void>>());
 
 	const habitsQueryKey = useMemo(() => [HABITS_QUERY_KEY, userId], [userId]);
 
@@ -106,6 +110,59 @@ export function useHabits({
 	const habits = habitsQuery.data ?? [];
 	const logs = useMemo(() => logsQuery.data ?? [], [logsQuery.data]);
 
+	const persistHabitLogState = useCallback(
+		async (habitId: string, date: string, checked: boolean) => {
+			if (checked) {
+				const { error } = await runWithAuthRetry(() =>
+					supabase.from('habit_logs').upsert(
+						{ habit_id: habitId, date },
+						{
+							onConflict: 'habit_id,date',
+							ignoreDuplicates: false,
+						},
+					),
+				);
+				if (error) throw error;
+				return;
+			}
+
+			const { error } = await runWithAuthRetry(() =>
+				supabase
+					.from('habit_logs')
+					.delete()
+					.eq('habit_id', habitId)
+					.eq('date', date),
+			);
+			if (error) throw error;
+		},
+		[runWithAuthRetry],
+	);
+
+	const enqueueHabitLogPersist = useCallback(
+		(habitId: string, date: string, checked: boolean) => {
+			const key = buildHabitLogKey(habitId, date);
+			const previous =
+				logMutationQueueRef.current.get(key) ?? Promise.resolve();
+
+			// Keep server writes for the same habit/day strictly ordered.
+			const next = previous
+				.catch(() => undefined)
+				.then(() => persistHabitLogState(habitId, date, checked))
+				.catch((error: unknown) => {
+					console.error('Persist habit log failed', error);
+					void queryClient.invalidateQueries({ queryKey: logsQueryKey });
+				})
+				.finally(() => {
+					if (logMutationQueueRef.current.get(key) === next) {
+						logMutationQueueRef.current.delete(key);
+					}
+				});
+
+			logMutationQueueRef.current.set(key, next);
+		},
+		[persistHabitLogState, queryClient, logsQueryKey],
+	);
+
 	// --- Add habit ---
 	const addHabitMutation = useMutation({
 		mutationFn: async (params: {
@@ -156,77 +213,6 @@ export function useHabits({
 		},
 	});
 
-	// --- Toggle log ---
-	const toggleLogMutation = useMutation({
-		mutationFn: async ({
-			habitId,
-			date,
-		}: {
-			habitId: string;
-			date: string;
-		}) => {
-			const existing = logs.find(
-				(l) => l.habitId === habitId && l.date === date,
-			);
-			if (existing) {
-				const { error } = await runWithAuthRetry(() =>
-					supabase.from('habit_logs').delete().eq('id', existing.id),
-				);
-				if (error) throw error;
-				return {
-					action: 'removed' as const,
-					habitId,
-					date,
-					logId: existing.id,
-				};
-			} else {
-				const { data, error } = await runWithAuthRetry(() =>
-					supabase
-						.from('habit_logs')
-						.insert({ habit_id: habitId, date })
-						.select('id, habit_id, date')
-						.single(),
-				);
-				if (error) throw error;
-				return {
-					action: 'added' as const,
-					log: mapLogRow(data as HabitLogRow),
-				};
-			}
-		},
-		onMutate: async ({ habitId, date }) => {
-			await queryClient.cancelQueries({ queryKey: logsQueryKey });
-			const prev =
-				queryClient.getQueryData<HabitLog[]>(logsQueryKey) ?? [];
-			const existing = prev.find(
-				(l) => l.habitId === habitId && l.date === date,
-			);
-			if (existing) {
-				queryClient.setQueryData<HabitLog[]>(
-					logsQueryKey,
-					prev.filter((l) => l.id !== existing.id),
-				);
-			} else {
-				queryClient.setQueryData<HabitLog[]>(logsQueryKey, [
-					...prev,
-					{ id: `temp-${Date.now()}`, habitId, date },
-				]);
-			}
-			return { prev };
-		},
-		onError: (_err, _vars, context) => {
-			if (context?.prev) {
-				queryClient.setQueryData<HabitLog[]>(
-					logsQueryKey,
-					context.prev,
-				);
-			}
-		},
-		onSettled: () => {
-			queryClient.invalidateQueries({ queryKey: logsQueryKey });
-		},
-	});
-
 	const addHabit = useCallback(
 		(name: string, icon: string, color: string) =>
 			addHabitMutation.mutate({ name, icon, color }),
@@ -239,9 +225,37 @@ export function useHabits({
 	);
 
 	const toggleLog = useCallback(
-		(habitId: string, date: string) =>
-			toggleLogMutation.mutate({ habitId, date }),
-		[toggleLogMutation],
+		(habitId: string, date: string) => {
+			void queryClient.cancelQueries({ queryKey: logsQueryKey });
+			const prev =
+				queryClient.getQueryData<HabitLog[]>(logsQueryKey) ?? [];
+			const existing = prev.find(
+				(l) => l.habitId === habitId && l.date === date,
+			);
+			const nextChecked = !existing;
+
+			queryClient.setQueryData<HabitLog[]>(
+				logsQueryKey,
+				existing
+					? prev.filter(
+							(l) =>
+								!(
+									l.habitId === habitId && l.date === date
+								),
+						)
+					: [
+							...prev,
+							{
+								id: `temp-${habitId}-${date}-${Date.now()}`,
+								habitId,
+								date,
+							},
+						],
+			);
+
+			enqueueHabitLogPersist(habitId, date, nextChecked);
+		},
+		[queryClient, logsQueryKey, enqueueHabitLogPersist],
 	);
 
 	const isChecked = useCallback(
