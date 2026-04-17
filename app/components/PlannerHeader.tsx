@@ -7,26 +7,10 @@ import MonthGrid from './MonthGrid';
 import WeekStrip from './WeekStrip';
 import { cn } from '../lib/cn';
 import { useHaptic } from '../hooks/useHaptic';
-
-type PlannerViewMode = 'week' | 'month';
+import type { PlannerHeaderViewModel } from './planner/shared/types';
 
 type PlannerHeaderProps = {
-	selectedDate: Date;
-	weekDays: Date[];
-	monthDays: Date[];
-	taskDates: Set<string>;
-	viewMode: PlannerViewMode;
-	hours: number;
-	minutes: number;
-	completedCount: number;
-	totalCount: number;
-	onSelectDate: (date: Date) => void;
-	onViewModeChange: (mode: PlannerViewMode) => void;
-	onPrev: () => void;
-	onNext: () => void;
-	onToday: () => void;
-	onOpenStats: () => void;
-	onOpenRecurring: () => void;
+	header: PlannerHeaderViewModel;
 };
 
 function ProgressRing({
@@ -75,24 +59,25 @@ function ProgressRing({
 	);
 }
 
-export default function PlannerHeader({
-	selectedDate,
-	weekDays,
-	monthDays,
-	taskDates,
-	viewMode,
-	hours,
-	minutes,
-	completedCount,
-	totalCount,
-	onSelectDate,
-	onViewModeChange,
-	onPrev,
-	onNext,
-	onToday,
-	onOpenStats,
-	onOpenRecurring,
-}: PlannerHeaderProps) {
+export default function PlannerHeader({ header }: PlannerHeaderProps) {
+	const {
+		selectedDate,
+		weekDays,
+		monthDays,
+		taskDates,
+		viewMode,
+		hours,
+		minutes,
+		completedCount,
+		totalCount,
+		onSelectDate,
+		onViewModeChange,
+		onPrev,
+		onNext,
+		onToday,
+		onOpenStats,
+		onOpenRecurring,
+	} = header;
 	const { impact } = useHaptic();
 	const prefersReducedMotion = useReducedMotion();
 	const [direction, setDirection] = useState(0);

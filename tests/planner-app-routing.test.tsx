@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react';
-import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { beforeAll, beforeEach, describe, expect, test, vi } from 'vitest';
 import PlannerApp from '../app/components/PlannerApp';
 
 const { usePlannerMock, usePlannerUiControllerMock } = vi.hoisted(() => ({
@@ -69,6 +69,10 @@ vi.mock('../app/components/FloatingActionButton', () => ({
   default: () => <button type="button">fab</button>,
 }));
 
+vi.mock('../app/components/MonthGrid', () => ({
+  default: () => <div data-testid="month-grid">month grid</div>,
+}));
+
 vi.mock('../app/components/TaskSheet', () => ({
   default: () => <div>sheet</div>,
 }));
@@ -83,6 +87,54 @@ vi.mock('../app/components/StatsModal', () => ({
 
 vi.mock('../app/components/RecurringTasksSheet', () => ({
   default: () => <div>recurring</div>,
+}));
+
+vi.mock('../app/components/planner/mobile/MobileTaskList', () => ({
+  default: () => <div data-testid="mobile-task-list">mobile task list</div>,
+}));
+
+vi.mock('../app/components/planner/mobile/MobileHabitsTab', () => ({
+  default: () => <div data-testid="mobile-habits-tab">mobile habits tab</div>,
+}));
+
+vi.mock('../app/components/planner/mobile/MobileTaskSheet', () => ({
+  default: () => <div data-testid="mobile-task-sheet">mobile task sheet</div>,
+}));
+
+vi.mock('../app/components/planner/mobile/MobileStatsModal', () => ({
+  default: () => <div data-testid="mobile-stats-modal">mobile stats modal</div>,
+}));
+
+vi.mock('../app/components/planner/mobile/MobileRecurringTasksSheet', () => ({
+  default: () => <div data-testid="mobile-recurring-sheet">mobile recurring sheet</div>,
+}));
+
+vi.mock('../app/components/planner/mobile/MobileFocusOverlay', () => ({
+  default: () => <div data-testid="mobile-focus-overlay">mobile focus overlay</div>,
+}));
+
+vi.mock('../app/components/planner/desktop/DesktopTaskList', () => ({
+  default: () => <div data-testid="desktop-task-list">desktop task list</div>,
+}));
+
+vi.mock('../app/components/planner/desktop/DesktopHabitsTab', () => ({
+  default: () => <div data-testid="desktop-habits-tab">desktop habits tab</div>,
+}));
+
+vi.mock('../app/components/planner/desktop/DesktopTaskSheet', () => ({
+  default: () => <div data-testid="desktop-task-sheet">desktop task sheet</div>,
+}));
+
+vi.mock('../app/components/planner/desktop/DesktopStatsModal', () => ({
+  default: () => <div data-testid="desktop-stats-modal">desktop stats modal</div>,
+}));
+
+vi.mock('../app/components/planner/desktop/DesktopRecurringTasksSheet', () => ({
+  default: () => <div data-testid="desktop-recurring-sheet">desktop recurring sheet</div>,
+}));
+
+vi.mock('../app/components/planner/desktop/DesktopFocusOverlay', () => ({
+  default: () => <div data-testid="desktop-focus-overlay">desktop focus overlay</div>,
 }));
 
 const createPlannerStub = (platform: 'mobile' | 'desktop') => ({
@@ -170,6 +222,25 @@ const createUiControllerStub = () => ({
   closeFocus: vi.fn(),
 });
 
+const mobilePlannerShellModulePromise = vi.importActual<
+  typeof import('../app/components/planner/mobile/MobilePlannerShell')
+>('../app/components/planner/mobile/MobilePlannerShell');
+
+const desktopPlannerShellModulePromise = vi.importActual<
+  typeof import('../app/components/planner/desktop/DesktopPlannerShell')
+>('../app/components/planner/desktop/DesktopPlannerShell');
+
+let MobilePlannerShell: typeof import('../app/components/planner/mobile/MobilePlannerShell').default;
+let DesktopPlannerShell: typeof import('../app/components/planner/desktop/DesktopPlannerShell').default;
+
+beforeAll(async () => {
+  [{ default: MobilePlannerShell }, { default: DesktopPlannerShell }] =
+    await Promise.all([
+      mobilePlannerShellModulePromise,
+      desktopPlannerShellModulePromise,
+    ]);
+});
+
 describe('PlannerApp platform routing', () => {
   beforeEach(() => {
     usePlannerMock.mockReset();
@@ -194,5 +265,114 @@ describe('PlannerApp platform routing', () => {
 
     expect(screen.getByTestId('mobile-shell')).toBeInTheDocument();
     expect(screen.queryByTestId('desktop-shell')).not.toBeInTheDocument();
+  });
+});
+
+describe('planner shells shared block orchestration', () => {
+  test('does not expose a shared shell view-model builder from the shared shell module', async () => {
+    const sharedShellModule = await import('../app/components/planner/shared/types');
+
+    expect(sharedShellModule).not.toHaveProperty('createPlannerShellViewModel');
+  });
+
+  test('routes the mobile shell between tasks and habits blocks', () => {
+    const planner = createPlannerStub('mobile');
+    const ui = createUiControllerStub();
+
+    const { rerender } = render(<MobilePlannerShell planner={planner} ui={ui} />);
+
+    expect(screen.getByTestId('mobile-task-list')).toBeInTheDocument();
+    expect(screen.queryByTestId('mobile-habits-tab')).not.toBeInTheDocument();
+
+    rerender(
+      <MobilePlannerShell
+        planner={planner}
+        ui={{ ...ui, activeTab: 'habits' }}
+      />,
+    );
+
+    expect(screen.getByTestId('mobile-habits-tab')).toBeInTheDocument();
+    expect(screen.queryByTestId('mobile-task-list')).not.toBeInTheDocument();
+  });
+
+  test('routes the desktop shell between tasks and habits blocks', () => {
+    const planner = createPlannerStub('desktop');
+    const ui = createUiControllerStub();
+
+    const { rerender } = render(<DesktopPlannerShell planner={planner} ui={ui} />);
+
+    expect(screen.getByTestId('desktop-task-list')).toBeInTheDocument();
+    expect(screen.queryByTestId('desktop-habits-tab')).not.toBeInTheDocument();
+
+    rerender(
+      <DesktopPlannerShell
+        planner={planner}
+        ui={{ ...ui, activeTab: 'habits' }}
+      />,
+    );
+
+    expect(screen.getByTestId('desktop-habits-tab')).toBeInTheDocument();
+    expect(screen.queryByTestId('desktop-task-list')).not.toBeInTheDocument();
+  });
+
+  test('renders the recurring sheet from the desktop shell overlay layer', () => {
+    const planner = createPlannerStub('desktop');
+    const ui = createUiControllerStub();
+
+    render(
+      <DesktopPlannerShell
+        planner={planner}
+        ui={{ ...ui, showRecurring: true }}
+      />,
+    );
+
+    expect(screen.getByTestId('desktop-recurring-sheet')).toBeInTheDocument();
+  });
+
+  test('renders the mobile task sheet and hides the mobile fab while it is open', () => {
+    const planner = createPlannerStub('mobile');
+    const ui = createUiControllerStub();
+
+    render(
+      <MobilePlannerShell
+        planner={planner}
+        ui={{
+          ...ui,
+          sheet: {
+            isOpen: true,
+            mode: 'create',
+            editingTask: null,
+          },
+        }}
+      />,
+    );
+
+    expect(screen.getByTestId('mobile-task-sheet')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'fab' })).not.toBeInTheDocument();
+  });
+
+  test('renders mobile focus, sync, undo, and completion overlays from shell state', () => {
+    const planner = {
+      ...createPlannerStub('mobile'),
+      activeTaskId: 'task-1',
+      syncError: 'Sync failed',
+    };
+    const ui = {
+      ...createUiControllerStub(),
+      showFocus: true,
+      undoTask: { id: 'deleted-task' },
+      dayCompleteVisible: true,
+      activeTask: {
+        id: 'task-1',
+        title: 'Focus task',
+      },
+    };
+
+    render(<MobilePlannerShell planner={planner} ui={ui} />);
+
+    expect(screen.getByTestId('mobile-focus-overlay')).toBeInTheDocument();
+    expect(screen.getByText('Sync failed')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Отменить' })).toBeInTheDocument();
+    expect(screen.getByText('День завершен!')).toBeInTheDocument();
   });
 });

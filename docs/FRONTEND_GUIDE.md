@@ -2,95 +2,105 @@
 
 ## Принципы
 
-- По умолчанию предпочитайте Server Components, но:
-  - Telegram WebApp APIs доступны только на клиенте → изолируйте `use client` границы.
-- Держите компоненты “глупыми”, логику — в хуках/сервисах.
-- Типы — в `app/types`, утилиты — в `app/lib`.
+- По умолчанию предпочитайте Server Components, но Telegram WebApp APIs доступны только на клиенте, поэтому `use client` границы должны быть локальными и явными.
+- Держите компоненты “глупыми”: состояние и бизнес-правила живут в хуках/сервисах, а UI собирает готовые view-model props.
+- Типы лежат в `app/types`, утилиты и нормализация — в `app/lib`.
 
-## Компоненты
+## Frontend Contract
 
-### Конвенции
+Текущий frontend развиваем по слоям. Новые фичи должны встраиваться в этот контракт, а не возвращать проект к большим screen-файлам.
 
-- `PascalCase.tsx` для компонентов.
-- Props типизировать явным `type ...Props = {}`.
-- Не хранить бизнес-правила в UI (лимиты, фильтры дат) — только отображение.
-- Не прокидывать `isDesktop`/`isIOS` через всё дерево как универсальный флаг. Platform choice делается на уровне shell/wrapper.
+### `app/components/planner/mobile/*` и `app/components/planner/desktop/*`
 
-### Accessibility (a11y) — обязательно
+- Только shell/layout/adapters.
+- Здесь допустимы platform-specific frame-решения: safe-area, keyboard inset, sheet/modal placement, tab bars, desktop sidebar, sticky headers.
+- Shell может выбрать контейнер и собрать экран из shared-доменных блоков, но не должен руками дублировать поля формы, карточки задач или habit controls.
 
-- Диалоги: `role="dialog"`, `aria-modal="true"`, фокус-трап, ESC закрытие.
-- Кнопки: `aria-label` если нет текста.
-- Списки: `role="list"` где уместно.
-- `aria-current="date"` для выбранной даты.
-- Уважать `prefers-reduced-motion` (у вас уже есть глобально).
+### `app/components/planner/shared/ui/*`
+
+- Набор primitive controls и frame helpers: `Button`, `Dialog`, `BottomSheet`, `SurfaceCard`, `FieldLabel`, `ModalHeader`, `useFrameFocusScope`.
+- Компоненты здесь не знают про задачи, привычки, лимиты целей или planner state.
+- Если блок можно переиспользовать вне конкретного домена, он должен жить здесь.
+- Для frame primitives действует единый close contract: `Escape`, backdrop click и drag-dismiss идут в `onRequestClose`, если у контейнера есть вложенный confirm/guard слой.
+- `onRequestClose` должен сначала закрыть внутренний guard/confirm, а не весь `Dialog`/`BottomSheet`.
+- `onClose` — финальный путь закрытия frame после того, как interception logic больше не нужна.
+
+### `app/components/planner/shared/task/*` и `app/components/planner/shared/habit/*`
+
+- Доменный composition layer.
+- Здесь живут переиспользуемые карточки, формы, секции форм и специализированные контролы для задач/привычек.
+- Mobile/desktop экраны импортируют эти блоки и передают им данные, а не повторяют JSX вручную.
 
 ## Формы и валидация
 
-- UI-валидация: мгновенная (пустое название, лимит целей).
-- Серверная/БД валидация: через constraints в Postgres.
-- При добавлении новых полей используйте единый источник правил (желательно constants/validators).
+- Новые формы собираются из shared fields/sections, а не пишутся inline в `mobile/*`, `desktop/*` или больших screen-компонентах.
+- Если поле/секция нужны и для create, и для edit, или встречаются в нескольких контейнерах, выносите их в `planner/shared/task/*` или `planner/shared/habit/*`.
+- Если блок универсален и не зависит от домена, выносите его в `planner/shared/ui/*`.
+- UI-валидация должна быть мгновенной; серверная и финальная защита остаются в Postgres constraints/RLS.
+- Правила нормализации и парсинга держите рядом с доменной логикой (`app/lib/*utils`, `constants`, validators), а не размазывайте по JSX.
 
-Рекомендация:
+### Контракт полей
 
-- Для API/route handlers используйте схемы валидации (например Zod) при расширении API.
+- У каждого `input`/`textarea`/`select` должна быть видимая label.
+- Placeholder — только подсказка формата или примера, но не замена label.
+- Для новых форм используйте shared label/field abstractions (`FieldLabel` или доменные field-компоненты), чтобы подписи, интервалы и a11y были единообразны.
+
+### Контракт shell/frame
+
+- Platform-specific keyboard и safe-area handling живут в frame/shell слое.
+- Shared формы не должны сами вычислять `visualViewport`, Telegram safe-area переменные или platform offset.
+- Допустим только явно проброшенный layout variant вроде `isDesktop`, если меняется раскладка секций, а не поведение платформы.
+- Если внутри frame есть confirm/unsaved-changes guard, shell или контейнер должен пробросить interception через `onRequestClose`, а не вызывать финальный `onClose` напрямую из backdrop/Escape/drag-dismiss.
+
+## Accessibility (a11y)
+
+- Диалоги: `role="dialog"`, `aria-modal="true"`, фокус-трап, ESC/close behavior.
+- Кнопки без текста обязаны иметь `aria-label`.
+- `aria-current="date"` для выбранной даты, списки размечайте семантически там, где это даёт пользу.
+- Любая новая анимация обязана уважать `prefers-reduced-motion`.
 
 ## Анимации и motion
 
-- Framer Motion используйте точечно:
-  - list animations через `AnimatePresence` и `layout`
-  - избегайте “тяжелых” бесконечных анимаций
-- Никогда не ломайте `prefers-reduced-motion`.
-- Стабильность анимаций списка (iOS/Telegram):
-  - Для `Reorder` держите `layout="position"` на `Reorder.Item` и **tween**-transition.
-  - Не используйте `layoutScroll/layoutRoot` и `transformTemplate` в скроллируемых списках — это часто даёт дергание.
-  - Не меняйте `scale/zIndex/box-shadow` через `animate` на элементах списка во время reorder.
-  - Любые “живые” эффекты (градиенты, glow, wave) должны быть **`position: absolute`** и не менять лэйаут.
-  - Избегайте анимации `height: auto`; для раскрывающихся блоков используйте измерение высоты через `ResizeObserver` (как в `TaskItem` и `TaskSheet`).
-  - Если появляются “рывки” раз в секунду (таймер), обновляйте только внутри абсолютных слоёв (фон/индикатор), без влияния на размер карточки.
+- Framer Motion используйте точечно: list animations через `AnimatePresence` и `layout`, без тяжёлых постоянных эффектов.
+- Для `Reorder` держите `layout="position"` на `Reorder.Item` и tween-transition.
+- Не используйте `layoutScroll/layoutRoot` и `transformTemplate` в скроллируемых списках.
+- Не анимируйте `scale/zIndex/box-shadow` на элементах списка во время reorder.
+- Эффекты вроде glow/wave держите в абсолютных слоях, чтобы не менять layout карточки.
+- Избегайте `height: auto` анимаций; для раскрывающихся секций используйте измерение высоты.
 
 ## Клавиатура и viewport (Telegram/iOS)
 
 - Используем нативный ресайз контента: `interactiveWidget: 'resizes-content'` в `app/layout.tsx`.
-- Модалки/шиты строим от вьюпорта: `fixed inset-0`, без ручных `bottom/transform` на высоту клавиатуры.
-- Не перезаписывать Telegram CSS переменные `--tg-viewport-*`.
-- iOS keyboard inset допустим только в mobile shell/mobile wrapper-ах как локальная компенсация, а не в shared UI.
-- Любые правки под iOS‑клавиатуру делать локально через mobile shell/wrapper, не через общий layout приложения.
+- Модалки и шиты строим от вьюпорта: `fixed inset-0`, без ручной геометрии на каждое состояние клавиатуры.
+- Не перезаписывайте Telegram CSS-переменные `--tg-viewport-*`.
+- Любые iOS keyboard fixes остаются в mobile shell/wrapper, а не в shared form/UI.
 
 ## Производительность
 
-- Не пересчитывать большие структуры без необходимости:
-  - используйте `useMemo` по ключам (как `activeMonthKey`)
-- Следите за подписками:
-  - чистите realtime канал при смене userId/unmount
-- Избегайте лишних re-render:
-  - callbacks через `useCallback` только когда действительно полезно
+- Крупные derived structures мемоизируйте по стабильным ключам.
+- Чистите realtime-подписки при смене `userId` и на unmount.
+- `useCallback` и прочие микрооптимизации применяйте только там, где это реально снижает re-render churn.
 
 ## Даты и форматирование
 
-- `date` в БД — календарный день.
+- `date` в БД — календарный день без времени.
 - В UI используем `date-fns` и локаль `ru`.
-- Важно: сравнение дат — через `isSameDay`, а ключи — через `yyyy-MM-dd`.
+- Сравнение дат — через `isSameDay`, строковые ключи — через `yyyy-MM-dd`.
+- Если появится время, добавляйте отдельное `timestamptz` поле, не ломая текущую календарную модель.
 
-Если в будущем появится время/таймзоны:
+## Структура файлов
 
-- вводите отдельное `timestamptz` поле, не ломая календарную дату.
+- `app/components/PlannerApp.tsx` — только platform router.
+- `app/components/planner/mobile/*` — mobile shell/adapters.
+- `app/components/planner/desktop/*` — desktop shell/adapters.
+- `app/components/planner/shared/ui/*` — primitive reusable controls.
+- `app/components/planner/shared/task/*` — task-specific composable blocks.
+- `app/components/planner/shared/habit/*` — habit-specific composable blocks.
+- `app/hooks/` — orchestration/state/hooks.
+- `app/lib/` — utils/config/clients.
+- `app/types/` — доменные типы.
 
-## Структура файлов (как развивать)
+Если появятся более сложные сценарии:
 
-- `app/components/` — UI компоненты
-- `app/components/planner/mobile/` — mobile/iOS/Telegram shell и adapters
-- `app/components/planner/desktop/` — desktop shell и adapters
-- `app/components/planner/shared/` — общие типы и малые примитивы
-- `app/hooks/` — orchestration/state/hooks
-- `app/lib/` — utils/config/clients
-- `app/types/` — доменные типы
-
-Правило:
-
-- platform-specific логика принадлежит shell/wrapper-слою;
-- shared компонент не должен сам решать, mobile он или desktop, если это влияет на поведение, а не только на косметику.
-
-Если появятся сложные домены:
-
-- `app/services/` — операции с Supabase/API
-- `app/validators/` — схемы валидации
+- `app/services/` — операции с Supabase/API.
+- `app/validators/` — схемы валидации и shared form rules.

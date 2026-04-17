@@ -1,47 +1,41 @@
 import {
 	memo,
+	useEffect,
 	useLayoutEffect,
-	useMemo,
 	useRef,
 	useState,
-	useEffect,
 	type CSSProperties,
-	type FormEvent,
-	type KeyboardEvent as ReactKeyboardEvent,
 	type MouseEvent,
 	type PointerEvent as ReactPointerEvent,
 } from 'react';
 import { addDays, format } from 'date-fns';
 import {
 	Reorder,
+	animate,
 	motion,
 	useDragControls,
 	useMotionTemplate,
 	useMotionValue,
-	animate,
 	useReducedMotion,
-	AnimatePresence,
 } from 'framer-motion';
 import {
-	ArrowRight,
-	Calendar,
-	Check,
-	ChevronDown,
-	Clock,
-	CornerDownLeft,
-	GripVertical,
 	Pause,
 	Pencil,
-	Pin,
 	Play,
-	Plus,
-	Sunrise,
 	Trash2,
-	X,
 } from 'lucide-react';
-import type { Task } from '../types/task';
-import { cn } from '../lib/cn';
-import { useHaptic } from '../hooks/useHaptic';
+import ChecklistEditor from '@/app/components/planner/shared/task/ChecklistEditor';
+import TaskCard from '@/app/components/planner/shared/task/TaskCard';
+import TaskCardActions from '@/app/components/planner/shared/task/TaskCardActions';
+import TaskCardHeaderControls from '@/app/components/planner/shared/task/TaskCardHeaderControls';
+import TaskCardHeader, {
+	TaskCardPin,
+} from '@/app/components/planner/shared/task/TaskCardHeader';
+import TaskCardMeta from '@/app/components/planner/shared/task/TaskCardMeta';
+import TaskMoveActions from '@/app/components/planner/shared/task/TaskMoveActions';
+import { useHaptic } from '@/app/hooks/useHaptic';
+import { cn } from '@/app/lib/cn';
+import type { Task } from '@/app/types/task';
 
 type TaskItemProps = {
 	task: Task;
@@ -83,25 +77,20 @@ function ActiveBorder({ color }: { color: string }) {
 	);
 }
 
-function ActiveWave() {
-	return (
-		<div className="flex items-end gap-[2px] h-3 pb-[1px] mx-1">
-			{[0, 1, 2].map((i) => (
-				<motion.div
-					key={i}
-					className="w-[2px] bg-current rounded-full"
-					animate={{ height: [3, 10, 3] }}
-					transition={{
-						duration: 0.8,
-						repeat: Infinity,
-						delay: i * 0.15,
-						ease: 'easeInOut',
-					}}
-				/>
-			))}
-		</div>
-	);
-}
+const formatElapsed = (value: number) => {
+	const totalSeconds = Math.floor(value / 1000);
+	const hours = Math.floor(totalSeconds / 3600);
+	const minutes = Math.floor((totalSeconds % 3600) / 60);
+	const seconds = totalSeconds % 60;
+
+	if (hours > 0) {
+		return `${hours}:${String(minutes).padStart(2, '0')}:${String(
+			seconds,
+		).padStart(2, '0')}`;
+	}
+
+	return `${minutes}:${String(seconds).padStart(2, '0')}`;
+};
 
 const TaskItem = memo(function TaskItem({
 	task,
@@ -116,97 +105,22 @@ const TaskItem = memo(function TaskItem({
 	canReorder = true,
 	reduceHeavyEffectsOnPlatform = false,
 }: TaskItemProps) {
-	const { impact, selection, notification } = useHaptic();
+	const { impact, notification, selection } = useHaptic();
 	const dragControls = useDragControls();
-	const [isExpanded, setIsExpanded] = useState(false);
-	const [pendingDate, setPendingDate] = useState<string | null>(null);
-	const [newStep, setNewStep] = useState('');
 	const detailsRef = useRef<HTMLDivElement>(null);
-	const [detailsHeight, setDetailsHeight] = useState<number | 'auto'>('auto');
-	const inputRef = useRef<HTMLInputElement>(null);
 	const prefersReducedMotion = useReducedMotion();
-	// reduceMotion: fully disable transitions (only for prefers-reduced-motion)
 	const reduceMotion = Boolean(prefersReducedMotion);
-	// reduceHeavyEffects: skip GPU-intensive glow, blur, conic-gradient (iOS + reduced motion)
 	const reduceHeavyEffects = reduceMotion || reduceHeavyEffectsOnPlatform;
 	const listMotionEnabled = !reduceMotion;
+
+	const [detailsHeight, setDetailsHeight] = useState<number | 'auto'>('auto');
+	const [isExpanded, setIsExpanded] = useState(false);
+	const [pendingDate, setPendingDate] = useState<string | null>(null);
 	const [tickNow, setTickNow] = useState(() => Date.now());
-	const startTimeLabel =
-		task.startMinutes != null
-			? `${String(Math.floor(task.startMinutes / 60)).padStart(2, '0')}:${String(
-					task.startMinutes % 60,
-				).padStart(2, '0')}`
-			: null;
-
-	const focusSubtaskInput = (preventScroll = false) => {
-		const input = inputRef.current;
-		if (!input) return;
-		if (preventScroll) {
-			try {
-				input.focus({ preventScroll: true });
-				return;
-			} catch {
-				input.focus();
-				return;
-			}
-		}
-		input.focus();
-	};
-
-	const toggleExpand = () => {
-		selection();
-		setIsExpanded((prev) => {
-			const next = !prev;
-			if (!next) {
-				setPendingDate(null);
-			}
-			return next;
-		});
-	};
-
-	const handleKeyDown = (event: ReactKeyboardEvent) => {
-		if (event.key === 'Enter' || event.key === ' ') {
-			if (
-				document.activeElement?.tagName === 'INPUT' ||
-				document.activeElement?.tagName === 'TEXTAREA'
-			) {
-				return;
-			}
-			event.preventDefault();
-			toggleExpand();
-		}
-	};
 
 	const currentKey = format(task.date, 'yyyy-MM-dd');
-
-	const handleMoveToDate = (dateStr: string) => {
-		if (!dateStr || dateStr === currentKey) return;
-		impact('medium');
-		onMove(task.id, dateStr);
-		setPendingDate(null);
-	};
-
-	const handleMoveTomorrow = () => {
-		const tomorrow = addDays(task.date, 1);
-		handleMoveToDate(format(tomorrow, 'yyyy-MM-dd'));
-	};
-
 	const effectivePickerValue = pendingDate ?? currentKey;
 	const hasPendingChange = pendingDate != null && pendingDate !== currentKey;
-
-	const formatElapsed = (value: number) => {
-		const totalSeconds = Math.floor(value / 1000);
-		const hours = Math.floor(totalSeconds / 3600);
-		const minutes = Math.floor((totalSeconds % 3600) / 60);
-		const seconds = totalSeconds % 60;
-		if (hours > 0) {
-			return `${hours}:${String(minutes).padStart(2, '0')}:${String(
-				seconds,
-			).padStart(2, '0')}`;
-		}
-		return `${minutes}:${String(seconds).padStart(2, '0')}`;
-	};
-
 	useEffect(() => {
 		if (!isActive || !task.activeStartedAt) return;
 		const interval = window.setInterval(() => {
@@ -215,85 +129,277 @@ const TaskItem = memo(function TaskItem({
 		return () => window.clearInterval(interval);
 	}, [isActive, task.activeStartedAt]);
 
+	useLayoutEffect(() => {
+		if (!isExpanded) return;
+		const element = detailsRef.current;
+		if (!element) return;
+
+		const updateHeight = () => setDetailsHeight(element.scrollHeight);
+		updateHeight();
+
+		const observer = new ResizeObserver(updateHeight);
+		observer.observe(element);
+		return () => observer.disconnect();
+	}, [isExpanded, pendingDate, task.checklist.length, isActive]);
+
 	const elapsedMs =
 		isActive && task.activeStartedAt
 			? (task.elapsedMs ?? 0) +
 				Math.max(0, tickNow - task.activeStartedAt.getTime())
 			: (task.elapsedMs ?? 0);
-	const hasElapsed = elapsedMs > 0;
 	const elapsedLabel = formatElapsed(elapsedMs);
-	const completedSteps = task.checklist.filter((item) => item.done).length;
-	const totalSteps = task.checklist.length;
-	const checklistProgress =
-		totalSteps > 0 ? (completedSteps / totalSteps) * 100 : 0;
-	const isAllStepsDone = totalSteps > 0 && completedSteps === totalSteps;
-
-	const subtaskKeys = useMemo(() => {
-		const counts = new Map<string, number>();
-		return task.checklist.map((item) => {
-			const n = counts.get(item.text) ?? 0;
-			counts.set(item.text, n + 1);
-			return `${task.id}-step-${item.text}-${n}`;
-		});
-	}, [task.id, task.checklist]);
-
+	const hasElapsed = elapsedMs > 0;
 	const targetMs = (task.duration || 30) * 60 * 1000;
 	const timeProgress = Math.min(100, (elapsedMs / targetMs) * 100);
 
-	const toggleSubtask = (idx: number) => {
+	const toggleExpand = () => {
+		selection();
+		setIsExpanded((previous) => {
+			const next = !previous;
+			if (!next) {
+				setPendingDate(null);
+			}
+			return next;
+		});
+	};
+
+	const handleMoveToDate = (nextDateKey: string) => {
+		if (!nextDateKey || nextDateKey === currentKey) return;
+		impact('medium');
+		onMove(task.id, nextDateKey);
+		setPendingDate(null);
+	};
+
+	const handleMoveTomorrow = () => {
+		const tomorrow = addDays(task.date, 1);
+		handleMoveToDate(format(tomorrow, 'yyyy-MM-dd'));
+	};
+
+	const handleToggleChecklistItem = (index: number) => {
 		impact('light');
-		const nextChecklist = task.checklist.map((item, index) =>
-			index === idx ? { ...item, done: !item.done } : item,
-		);
-		updateTask(task.id, { checklist: nextChecklist });
+		updateTask(task.id, {
+			checklist: task.checklist.map((item, itemIndex) =>
+				itemIndex === index ? { ...item, done: !item.done } : item,
+			),
+		});
 	};
 
-	const deleteSubtask = (idx: number) => {
+	const handleDeleteChecklistItem = (index: number) => {
 		notification('warning');
-		const nextChecklist = task.checklist.filter(
-			(_, index) => index !== idx,
-		);
-		updateTask(task.id, { checklist: nextChecklist });
+		updateTask(task.id, {
+			checklist: task.checklist.filter(
+				(_, itemIndex) => itemIndex !== index,
+			),
+		});
 	};
 
-	const addSubtask = (event: FormEvent<HTMLFormElement>) => {
-		event.preventDefault();
-		const trimmed = newStep.trim();
-		if (!trimmed) return;
+	const handleAddChecklistItem = (value: string) => {
 		impact('medium');
 		updateTask(task.id, {
-			checklist: [...task.checklist, { text: trimmed, done: false }],
-		});
-		setNewStep('');
-
-		requestAnimationFrame(() => {
-			focusSubtaskInput(true);
+			checklist: [...task.checklist, { text: value, done: false }],
 		});
 	};
 
-	const handleSubtaskPointerDown = (
-		event: ReactPointerEvent<HTMLInputElement>,
-	) => {
+	const handleToggleComplete = (event: MouseEvent<HTMLButtonElement>) => {
 		event.stopPropagation();
-		if (event.pointerType !== 'touch' && event.pointerType !== 'pen') {
-			return;
-		}
-		event.preventDefault();
-		focusSubtaskInput(true);
+		impact(task.completed ? 'light' : 'medium');
+		const rect = event.currentTarget.getBoundingClientRect();
+		onToggle(task.id, {
+			x: rect.left + rect.width / 2,
+			y: rect.top + rect.height / 2,
+		});
 	};
 
-	useLayoutEffect(() => {
-		if (!isExpanded) return;
-		const el = detailsRef.current;
-		if (!el) return;
+	const handleDragStart = (event: ReactPointerEvent<HTMLDivElement>) => {
+		event.preventDefault();
+		event.stopPropagation();
+		if (!canReorder) return;
+		impact('light');
+		dragControls.start(event);
+	};
 
-		const updateHeight = () => setDetailsHeight(el.scrollHeight);
-		updateHeight();
+	const headerActions = (
+		<TaskCardHeaderControls
+			canReorder={canReorder}
+			isActive={isActive}
+			isDesktop={isDesktop}
+			showTimerAction={!isExpanded && !task.completed}
+			onDelete={() => onDelete(task.id)}
+			onDragStart={handleDragStart}
+			onEdit={() => onEdit(task)}
+			onMoveTomorrow={handleMoveTomorrow}
+			onToggleActive={() => {
+				impact('medium');
+				onToggleActive(task.id);
+			}}
+		/>
+	);
 
-		const observer = new ResizeObserver(updateHeight);
-		observer.observe(el);
-		return () => observer.disconnect();
-	}, [isExpanded, pendingDate, task.checklist.length, isActive]);
+	const timerButton = (
+		<button
+			type="button"
+			aria-label={
+				isActive
+					? 'Поставить таймер задачи на паузу'
+					: 'Запустить таймер задачи'
+			}
+			onClick={(event) => {
+				event.stopPropagation();
+				impact('light');
+				onToggleActive(task.id);
+			}}
+			className={cn(
+				'w-full h-[52px] md:h-[60px] rounded-[18px] flex items-center justify-center gap-2 text-[14px] md:text-[16px] font-bold transition-all duration-200 active:scale-[0.97] relative overflow-hidden',
+				isActive ? 'text-[var(--bg)]' : 'text-[var(--ink)]',
+			)}
+			style={
+				isActive
+					? {
+							background: task.color,
+							boxShadow: `0 6px 20px -4px ${task.color}40`,
+						}
+					: {
+							background: `color-mix(in srgb, ${task.color} 10%, var(--surface-2))`,
+							border: `1px solid color-mix(in srgb, ${task.color} 20%, transparent)`,
+						}
+			}
+		>
+			{isActive ? (
+				<div className="relative z-10 flex items-center gap-2">
+					<Pause size={18} fill="currentColor" />
+					<span>Пауза</span>
+					<span className="tabular-nums opacity-90 ml-1 min-w-[7ch] text-right">
+						{elapsedLabel}
+					</span>
+				</div>
+			) : (
+				<div className="relative z-10 flex items-center gap-2">
+					<Play size={18} fill="currentColor" />
+					<span>Запустить таймер</span>
+					{hasElapsed ? (
+						<span className="opacity-60 text-xs font-medium">
+							({elapsedLabel})
+						</span>
+					) : null}
+				</div>
+			)}
+		</button>
+	);
+
+	const mobileFooterActions = (
+		<TaskCardActions variant="grid">
+			<button
+				type="button"
+				aria-label={
+					task.isPinned ? 'Открепить задачу' : 'Закрепить задачу'
+				}
+				onClick={(event) => {
+					event.stopPropagation();
+					impact('light');
+					updateTask(task.id, {
+						isPinned: !task.isPinned,
+					});
+				}}
+				className={cn(
+					'col-span-1 h-11 rounded-2xl flex flex-col items-center justify-center gap-0.5 text-[10px] font-bold uppercase tracking-wide transition-all duration-200 active:scale-[0.94] border',
+					task.isPinned
+						? 'bg-[var(--ink)] text-[var(--bg)] border-[var(--ink)]'
+						: 'bg-[var(--surface-2)] text-[var(--muted)] border-[var(--border)]/40 hover:text-[var(--ink)]',
+				)}
+				aria-pressed={task.isPinned}
+			>
+				<TaskCardPin />
+			</button>
+			<button
+				type="button"
+				aria-label="Изменить задачу"
+				onClick={(event) => {
+					event.stopPropagation();
+					onEdit(task);
+				}}
+				className="col-span-1 flex flex-col items-center justify-center gap-0.5 h-11 rounded-2xl bg-[var(--surface-2)] text-[var(--muted)] font-bold text-[10px] uppercase tracking-wide active:scale-[0.94] transition-all duration-200 border border-[var(--border)]/40 hover:text-[var(--ink)]"
+			>
+				<Pencil size={14} />
+			</button>
+			<button
+				type="button"
+				aria-label="Удалить задачу"
+				onClick={(event) => {
+					event.stopPropagation();
+					onDelete(task.id);
+				}}
+				className="col-span-1 flex flex-col items-center justify-center gap-0.5 h-11 rounded-2xl bg-[var(--danger)]/8 text-[var(--danger)] font-bold text-[10px] uppercase tracking-wide active:scale-[0.94] transition-all duration-200 border border-[var(--danger)]/15 hover:bg-[var(--danger)]/15"
+			>
+				<Trash2 size={14} />
+			</button>
+		</TaskCardActions>
+	);
+
+	const deleteAction = (
+		<TaskCardActions variant="single">
+			<button
+				type="button"
+				aria-label="Удалить задачу"
+				onClick={(event) => {
+					event.stopPropagation();
+					onDelete(task.id);
+				}}
+				className="w-full flex items-center justify-center gap-2 h-11 rounded-2xl bg-[var(--danger)]/8 text-[var(--danger)] font-bold text-[12px] active:scale-[0.96] transition-all duration-200 border border-[var(--danger)]/15 hover:bg-[var(--danger)]/15"
+			>
+				<Trash2 size={16} /> Удалить
+			</button>
+		</TaskCardActions>
+	);
+
+	const surfaceStyle =
+		isExpanded && !isActive
+			? {
+					background: `color-mix(in srgb, ${task.color} 5%, var(--surface))`,
+				}
+			: undefined;
+
+	const overlay =
+		isActive && !isExpanded ? (
+			<>
+				{!reduceHeavyEffects ? (
+					<motion.div
+						animate={{
+							opacity: [0.3, 0.5, 0.3],
+							scale: [0.98, 1.01, 0.98],
+						}}
+						transition={{
+							duration: 3,
+							repeat: Infinity,
+							ease: 'easeInOut',
+						}}
+						className={cn(
+							'absolute inset-0 bg-[var(--task-color)] blur-xl opacity-40 -z-10',
+							isDesktop ? 'rounded-[20px]' : 'rounded-[28px]',
+						)}
+					/>
+				) : null}
+
+				{!reduceHeavyEffects ? <ActiveBorder color={task.color} /> : null}
+
+				<div
+					className={cn(
+						'absolute inset-0 overflow-hidden bg-[var(--surface)] z-0',
+						isDesktop ? 'rounded-[20px]' : 'rounded-[28px]',
+					)}
+				>
+					<motion.div
+						className="absolute inset-0 bg-[var(--task-color)] opacity-[0.08]"
+						initial={reduceMotion ? false : { width: 0 }}
+						animate={{ width: `${timeProgress}%` }}
+						transition={
+							reduceMotion
+								? { duration: 0 }
+								: { duration: 1, ease: 'linear' }
+						}
+					/>
+				</div>
+			</>
+		) : null;
 
 	return (
 		<Reorder.Item
@@ -334,368 +440,13 @@ const TaskItem = memo(function TaskItem({
 			}
 			as="li"
 		>
-			{isActive && !isExpanded && (
-				<>
-					{!reduceHeavyEffects && (
-						<motion.div
-							animate={{
-								opacity: [0.3, 0.5, 0.3],
-								scale: [0.98, 1.01, 0.98],
-							}}
-							transition={{
-								duration: 3,
-								repeat: Infinity,
-								ease: 'easeInOut',
-							}}
-							className={cn(
-								'absolute inset-0 bg-[var(--task-color)] blur-xl opacity-40 -z-10',
-								isDesktop ? 'rounded-[20px]' : 'rounded-[28px]',
-							)}
-						/>
-					)}
-
-					{!reduceHeavyEffects && <ActiveBorder color={task.color} />}
-
-					<div
-						className={cn(
-							'absolute inset-0 overflow-hidden bg-[var(--surface)] z-0',
-							isDesktop ? 'rounded-[20px]' : 'rounded-[28px]',
-						)}
-					>
-						<motion.div
-							className="absolute inset-0 bg-[var(--task-color)] opacity-[0.08]"
-							initial={reduceMotion ? false : { width: 0 }}
-							animate={{ width: `${timeProgress}%` }}
-							transition={
-								reduceMotion
-									? { duration: 0 }
-									: { duration: 1, ease: 'linear' }
-							}
-						/>
-					</div>
-				</>
-			)}
-
-			<div
-				className={cn(
-					'flex flex-col relative z-10 rounded-[inherit] transition-colors duration-200',
-				)}
-				style={
-					isExpanded && !isActive
-						? {
-								background: `color-mix(in srgb, ${task.color} 5%, var(--surface))`,
-							}
-						: undefined
-				}
-			>
-				<div
-					className={cn(
-						'flex items-start gap-4 pr-3',
-						isDesktop ? 'p-6' : 'p-5',
-					)}
-				>
-					<motion.button
-						type="button"
-						whileTap={{ scale: 0.85 }}
-						onPointerDown={(event) => event.stopPropagation()}
-						onClick={(event: MouseEvent<HTMLButtonElement>) => {
-							event.stopPropagation();
-							impact(task.completed ? 'light' : 'medium');
-							const rect =
-								event.currentTarget.getBoundingClientRect();
-							const x = rect.left + rect.width / 2;
-							const y = rect.top + rect.height / 2;
-							onToggle(task.id, { x, y });
-						}}
-						aria-pressed={task.completed}
-						className={cn(
-							'relative flex shrink-0 items-center justify-center rounded-full border-[1.5px] transition-colors duration-300 mt-1',
-							isDesktop ? 'h-7 w-7' : 'h-6 w-6',
-						)}
-						style={{
-							borderColor: task.color,
-							backgroundColor: task.completed
-								? task.color
-								: 'transparent',
-							opacity: task.completed ? 1 : 0.85,
-						}}
-					>
-						<motion.svg
-							viewBox="0 0 24 24"
-							className="absolute inset-0 h-full w-full p-0.5 text-[var(--surface)]"
-							initial={false}
-							animate={task.completed ? 'checked' : 'unchecked'}
-						>
-							<motion.path
-								d="M20 6L9 17l-5-5"
-								fill="none"
-								stroke="currentColor"
-								strokeWidth="3.5"
-								strokeLinecap="round"
-								strokeLinejoin="round"
-								variants={{
-									checked: {
-										pathLength: 1,
-										opacity: 1,
-										transition: {
-											duration: 0.3,
-											type: 'spring',
-										},
-									},
-									unchecked: {
-										pathLength: 0,
-										opacity: 0,
-										transition: { duration: 0.2 },
-									},
-								}}
-							/>
-						</motion.svg>
-					</motion.button>
-
-					<div
-						className="flex-1 min-w-0 cursor-pointer select-none touch-manipulation"
-						role="button"
-						tabIndex={0}
-						aria-expanded={isExpanded}
-						onClick={toggleExpand}
-						onKeyDown={handleKeyDown}
-					>
-						<div className="relative w-full max-w-full">
-							<div className="flex items-center gap-2 min-w-0">
-								<p
-									className={cn(
-										'font-semibold leading-snug tracking-tight transition-colors mb-1 font-[var(--font-display)]',
-										isDesktop ? 'text-xl' : 'text-[17px]',
-										task.completed
-											? 'text-[var(--muted)] line-through decoration-2 decoration-[var(--border)]'
-											: 'text-[var(--ink)]',
-										!isExpanded && 'truncate',
-									)}
-								>
-									{task.title}
-								</p>
-								{task.isPinned && (
-									<Pin
-										size={isDesktop ? 14 : 12}
-										className="text-[var(--accent)] fill-current rotate-45 flex-shrink-0"
-									/>
-								)}
-							</div>
-						</div>
-
-						{!task.completed && (
-							<div className="flex items-center gap-3 flex-wrap mt-1 min-h-[20px]">
-								{isActive ? (
-									reduceMotion ? (
-										<div className="inline-flex items-center text-[var(--task-color)] font-bold tabular-nums">
-											<span
-												className={cn(
-													'min-w-[7ch] text-right',
-													isDesktop
-														? 'text-[15px]'
-														: 'text-[14px]',
-												)}
-											>
-												{elapsedLabel}
-											</span>
-										</div>
-									) : (
-										<div className="inline-flex items-center text-[var(--task-color)] font-bold tabular-nums animate-in fade-in duration-300">
-											<ActiveWave />
-											<span
-												className={cn(
-													'ml-1 min-w-[7ch] text-right',
-													isDesktop
-														? 'text-[15px]'
-														: 'text-[14px]',
-												)}
-											>
-												{elapsedLabel}
-											</span>
-										</div>
-									)
-								) : (
-									<div className="flex items-center gap-3 flex-wrap opacity-70">
-										{startTimeLabel && (
-											<div className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-[var(--surface-2)] border border-[var(--border)] text-[12px] font-bold tabular-nums text-[var(--ink)] opacity-90">
-												{startTimeLabel}
-											</div>
-										)}
-										<div className="inline-flex items-center gap-1 text-[11px] font-bold text-[var(--muted)] opacity-80 uppercase tracking-wide">
-											<Clock
-												size={11}
-												strokeWidth={2.5}
-											/>
-											<span>{task.duration} мин</span>
-										</div>
-
-										{hasElapsed && (
-											<div className="inline-flex items-center gap-1 text-[11px] font-bold text-[var(--muted)] opacity-80 uppercase tracking-wide">
-												<span>
-													Факт: {elapsedLabel}
-												</span>
-											</div>
-										)}
-
-										{totalSteps > 0 && !isExpanded && (
-											<div className="inline-flex items-center gap-1 text-[11px] font-bold text-[var(--muted)] opacity-80">
-												<div
-													className="w-1.5 h-1.5 rounded-full"
-													style={{
-														backgroundColor:
-															isAllStepsDone
-																? task.color
-																: 'var(--muted)',
-													}}
-												/>
-												<span>
-													{completedSteps}/
-													{totalSteps}
-												</span>
-											</div>
-										)}
-									</div>
-								)}
-
-								{isExpanded && !isDesktop && (
-									<motion.span
-										initial={{ opacity: 0 }}
-										animate={{ opacity: 1 }}
-										className="text-[11px] font-semibold text-[var(--muted)] flex items-center ml-auto mr-2"
-									>
-										Опции
-										<ChevronDown
-											size={10}
-											className="rotate-180 ml-0.5"
-										/>
-									</motion.span>
-								)}
-							</div>
-						)}
-					</div>
-
-					<div className="flex items-center gap-2">
-						{!isExpanded && !task.completed && (
-							<button
-								type="button"
-								onClick={(e) => {
-									e.stopPropagation();
-									impact('medium');
-									onToggleActive(task.id);
-								}}
-								className={cn(
-									'flex items-center justify-center rounded-full transition-[transform,colors] active:scale-90 relative z-20',
-									isDesktop ? 'h-9 w-9' : 'h-8 w-8',
-									isActive
-										? 'bg-[var(--task-color)] text-[var(--bg)] shadow-lg'
-										: 'bg-[var(--surface-2)] text-[var(--muted)] hover:text-[var(--ink)]',
-								)}
-							>
-								{isActive ? (
-									<Pause
-										size={isDesktop ? 16 : 14}
-										fill="currentColor"
-									/>
-								) : (
-									<Play
-										size={isDesktop ? 16 : 14}
-										fill="currentColor"
-										className="ml-0.5"
-									/>
-								)}
-							</button>
-						)}
-
-						{!isDesktop ? (
-							<button
-								type="button"
-								aria-label="Перетащить"
-								className={cn(
-									'h-8 w-8 flex items-center justify-center text-[var(--muted)] opacity-20 group-hover:opacity-50 transition-opacity touch-none [touch-action:none] -mr-1',
-									canReorder
-										? 'cursor-grab active:cursor-grabbing'
-										: 'cursor-not-allowed opacity-10',
-								)}
-								onPointerDown={(event) => {
-									event.preventDefault();
-									event.stopPropagation();
-									if (!canReorder) return;
-									impact('light');
-									dragControls.start(event);
-								}}
-							>
-								<GripVertical size={20} />
-							</button>
-						) : (
-							<div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-								<button
-									type="button"
-									onClick={(e) => {
-										e.stopPropagation();
-										onEdit(task);
-									}}
-									className="h-9 w-9 flex items-center justify-center rounded-xl hover:bg-[var(--surface-2)] text-[var(--muted)] hover:text-[var(--ink)] transition-colors"
-									title="Изменить"
-								>
-									<Pencil size={18} />
-								</button>
-								<button
-									type="button"
-									onClick={(e) => {
-										e.stopPropagation();
-										handleMoveTomorrow();
-									}}
-									className="h-9 w-9 flex items-center justify-center rounded-xl hover:bg-[var(--surface-2)] text-[var(--muted)] hover:text-[var(--accent)] transition-colors"
-									title="На завтра"
-								>
-									<ArrowRight size={18} />
-								</button>
-								<button
-									type="button"
-									onClick={(e) => {
-										e.stopPropagation();
-										onDelete(task.id);
-									}}
-									className="h-9 w-9 flex items-center justify-center rounded-xl hover:bg-[var(--danger)]/10 text-[var(--muted)] hover:text-[var(--danger)] transition-colors"
-									title="Удалить"
-								>
-									<Trash2 size={18} />
-								</button>
-								<div
-									className={cn(
-										'h-9 w-6 flex items-center justify-center text-[var(--muted)] opacity-20 hover:opacity-100',
-										canReorder
-											? 'cursor-grab active:cursor-grabbing'
-											: 'cursor-not-allowed opacity-10',
-									)}
-									onPointerDown={(event) => {
-										event.preventDefault();
-										event.stopPropagation();
-										if (!canReorder) return;
-										dragControls.start(event);
-									}}
-								>
-									<GripVertical size={18} />
-								</div>
-							</div>
-						)}
-					</div>
-				</div>
-
-				<motion.div
-					initial={false}
-					animate={{
-						height: isExpanded ? detailsHeight : 0,
-						opacity: isExpanded ? 1 : 0,
-					}}
-					transition={
-						reduceMotion
-							? { duration: 0 }
-							: { duration: 0.18, ease: 'easeOut' }
-					}
-					className="overflow-hidden"
-					style={{ pointerEvents: isExpanded ? 'auto' : 'none' }}
-				>
+			<TaskCard
+				detailsHeight={detailsHeight}
+				isExpanded={isExpanded}
+				overlay={overlay}
+				reduceMotion={reduceMotion}
+				surfaceStyle={surfaceStyle}
+				details={
 					<div
 						ref={detailsRef}
 						className={cn(
@@ -705,493 +456,105 @@ const TaskItem = memo(function TaskItem({
 					>
 						{!task.completed ? (
 							<>
-								<button
-									type="button"
-									onClick={(event) => {
-										event.stopPropagation();
-										impact('light');
-										onToggleActive(task.id);
+								{timerButton}
+
+								<TaskMoveActions
+									effectivePickerValue={effectivePickerValue}
+									hasPendingChange={hasPendingChange}
+									onCancelPendingDate={() => setPendingDate(null)}
+									onChangePendingDate={setPendingDate}
+									onConfirmPendingDate={() => {
+										if (pendingDate) {
+											handleMoveToDate(pendingDate);
+										}
 									}}
-									className={cn(
-										'w-full h-[52px] md:h-[60px] rounded-[18px] flex items-center justify-center gap-2 text-[14px] md:text-[16px] font-bold transition-all duration-200 active:scale-[0.97] relative overflow-hidden',
-										isActive
-											? 'text-[var(--bg)]'
-											: 'text-[var(--ink)]',
-									)}
-									style={
-										isActive
-											? {
-													background: task.color,
-													boxShadow: `0 6px 20px -4px ${task.color}40`,
-												}
-											: {
-													background: `color-mix(in srgb, ${task.color} 10%, var(--surface-2))`,
-													border: `1px solid color-mix(in srgb, ${task.color} 20%, transparent)`,
-												}
-									}
-								>
-									{isActive && (
-										<motion.div
-											className="absolute inset-0 bg-white/20"
-											initial={{ x: '-100%' }}
-											animate={{ x: '100%' }}
-											transition={{
-												repeat: Infinity,
-												duration: 1.5,
-												ease: 'linear',
-											}}
-										/>
-									)}
+									onMoveTomorrow={() => {
+										setPendingDate(null);
+										handleMoveTomorrow();
+									}}
+								/>
 
-									<div className="relative z-10 flex items-center gap-2">
-										{isActive ? (
-											<>
-												<Pause
-													size={18}
-													fill="currentColor"
-												/>
-												<span>Пауза</span>
-												<span className="tabular-nums opacity-90 ml-1 min-w-[7ch] text-right">
-													{elapsedLabel}
-												</span>
-											</>
-										) : (
-											<>
-												<Play
-													size={18}
-													fill="currentColor"
-												/>
-												<span>Запустить таймер</span>
-												{hasElapsed && (
-													<span className="opacity-60 text-xs font-medium">
-														({elapsedLabel})
-													</span>
-												)}
-											</>
-										)}
-									</div>
-								</button>
+								<ChecklistEditor
+									items={task.checklist}
+									onAddItem={handleAddChecklistItem}
+									onDeleteItem={handleDeleteChecklistItem}
+									onToggleItem={handleToggleChecklistItem}
+									reduceMotion={reduceMotion}
+									taskColor={task.color}
+									taskId={task.id}
+								/>
 
-								<div className="grid grid-cols-2 gap-2 md:gap-3">
-									<button
-										type="button"
-										onClick={(event) => {
-											event.stopPropagation();
-											setPendingDate(null);
-											handleMoveTomorrow();
-										}}
-										className="col-span-1 flex flex-col items-center justify-center gap-1.5 h-[64px] md:h-[72px] rounded-[18px] bg-[var(--surface-2)] text-[var(--ink)] active:scale-[0.96] transition-all duration-200 relative overflow-hidden group border border-[var(--border)]/40 hover:border-[var(--border)]"
-									>
-										<div className="w-8 h-8 rounded-xl bg-[var(--accent)]/10 flex items-center justify-center">
-											<Sunrise
-												size={18}
-												className="text-[var(--accent)]"
-											/>
-										</div>
-										<span className="text-[11px] font-bold uppercase tracking-wide">
-											Завтра
-										</span>
-									</button>
-
-									<div className="col-span-1 relative h-[64px] md:h-[72px]">
-										{hasPendingChange ? (
-											<div className="absolute inset-0 flex flex-col gap-0.5">
-												<button
-													type="button"
-													onClick={(event) => {
-														event.stopPropagation();
-														if (pendingDate)
-															handleMoveToDate(
-																pendingDate,
-															);
-													}}
-													className="flex-1 w-full bg-[var(--ink)] text-[var(--bg)] rounded-t-[18px] flex items-center justify-center gap-1.5 active:opacity-90"
-												>
-													<Check
-														size={14}
-														strokeWidth={3}
-													/>
-												</button>
-												<button
-													type="button"
-													onClick={(event) => {
-														event.stopPropagation();
-														setPendingDate(null);
-													}}
-													className="flex-1 w-full bg-[var(--surface-2)] text-[var(--muted)] rounded-b-[18px] flex items-center justify-center gap-1.5 active:bg-[var(--border)]"
-												>
-													<X
-														size={14}
-														strokeWidth={3}
-													/>
-												</button>
-											</div>
-										) : (
-											<>
-												<input
-													type="date"
-													value={effectivePickerValue}
-													onChange={(event) =>
-														setPendingDate(
-															event.target.value,
-														)
-													}
-													onClick={(event) =>
-														event.stopPropagation()
-													}
-													className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
-													aria-label="Выбрать дату"
-												/>
-												<div className="absolute inset-0 flex flex-col items-center justify-center gap-1 rounded-[18px] bg-[var(--surface-2)] text-[var(--ink)] pointer-events-none hover:bg-[var(--border)] transition-colors">
-													<Calendar
-														size={20}
-														className="text-[var(--muted)] mb-0.5"
-													/>
-													<span className="text-[12px] font-bold">
-														Дата
-													</span>
-												</div>
-											</>
-										)}
-									</div>
-								</div>
-
-								<div className="bg-[var(--surface)] rounded-[20px] p-3 border border-[var(--border)]/40 shadow-sm">
-									<div className="flex items-center justify-between mb-3 pl-1 pr-1">
-										<div className="text-[11px] font-bold text-[var(--muted)] uppercase tracking-widest flex items-center gap-2">
-											<span>Подзадачи</span>
-											<span
-												className="px-2 py-0.5 rounded-full text-[10px] tabular-nums font-bold transition-colors duration-300"
-												style={{
-													color: isAllStepsDone
-														? task.color
-														: 'var(--ink)',
-													background: isAllStepsDone
-														? `color-mix(in srgb, ${task.color} 15%, var(--surface-2))`
-														: 'var(--surface-2)',
-												}}
-											>
-												{completedSteps}/{totalSteps}
-											</span>
-										</div>
-									</div>
-
-									{totalSteps > 0 && (
-										<div className="h-1 w-full bg-[var(--surface-2)] rounded-full mb-4 overflow-hidden">
-											<motion.div
-												className="h-full transition-colors duration-500"
-												style={{
-													backgroundColor:
-														isAllStepsDone
-															? task.color
-															: 'var(--ink)',
-												}}
-												initial={
-													reduceMotion
-														? false
-														: { width: 0 }
-												}
-												animate={{
-													width: `${checklistProgress}%`,
-												}}
-												transition={
-													reduceMotion
-														? { duration: 0 }
-														: {
-																duration: 0.5,
-																ease: 'circOut',
-															}
-												}
-											/>
-										</div>
-									)}
-
-									<ul className="space-y-1">
-										{reduceMotion ? (
-											task.checklist.map((item, idx) => (
-												<li key={subtaskKeys[idx]}>
-													<div className="group flex items-center gap-3 w-full bg-[var(--surface-2)]/50 rounded-2xl px-3 py-2.5 border border-[var(--border)]/30">
-														<button
-															type="button"
-															onClick={() =>
-																toggleSubtask(
-																	idx,
-																)
-															}
-															className={cn(
-																'flex-shrink-0 w-5 h-5 rounded-md border-[1.5px] flex items-center justify-center',
-																item.done
-																	? 'bg-[var(--ink)] border-[var(--ink)]'
-																	: 'border-[var(--muted)]/40',
-															)}
-														>
-															{item.done && (
-																<Check
-																	size={12}
-																	className="text-[var(--bg)]"
-																	strokeWidth={
-																		3.5
-																	}
-																/>
-															)}
-														</button>
-
-														<span
-															className={cn(
-																'text-[14px] flex-1 leading-snug break-words select-none cursor-pointer font-medium',
-																item.done
-																	? 'text-[var(--muted)] line-through decoration-[var(--muted)] decoration-2'
-																	: 'text-[var(--ink)]',
-															)}
-															onClick={() =>
-																toggleSubtask(
-																	idx,
-																)
-															}
-														>
-															{item.text}
-														</span>
-
-														<button
-															type="button"
-															onClick={() =>
-																deleteSubtask(
-																	idx,
-																)
-															}
-															className="w-6 h-6 flex items-center justify-center rounded-full text-[var(--muted)]/40 hover:text-[var(--danger)] hover:bg-[var(--danger)]/10 active:scale-90 opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
-														>
-															<X size={14} />
-														</button>
-													</div>
-												</li>
-											))
-										) : (
-											<AnimatePresence initial={false}>
-												{task.checklist.map(
-													(item, idx) => (
-														<motion.li
-															key={
-																subtaskKeys[idx]
-															}
-															initial={{
-																opacity: 0,
-																height: 0,
-															}}
-															animate={{
-																opacity: 1,
-																height: 'auto',
-															}}
-															exit={{
-																opacity: 0,
-																height: 0,
-																overflow:
-																	'hidden',
-															}}
-															transition={{
-																duration: 0.2,
-															}}
-														>
-															<div className="group flex items-center gap-3 w-full bg-[var(--surface-2)]/50 hover:bg-[var(--surface-2)] rounded-2xl px-3 py-2.5 transition-colors border border-[var(--border)]/30 hover:border-[var(--border)]/60">
-																<button
-																	type="button"
-																	onClick={() =>
-																		toggleSubtask(
-																			idx,
-																		)
-																	}
-																	className={cn(
-																		'flex-shrink-0 w-5 h-5 rounded-md border-[1.5px] flex items-center justify-center transition-colors duration-200',
-																		item.done
-																			? 'bg-[var(--ink)] border-[var(--ink)]'
-																			: 'border-[var(--muted)]/40 hover:border-[var(--accent)]',
-																	)}
-																>
-																	{item.done && (
-																		<motion.div
-																			initial={{
-																				scale: 0,
-																			}}
-																			animate={{
-																				scale: 1,
-																			}}
-																			transition={{
-																				type: 'spring',
-																				stiffness: 400,
-																				damping: 25,
-																			}}
-																		>
-																			<Check
-																				size={
-																					12
-																				}
-																				className="text-[var(--bg)]"
-																				strokeWidth={
-																					3.5
-																				}
-																			/>
-																		</motion.div>
-																	)}
-																</button>
-
-																<span
-																	className={cn(
-																		'text-[14px] flex-1 leading-snug break-words transition-colors duration-300 select-none cursor-pointer font-medium',
-																		item.done
-																			? 'text-[var(--muted)] line-through decoration-[var(--muted)] decoration-2'
-																			: 'text-[var(--ink)]',
-																	)}
-																	onClick={() =>
-																		toggleSubtask(
-																			idx,
-																		)
-																	}
-																>
-																	{item.text}
-																</span>
-
-																<button
-																	type="button"
-																	onClick={() =>
-																		deleteSubtask(
-																			idx,
-																		)
-																	}
-																	className="w-6 h-6 flex items-center justify-center rounded-full text-[var(--muted)]/40 hover:text-[var(--danger)] hover:bg-[var(--danger)]/10 transition-[transform,opacity,colors] active:scale-90 opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
-																>
-																	<X
-																		size={
-																			14
-																		}
-																	/>
-																</button>
-															</div>
-														</motion.li>
-													),
-												)}
-											</AnimatePresence>
-										)}
-									</ul>
-
-									<form
-										onSubmit={addSubtask}
-										className="mt-2 relative group"
-									>
-										<div className="flex items-center gap-3 w-full bg-transparent rounded-2xl px-3 py-2 border border-dashed border-[var(--border)]/60 hover:border-[var(--accent)]/50 hover:bg-[var(--surface-2)]/30 transition-all duration-200 focus-within:border-[var(--accent)] focus-within:bg-[var(--surface)] focus-within:shadow-sm">
-											<div className="flex-shrink-0 w-5 h-5 flex items-center justify-center text-[var(--muted)]">
-												<Plus size={16} />
-											</div>
-											<input
-												ref={inputRef}
-												type="text"
-												value={newStep}
-												onChange={(event) =>
-													setNewStep(
-														event.target.value,
-													)
-												}
-												onPointerDown={
-													handleSubtaskPointerDown
-												}
-												placeholder="Добавить шаг..."
-												className="flex-1 bg-transparent text-[14px] outline-none placeholder:text-[var(--muted)]/60 text-[var(--ink)] min-w-0"
-											/>
-											<button
-												type="submit"
-												disabled={!newStep.trim()}
-												className="w-6 h-6 flex items-center justify-center rounded-md bg-[var(--ink)] text-[var(--bg)] opacity-0 scale-75 transition-[transform,opacity] disabled:opacity-0 group-focus-within:opacity-100 group-focus-within:scale-100 disabled:group-focus-within:opacity-30 disabled:group-focus-within:scale-90"
-											>
-												<CornerDownLeft
-													size={12}
-													strokeWidth={3}
-												/>
-											</button>
-										</div>
-									</form>
-								</div>
-
-								{!isDesktop ? (
-									<div className="grid grid-cols-3 gap-2">
-										<button
-											type="button"
-											onClick={(event) => {
-												event.stopPropagation();
-												impact('light');
-												updateTask(task.id, {
-													isPinned: !task.isPinned,
-												});
-											}}
-											className={cn(
-												'col-span-1 h-11 rounded-2xl flex flex-col items-center justify-center gap-0.5 text-[10px] font-bold uppercase tracking-wide transition-all duration-200 active:scale-[0.94] border',
-												task.isPinned
-													? 'bg-[var(--ink)] text-[var(--bg)] border-[var(--ink)]'
-													: 'bg-[var(--surface-2)] text-[var(--muted)] border-[var(--border)]/40 hover:text-[var(--ink)]',
-											)}
-											aria-pressed={task.isPinned}
-										>
-											<Pin
-												size={14}
-												className={
-													task.isPinned
-														? 'fill-current'
-														: ''
-												}
-											/>
-										</button>
-
-										<button
-											type="button"
-											onClick={(event) => {
-												event.stopPropagation();
-												onEdit(task);
-											}}
-											className="col-span-1 flex flex-col items-center justify-center gap-0.5 h-11 rounded-2xl bg-[var(--surface-2)] text-[var(--muted)] font-bold text-[10px] uppercase tracking-wide active:scale-[0.94] transition-all duration-200 border border-[var(--border)]/40 hover:text-[var(--ink)]"
-										>
-											<Pencil size={14} />
-										</button>
-
-										<button
-											type="button"
-											onClick={(event) => {
-												event.stopPropagation();
-												onDelete(task.id);
-											}}
-											className="col-span-1 flex flex-col items-center justify-center gap-0.5 h-11 rounded-2xl bg-[var(--danger)]/8 text-[var(--danger)] font-bold text-[10px] uppercase tracking-wide active:scale-[0.94] transition-all duration-200 border border-[var(--danger)]/15 hover:bg-[var(--danger)]/15"
-										>
-											<Trash2 size={14} />
-										</button>
-									</div>
-								) : (
-									<button
-										type="button"
-										onClick={(event) => {
-											event.stopPropagation();
-											onDelete(task.id);
-										}}
-										className="w-full flex items-center justify-center gap-2 h-11 rounded-2xl bg-[var(--danger)]/8 text-[var(--danger)] font-bold text-[12px] active:scale-[0.96] transition-all duration-200 border border-[var(--danger)]/15 hover:bg-[var(--danger)]/15"
-									>
-										<Trash2 size={16} /> Удалить
-									</button>
-								)}
+								{!isDesktop ? mobileFooterActions : deleteAction}
 							</>
 						) : (
-							<button
-								type="button"
-								onClick={(event) => {
-									event.stopPropagation();
-									onDelete(task.id);
-								}}
-								className="w-full flex items-center justify-center gap-2 h-11 rounded-2xl bg-[var(--danger)]/8 text-[var(--danger)] font-bold text-[12px] active:scale-[0.96] transition-all duration-200 border border-[var(--danger)]/15 hover:bg-[var(--danger)]/15"
-							>
-								<Trash2 size={16} /> Удалить
-							</button>
+							deleteAction
 						)}
 					</div>
-				</motion.div>
-			</div>
+				}
+			>
+				<TaskCardHeader
+					actions={headerActions}
+					checkbox={
+						<button
+							type="button"
+							aria-label="Отметить задачу выполненной"
+							onPointerDown={(event) => event.stopPropagation()}
+							onClick={handleToggleComplete}
+							aria-pressed={task.completed}
+							className={cn(
+								'relative flex shrink-0 items-center justify-center rounded-full border-[1.5px] transition-colors duration-300 mt-1',
+								isDesktop ? 'h-7 w-7' : 'h-6 w-6',
+							)}
+							style={{
+								borderColor: task.color,
+								backgroundColor: task.completed
+									? task.color
+									: 'transparent',
+								opacity: task.completed ? 1 : 0.85,
+							}}
+						>
+							<svg
+								viewBox="0 0 24 24"
+								className="absolute inset-0 h-full w-full p-0.5 text-[var(--surface)]"
+							>
+								<path
+									d="M20 6L9 17l-5-5"
+									fill="none"
+									stroke="currentColor"
+									strokeWidth="3.5"
+									strokeLinecap="round"
+									strokeLinejoin="round"
+									style={{
+										opacity: task.completed ? 1 : 0,
+										strokeDasharray: 100,
+										strokeDashoffset: task.completed ? 0 : 100,
+										transition:
+											'stroke-dashoffset 0.2s ease, opacity 0.2s ease',
+									}}
+								/>
+							</svg>
+						</button>
+					}
+					completed={task.completed}
+					isDesktop={isDesktop}
+					isExpanded={isExpanded}
+					meta={
+						<TaskCardMeta
+							elapsedMs={elapsedMs}
+							isActive={isActive}
+							isDesktop={isDesktop}
+							isExpanded={isExpanded}
+							reduceMotion={reduceMotion}
+							task={task}
+						/>
+					}
+					onToggleExpand={toggleExpand}
+					title={task.title}
+					titleSuffix={task.isPinned ? <TaskCardPin isDesktop={isDesktop} /> : null}
+				/>
+			</TaskCard>
 		</Reorder.Item>
 	);
 });
 
 export default TaskItem;
-

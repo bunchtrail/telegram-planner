@@ -1,10 +1,6 @@
 import {
-	type AnimationDefinition,
-	type PanInfo,
-	type Transition,
 	AnimatePresence,
 	motion,
-	useDragControls,
 	useReducedMotion,
 	LayoutGroup,
 } from 'framer-motion';
@@ -16,25 +12,15 @@ import {
 	Trash2,
 	X,
 } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { addDays, format, getDay, startOfDay, isSameYear } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { cn } from '../lib/cn';
 import { useHaptic } from '../hooks/useHaptic';
 import type { TaskSeriesRow, TaskSeriesSkipRow } from '../hooks/usePlanner';
-
-const SHEET_TRANSITION = {
-	type: 'spring',
-	damping: 32,
-	stiffness: 400,
-	mass: 0.8,
-} satisfies Transition;
-
-const MODAL_TRANSITION = {
-	type: 'spring',
-	damping: 25,
-	stiffness: 300,
-} satisfies Transition;
+import BottomSheet from './planner/shared/ui/BottomSheet';
+import ModalHeader from './planner/shared/ui/ModalHeader';
+import useFrameFocusScope from './planner/shared/ui/useFrameFocusScope';
 
 const UPCOMING_OCCURRENCES_COUNT = 5;
 const WEEKDAY_SHORT_RU = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'] as const;
@@ -108,7 +94,6 @@ export default function RecurringTasksSheet({
 	isDesktop = false,
 }: RecurringTasksSheetProps) {
 	const [isSettled, setIsSettled] = useState(false);
-	const [isDragging, setIsDragging] = useState(false);
 	const [expandedSeriesId, setExpandedSeriesId] = useState<string | null>(
 		null,
 	);
@@ -116,88 +101,21 @@ export default function RecurringTasksSheet({
 		null,
 	);
 
-	const dragControls = useDragControls();
-	const dialogRef = useRef<HTMLDivElement>(null);
 	const { impact, notification } = useHaptic();
 	const prefersReducedMotion = useReducedMotion();
 	const reduceMotion = Boolean(prefersReducedMotion);
+	const confirmDialogRef = useRef<HTMLDivElement>(null);
+
+	useFrameFocusScope(confirmDialogRef, {
+		active: confirmAction != null,
+		onEscape: () => setConfirmAction(null),
+	});
 
 	const handleClose = useCallback(() => {
 		setConfirmAction(null);
 		setIsSettled(false);
-		setTimeout(onClose, 10);
+		onClose();
 	}, [onClose]);
-
-	useEffect(() => {
-		dialogRef.current?.focus();
-	}, []);
-
-	useEffect(() => {
-		const handleKeyDown = (event: KeyboardEvent) => {
-			if (event.key !== 'Escape') return;
-			if (confirmAction) {
-				setConfirmAction(null);
-				return;
-			}
-			handleClose();
-		};
-
-		window.addEventListener('keydown', handleKeyDown);
-		return () => window.removeEventListener('keydown', handleKeyDown);
-	}, [confirmAction, handleClose]);
-
-	const handleDragEnd = (
-		_event: MouseEvent | TouchEvent | PointerEvent,
-		info: PanInfo,
-	) => {
-		if (isDesktop || confirmAction) return;
-		setIsDragging(false);
-		const draggingDown = info.offset.y > 0;
-		const fastDrag = info.velocity.y > 300;
-		const farDrag = info.offset.y > 100;
-
-		if (draggingDown && (fastDrag || farDrag)) {
-			handleClose();
-		}
-	};
-
-	const handleAnimationComplete = useCallback(
-		(definition: AnimationDefinition) => {
-			const isOpening =
-				definition === 'visible' ||
-				(typeof definition === 'object' &&
-					definition !== null &&
-					!Array.isArray(definition) &&
-					'y' in definition &&
-					(definition as { y?: number | string }).y === 0) ||
-				(isDesktop && definition === undefined);
-
-			if (isOpening || (isDesktop && !isSettled)) {
-				setIsSettled(true);
-			}
-		},
-		[isDesktop, isSettled],
-	);
-
-	const containerClasses = isDesktop
-		? 'fixed inset-0 z-50 flex items-center justify-center pointer-events-auto py-4 pl-[max(1rem,env(safe-area-inset-left),var(--tg-content-safe-left,0px))] pr-[max(1rem,env(safe-area-inset-right),var(--tg-content-safe-right,0px))]'
-		: 'fixed inset-0 z-50 flex flex-col justify-end pointer-events-none touch-none pl-[max(env(safe-area-inset-left),var(--tg-content-safe-left,0px))] pr-[max(env(safe-area-inset-right),var(--tg-content-safe-right,0px))]';
-
-	const sheetClasses = cn(
-		'pointer-events-auto relative w-full bg-[var(--surface)] flex flex-col shadow-[0_-10px_40px_-10px_rgba(0,0,0,0.1)] overflow-hidden ring-1 ring-inset ring-[var(--border)]',
-		isDesktop
-			? 'max-w-2xl rounded-3xl shadow-2xl max-h-[85vh] h-auto border border-[var(--border)]'
-			: 'max-w-lg mx-auto rounded-t-[32px] max-h-[92dvh] h-[80vh]',
-	);
-
-	const initialAnim = isDesktop ? { opacity: 0, scale: 0.95 } : { y: '100%' };
-	const animateAnim = isDesktop ? { opacity: 1, scale: 1 } : { y: 0 };
-	const exitAnim = isDesktop ? { opacity: 0, scale: 0.95 } : { y: '100%' };
-	const transitionConfig = reduceMotion
-		? { duration: 0 }
-		: isDesktop
-			? MODAL_TRANSITION
-			: SHEET_TRANSITION;
 
 	const skipsBySeriesId = useMemo(() => {
 		const map = new Map<string, Set<string>>();
@@ -312,138 +230,156 @@ export default function RecurringTasksSheet({
 
 	return (
 		<LayoutGroup>
-			<div className={containerClasses}>
-				<motion.div
-					initial={{ opacity: 0 }}
-					animate={{ opacity: 1 }}
-					exit={{ opacity: 0 }}
-					transition={{ duration: reduceMotion ? 0 : 0.3 }}
-					className="absolute inset-0 bg-black/40 backdrop-blur-md sheet-backdrop pointer-events-auto"
-					onClick={() => {
-						if (confirmAction) {
-							setConfirmAction(null);
-							return;
-						}
-						handleClose();
-					}}
-				/>
-
-				<motion.div
-					ref={dialogRef}
-					role="dialog"
-					aria-modal="true"
-					aria-labelledby="recurring-sheet-title"
-					tabIndex={-1}
-					initial={initialAnim}
-					animate={animateAnim}
-					exit={exitAnim}
-					transition={transitionConfig}
-					onAnimationStart={() => setIsSettled(false)}
-					onAnimationComplete={handleAnimationComplete}
-					drag={isDesktop || confirmAction ? false : 'y'}
-					dragControls={dragControls}
-					dragListener={false}
-					dragConstraints={{ top: 0 }}
-					dragElastic={reduceMotion ? 0 : 0.05}
-					onDragStart={() => setIsDragging(true)}
-					onDragEnd={handleDragEnd}
-					transformTemplate={(_transforms, generatedTransform) =>
-						isSettled && !isDragging && !isDesktop
-							? 'none'
-							: generatedTransform
-					}
-					className={sheetClasses}
-				>
-					<div
-						className={cn(
-							'shrink-0 w-full pt-4 pb-2 z-20 bg-[var(--surface)] select-none',
-							!isDesktop &&
-								'cursor-grab active:cursor-grabbing touch-none [touch-action:none]',
-							isDesktop && 'p-6 pb-0',
-						)}
-						onPointerDown={(event) =>
-							!isDesktop && !confirmAction
-								? dragControls.start(event)
-								: undefined
-						}
-					>
-						{!isDesktop && (
-							<div className="flex justify-center mb-4">
-								<div className="w-12 h-1.5 rounded-full bg-[var(--muted)]/20" />
-							</div>
-						)}
-
-						<div
-							className={cn(
-								'flex items-center justify-between pb-2',
-								isDesktop ? 'mb-4' : 'px-6',
-							)}
-						>
-							<button
-								type="button"
-								onClick={handleClose}
-								className={cn(
-									'w-10 h-10 flex items-center justify-center rounded-full text-[var(--muted)] hover:bg-[var(--surface-2)] hover:text-[var(--ink)] transition-colors active:scale-95',
-									!isDesktop && '-ml-2',
-								)}
-								aria-label="Закрыть"
-							>
-								<X size={24} strokeWidth={2.5} />
-							</button>
-
-							{recurringTasks.length > 0 && (
-								<div className="px-3 py-1.5 rounded-full bg-[var(--surface-2)] border border-[var(--border)] text-[var(--muted)] font-bold text-[13px] flex items-center gap-1.5 shadow-sm">
+			<BottomSheet
+				ariaLabelledby="recurring-sheet-title"
+				bodyClassName={cn(
+					'overflow-y-auto overflow-x-hidden no-scrollbar touch-pan-y',
+					isDesktop
+						? 'p-8 pt-0'
+						: 'px-0 pt-0 pb-[max(env(safe-area-inset-bottom),32px)]',
+				)}
+				contentClassName={cn(isDesktop ? 'max-w-2xl' : 'max-w-lg h-[80vh]')}
+				disableDragDismiss={confirmAction != null}
+				dragHandleClassName="h-1.5 w-12 bg-[var(--muted)]/20"
+				enableDesktopModalAnimation
+				header={
+					<ModalHeader
+						action={
+							recurringTasks.length > 0 ? (
+								<div className="flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--surface-2)] px-3 py-1.5 text-[13px] font-bold text-[var(--muted)] shadow-sm">
 									<Repeat size={14} strokeWidth={2.5} />
-									<span>
-										{formatSeriesCountLabel(
-											recurringTasks.length,
-										)}
-									</span>
+									<span>{formatSeriesCountLabel(recurringTasks.length)}</span>
 								</div>
-							)}
-						</div>
-					</div>
-
-					<div
-						className={cn(
-							'flex-1 overflow-y-auto overflow-x-hidden no-scrollbar touch-pan-y',
-							isDesktop
-								? 'p-8 pt-0'
-								: 'px-0 pt-0 pb-[max(env(safe-area-inset-bottom),32px)]',
+							) : undefined
+						}
+						className={cn(!isDesktop && 'px-6')}
+						closeClassName={cn(
+							'rounded-full bg-transparent hover:bg-[var(--surface-2)] active:scale-95',
+							!isDesktop && '-ml-2',
 						)}
-					>
-						<div
-							className={cn(
-								'shrink-0',
-								isDesktop ? 'mb-8 hidden' : 'px-6 py-2 mb-2',
-							)}
-						>
-							<h2
-								id="recurring-sheet-title"
-								className={cn(
-									'font-bold text-[var(--ink)] font-[var(--font-display)] leading-tight tracking-tight',
-									isDesktop ? 'text-[40px]' : 'text-[32px]',
-								)}
+						closeIcon={<X size={24} strokeWidth={2.5} />}
+						closePosition="start"
+						description={
+							isDesktop ? 'Управляйте сериями задач и их расписанием' : undefined
+						}
+						descriptionClassName={cn(isDesktop && 'text-[15px]')}
+						onClose={handleClose}
+						title="Повторяющиеся задачи"
+						titleClassName="text-[32px]"
+						titleId="recurring-sheet-title"
+					/>
+				}
+				headerClassName={cn(
+					!isDesktop &&
+						'cursor-grab active:cursor-grabbing touch-none [touch-action:none]',
+				)}
+				isDesktop={isDesktop}
+				onFrameAnimationStart={() => setIsSettled(false)}
+				onClose={handleClose}
+				onOpenComplete={() => setIsSettled(true)}
+				onRequestClose={() => {
+					if (confirmAction) {
+						setConfirmAction(null);
+						return;
+					}
+					handleClose();
+				}}
+				overlay={
+					<AnimatePresence>
+						{confirmAction && (
+							<motion.div
+								initial={{ opacity: 0 }}
+								animate={{ opacity: 1 }}
+								exit={{ opacity: 0 }}
+								transition={{ duration: reduceMotion ? 0 : 0.2 }}
+								className="absolute inset-0 z-30 pointer-events-auto flex items-center justify-center"
 							>
-								Повторяющиеся задачи
-							</h2>
-						</div>
+								<div
+									className="absolute inset-0 bg-black/20"
+									onClick={() => setConfirmAction(null)}
+								/>
 
-						{isDesktop && (
-							<div className="mb-8 pl-1">
-								<h2
-									id="recurring-sheet-desktop-title"
-									className="font-bold text-[var(--ink)] font-[var(--font-display)] leading-tight tracking-tight text-[32px]"
+							<motion.div
+								ref={confirmDialogRef}
+								aria-labelledby="recurring-confirm-title"
+								aria-modal="true"
+								initial={
+										isDesktop
+											? { opacity: 0, scale: 0.9, y: 0 }
+											: { opacity: 0, y: 20, scale: 0.95 }
+									}
+									animate={
+										isDesktop
+											? { opacity: 1, scale: 1, y: 0 }
+											: { opacity: 1, y: 0, scale: 1 }
+									}
+									exit={
+										isDesktop
+											? { opacity: 0, scale: 0.9, y: 0 }
+											: { opacity: 0, y: 20, scale: 0.95 }
+									}
+									transition={
+										reduceMotion
+											? { duration: 0 }
+											: isDesktop
+												? { type: 'spring', damping: 25, stiffness: 300 }
+												: { type: 'spring', damping: 32, stiffness: 400, mass: 0.8 }
+									}
+									className={cn(
+										'relative mx-4 w-full max-w-sm overflow-hidden rounded-[32px] bg-[var(--surface)] p-6 shadow-2xl ring-1 ring-white/20',
+										!isDesktop && 'mb-8',
+									)}
+									onKeyDown={(event) => {
+										if (event.key === 'Escape') {
+											event.stopPropagation();
+											setConfirmAction(null);
+										}
+									}}
+									role="dialog"
+									tabIndex={-1}
 								>
-									Повторяющиеся задачи
-								</h2>
-								<p className="text-[var(--muted)] mt-1.5 text-[15px]">
-									Управляйте сериями задач и их расписанием
-								</p>
-							</div>
-						)}
+									<div className="flex flex-col items-center text-center">
+										<h3
+											id="recurring-confirm-title"
+											className="mb-2 flex items-center gap-2 font-[var(--font-display)] text-[17px] font-bold leading-tight text-[var(--ink)]"
+										>
+											<AlertTriangle
+												size={20}
+												className="text-[var(--danger)]"
+											/>
+											<span>{confirmTitle}</span>
+										</h3>
 
-						<div className={cn(isDesktop ? '' : 'px-5')}>
+										<p className="mb-6 max-w-[260px] text-[14px] leading-relaxed text-[var(--muted)]">
+											{confirmDescription}
+										</p>
+
+										<div className="grid w-full grid-cols-2 gap-3">
+											<button
+												type="button"
+												onClick={() => setConfirmAction(null)}
+												className="h-10 rounded-xl bg-[var(--surface-2)] text-[14px] font-semibold text-[var(--ink)] transition-all hover:bg-[var(--border)] active:scale-[0.97]"
+											>
+												Отмена
+											</button>
+											<button
+												type="button"
+												onClick={handleConfirmAction}
+												className="h-10 rounded-xl bg-[var(--danger)] text-[14px] font-semibold text-white shadow-md shadow-[var(--danger)]/20 transition-all hover:bg-[var(--danger)]/90 active:scale-[0.97]"
+											>
+												{confirmAction.type === 'delete-series'
+													? 'Остановить'
+													: 'Удалить'}
+											</button>
+										</div>
+									</div>
+								</motion.div>
+							</motion.div>
+						)}
+					</AnimatePresence>
+				}
+			>
+				<div className={cn(isDesktop ? '' : 'px-5')}>
 							{recurringTasks.length === 0 ? (
 								<div className="h-full flex flex-col items-center justify-center text-center text-[var(--muted)] py-12">
 									<motion.div
@@ -818,88 +754,8 @@ export default function RecurringTasksSheet({
 									</LayoutGroup>
 								</div>
 							)}
-						</div>
-					</div>
-
-					<AnimatePresence>
-						{confirmAction && (
-							<motion.div
-								initial={{ opacity: 0 }}
-								animate={{ opacity: 1 }}
-								exit={{ opacity: 0 }}
-								transition={{
-									duration: reduceMotion ? 0 : 0.2,
-								}}
-								className="absolute inset-0 z-30 pointer-events-auto flex items-center justify-center"
-							>
-								<div
-									className="absolute inset-0 bg-black/20"
-									onClick={() => setConfirmAction(null)}
-								/>
-
-								<motion.div
-									initial={
-										isDesktop
-											? { opacity: 0, scale: 0.9, y: 0 }
-											: { opacity: 0, y: 20, scale: 0.95 }
-									}
-									animate={
-										isDesktop
-											? { opacity: 1, scale: 1, y: 0 }
-											: { opacity: 1, y: 0, scale: 1 }
-									}
-									exit={
-										isDesktop
-											? { opacity: 0, scale: 0.9, y: 0 }
-											: { opacity: 0, y: 20, scale: 0.95 }
-									}
-									transition={transitionConfig}
-									className={cn(
-										'relative w-full max-w-sm mx-4 overflow-hidden rounded-[32px] bg-[var(--surface)] p-6 shadow-2xl ring-1 ring-white/20',
-										!isDesktop && 'mb-8',
-									)}
-								>
-									<div className="flex flex-col items-center text-center">
-										<h3 className="text-[17px] font-bold text-[var(--ink)] font-[var(--font-display)] leading-tight mb-2 flex items-center gap-2">
-											<AlertTriangle
-												size={20}
-												className="text-[var(--danger)]"
-											/>
-											<span>{confirmTitle}</span>
-										</h3>
-
-										<p className="text-[14px] leading-relaxed text-[var(--muted)] mb-6 max-w-[260px]">
-											{confirmDescription}
-										</p>
-
-										<div className="grid grid-cols-2 gap-3 w-full">
-											<button
-												type="button"
-												onClick={() =>
-													setConfirmAction(null)
-												}
-												className="h-10 rounded-xl bg-[var(--surface-2)] text-[var(--ink)] font-semibold active:scale-[0.97] transition-all text-[14px] hover:bg-[var(--border)]"
-											>
-												Отмена
-											</button>
-											<button
-												type="button"
-												onClick={handleConfirmAction}
-												className="h-10 rounded-xl bg-[var(--danger)] text-white font-semibold active:scale-[0.97] transition-all shadow-md shadow-[var(--danger)]/20 text-[14px] hover:bg-[var(--danger)]/90"
-											>
-												{confirmAction.type ===
-												'delete-series'
-													? 'Остановить'
-													: 'Удалить'}
-											</button>
-										</div>
-									</div>
-								</motion.div>
-							</motion.div>
-						)}
-					</AnimatePresence>
-				</motion.div>
-			</div>
+				</div>
+			</BottomSheet>
 		</LayoutGroup>
 	);
 }
