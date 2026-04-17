@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react';
-import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { beforeAll, beforeEach, describe, expect, test, vi } from 'vitest';
 import PlannerApp from '../app/components/PlannerApp';
 
 const { usePlannerMock, usePlannerUiControllerMock } = vi.hoisted(() => ({
@@ -222,21 +222,24 @@ const createUiControllerStub = () => ({
   closeFocus: vi.fn(),
 });
 
-const getActualMobilePlannerShell = async () => {
-  const shellModule = await vi.importActual<
-    typeof import('../app/components/planner/mobile/MobilePlannerShell')
-  >('../app/components/planner/mobile/MobilePlannerShell');
+const mobilePlannerShellModulePromise = vi.importActual<
+  typeof import('../app/components/planner/mobile/MobilePlannerShell')
+>('../app/components/planner/mobile/MobilePlannerShell');
 
-  return shellModule.default;
-};
+const desktopPlannerShellModulePromise = vi.importActual<
+  typeof import('../app/components/planner/desktop/DesktopPlannerShell')
+>('../app/components/planner/desktop/DesktopPlannerShell');
 
-const getActualDesktopPlannerShell = async () => {
-  const shellModule = await vi.importActual<
-    typeof import('../app/components/planner/desktop/DesktopPlannerShell')
-  >('../app/components/planner/desktop/DesktopPlannerShell');
+let MobilePlannerShell: typeof import('../app/components/planner/mobile/MobilePlannerShell').default;
+let DesktopPlannerShell: typeof import('../app/components/planner/desktop/DesktopPlannerShell').default;
 
-  return shellModule.default;
-};
+beforeAll(async () => {
+  [{ default: MobilePlannerShell }, { default: DesktopPlannerShell }] =
+    await Promise.all([
+      mobilePlannerShellModulePromise,
+      desktopPlannerShellModulePromise,
+    ]);
+});
 
 describe('PlannerApp platform routing', () => {
   beforeEach(() => {
@@ -272,8 +275,7 @@ describe('planner shells shared block orchestration', () => {
     expect(sharedShellModule).not.toHaveProperty('createPlannerShellViewModel');
   });
 
-  test('routes the mobile shell between tasks and habits blocks', async () => {
-    const MobilePlannerShell = await getActualMobilePlannerShell();
+  test('routes the mobile shell between tasks and habits blocks', () => {
     const planner = createPlannerStub('mobile');
     const ui = createUiControllerStub();
 
@@ -293,8 +295,7 @@ describe('planner shells shared block orchestration', () => {
     expect(screen.queryByTestId('mobile-task-list')).not.toBeInTheDocument();
   });
 
-  test('routes the desktop shell between tasks and habits blocks', async () => {
-    const DesktopPlannerShell = await getActualDesktopPlannerShell();
+  test('routes the desktop shell between tasks and habits blocks', () => {
     const planner = createPlannerStub('desktop');
     const ui = createUiControllerStub();
 
@@ -314,8 +315,7 @@ describe('planner shells shared block orchestration', () => {
     expect(screen.queryByTestId('desktop-task-list')).not.toBeInTheDocument();
   });
 
-  test('renders the recurring sheet from the desktop shell overlay layer', async () => {
-    const DesktopPlannerShell = await getActualDesktopPlannerShell();
+  test('renders the recurring sheet from the desktop shell overlay layer', () => {
     const planner = createPlannerStub('desktop');
     const ui = createUiControllerStub();
 
@@ -329,8 +329,7 @@ describe('planner shells shared block orchestration', () => {
     expect(screen.getByTestId('desktop-recurring-sheet')).toBeInTheDocument();
   });
 
-  test('renders the mobile task sheet and hides the mobile fab while it is open', async () => {
-    const MobilePlannerShell = await getActualMobilePlannerShell();
+  test('renders the mobile task sheet and hides the mobile fab while it is open', () => {
     const planner = createPlannerStub('mobile');
     const ui = createUiControllerStub();
 
@@ -352,8 +351,7 @@ describe('planner shells shared block orchestration', () => {
     expect(screen.queryByRole('button', { name: 'fab' })).not.toBeInTheDocument();
   });
 
-  test('renders mobile focus, sync, undo, and completion overlays from shell state', async () => {
-    const MobilePlannerShell = await getActualMobilePlannerShell();
+  test('renders mobile focus, sync, undo, and completion overlays from shell state', () => {
     const planner = {
       ...createPlannerStub('mobile'),
       activeTaskId: 'task-1',
