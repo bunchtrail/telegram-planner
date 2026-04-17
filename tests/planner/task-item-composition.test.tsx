@@ -305,6 +305,39 @@ describe('task item shared composition', () => {
 
 		expect(onDelete).toHaveBeenCalledWith(task.id);
 	});
+
+	test('desktop header actions keep hover behavior and add keyboard-visible styles', () => {
+		const task = createTask();
+
+		renderTaskItem(task, {
+			isDesktop: true,
+		});
+
+		expect(
+			screen.getByRole('button', { name: 'Изменить задачу' }),
+		).toHaveClass(
+			'opacity-0',
+			'group-hover:opacity-100',
+			'group-focus-within:opacity-100',
+			'focus-visible:opacity-100',
+		);
+		expect(
+			screen.getByRole('button', { name: 'Перенести на завтра' }),
+		).toHaveClass(
+			'opacity-0',
+			'group-hover:opacity-100',
+			'group-focus-within:opacity-100',
+			'focus-visible:opacity-100',
+		);
+		expect(
+			screen.getByRole('button', { name: 'Удалить задачу' }),
+		).toHaveClass(
+			'opacity-0',
+			'group-hover:opacity-100',
+			'group-focus-within:opacity-100',
+			'focus-visible:opacity-100',
+		);
+	});
 });
 
 function TaskCardHeaderPinProbe() {

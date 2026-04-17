@@ -48,6 +48,47 @@ beforeEach(() => {
 });
 
 describe('shared task form composition', () => {
+  test('mobile schedule and repeat panels keep collapsed controls out of accessible queries', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <TaskForm
+        mode="create"
+        taskDate={new Date('2026-04-17T00:00:00.000Z')}
+        onSubmit={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByRole('button', { name: '00' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Нет' })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Увеличить количество повторов' }),
+    ).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /без времени/i }));
+
+    expect(screen.getByRole('button', { name: '00' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /без времени/i }));
+
+    expect(screen.queryByRole('button', { name: '00' })).not.toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole('button', { name: /повторение.*одноразовая задача/i }),
+    );
+
+    expect(screen.getByRole('button', { name: 'Нет' })).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Увеличить количество повторов' }),
+    ).not.toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole('button', { name: /повторение.*одноразовая задача/i }),
+    );
+
+    expect(screen.queryByRole('button', { name: 'Нет' })).not.toBeInTheDocument();
+  });
+
   test('TaskForm trims title and clears reminder payload when schedule is removed', async () => {
     const user = userEvent.setup();
     const onSubmit = vi.fn();

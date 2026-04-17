@@ -28,6 +28,9 @@ export default function TaskCardHeaderControls({
 	onMoveTomorrow,
 	onToggleActive,
 }: TaskCardHeaderControlsProps) {
+	const desktopActionClass =
+		'h-9 w-9 flex items-center justify-center rounded-xl text-[var(--muted)] transition-colors opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 duration-200';
+
 	return (
 		<TaskCardActions isDesktop={isDesktop} variant="header">
 			{showTimerAction ? (
@@ -69,7 +72,10 @@ export default function TaskCardHeaderControls({
 							event.stopPropagation();
 							onEdit();
 						}}
-						className="h-9 w-9 flex items-center justify-center rounded-xl hover:bg-[var(--surface-2)] text-[var(--muted)] hover:text-[var(--ink)] transition-colors opacity-0 group-hover:opacity-100 duration-200"
+						className={cn(
+							desktopActionClass,
+							'hover:bg-[var(--surface-2)] hover:text-[var(--ink)]',
+						)}
 						title="Изменить"
 					>
 						<Pencil size={18} />
@@ -81,7 +87,10 @@ export default function TaskCardHeaderControls({
 							event.stopPropagation();
 							onMoveTomorrow();
 						}}
-						className="h-9 w-9 flex items-center justify-center rounded-xl hover:bg-[var(--surface-2)] text-[var(--muted)] hover:text-[var(--accent)] transition-colors opacity-0 group-hover:opacity-100 duration-200"
+						className={cn(
+							desktopActionClass,
+							'hover:bg-[var(--surface-2)] hover:text-[var(--accent)]',
+						)}
 						title="На завтра"
 					>
 						<ArrowRight size={18} />
@@ -93,7 +102,10 @@ export default function TaskCardHeaderControls({
 							event.stopPropagation();
 							onDelete();
 						}}
-						className="h-9 w-9 flex items-center justify-center rounded-xl hover:bg-[var(--danger)]/10 text-[var(--muted)] hover:text-[var(--danger)] transition-colors opacity-0 group-hover:opacity-100 duration-200"
+						className={cn(
+							desktopActionClass,
+							'hover:bg-[var(--danger)]/10 hover:text-[var(--danger)]',
+						)}
 						title="Удалить"
 					>
 						<Trash2 size={18} />

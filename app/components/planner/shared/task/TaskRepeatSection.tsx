@@ -41,6 +41,7 @@ export default function TaskRepeatSection({
   const detailsRef = useRef<HTMLDivElement>(null);
   const { impact } = useHaptic();
   const prefersReducedMotion = useReducedMotion();
+  const isDetailsVisible = isDesktop || showOptions;
 
   const repeatCountLabel =
     repeat === 'weekly' ? 'На сколько недель' : 'На сколько дней';
@@ -78,7 +79,7 @@ export default function TaskRepeatSection({
           type="button"
           onClick={() => setShowOptions((current) => !current)}
           className="group flex w-full items-center justify-between p-4 transition-colors active:bg-[var(--surface-2)]"
-          aria-expanded={isDesktop || showOptions}
+          aria-expanded={isDetailsVisible}
         >
           <div className="flex items-center gap-4">
             <div
@@ -134,8 +135,10 @@ export default function TaskRepeatSection({
               : { duration: 0.18, ease: 'easeOut' }
           }
           className="overflow-hidden"
+          aria-hidden={!isDetailsVisible}
+          inert={!isDetailsVisible}
           style={{
-            pointerEvents: isDesktop || showOptions ? 'auto' : 'none',
+            pointerEvents: isDetailsVisible ? 'auto' : 'none',
           }}
         >
           <div ref={detailsRef} className="space-y-4 px-4 pb-4 pt-2">

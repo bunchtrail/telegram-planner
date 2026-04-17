@@ -35,6 +35,7 @@ export default function TaskScheduleSection({
   const detailsRef = useRef<HTMLDivElement>(null);
   const { impact } = useHaptic();
   const prefersReducedMotion = useReducedMotion();
+  const isDetailsVisible = isDesktop || showPicker;
 
   const now = new Date();
   const defaultPickerMinutes = isSameDay(taskDate, now)
@@ -94,11 +95,11 @@ export default function TaskScheduleSection({
           onClick={() => setShowPicker((current) => !current)}
           className={cn(
             'flex w-full items-center justify-between p-4 transition-colors',
-            showPicker || isDesktop
+            isDetailsVisible
               ? 'bg-transparent'
               : 'active:bg-[var(--surface-2)]/50',
           )}
-          aria-expanded={isDesktop || showPicker}
+          aria-expanded={isDetailsVisible}
         >
           <span
             className="text-[17px] font-bold tabular-nums transition-colors"
@@ -136,6 +137,11 @@ export default function TaskScheduleSection({
             prefersReducedMotion ? { duration: 0 } : { duration: 0.2 }
           }
           className="overflow-hidden"
+          aria-hidden={!isDetailsVisible}
+          inert={!isDetailsVisible}
+          style={{
+            pointerEvents: isDetailsVisible ? 'auto' : 'none',
+          }}
         >
           <div
             ref={detailsRef}
