@@ -5,8 +5,9 @@ import {
   motion,
   useReducedMotion,
 } from 'framer-motion';
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useRef, type ReactNode } from 'react';
 import { cn } from '@/app/lib/cn';
+import useFrameFocusScope from './useFrameFocusScope';
 
 type MotionDivProps = Omit<
   HTMLMotionProps<'div'>,
@@ -39,20 +40,7 @@ export default function Dialog({
   const reduceMotion = Boolean(prefersReducedMotion);
   const requestClose = onRequestClose ?? onClose;
 
-  useEffect(() => {
-    contentRef.current?.focus();
-  }, []);
-
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        requestClose();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [requestClose]);
+  useFrameFocusScope(contentRef);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center py-4 pl-[max(1rem,env(safe-area-inset-left),var(--tg-content-safe-left,0px))] pr-[max(1rem,env(safe-area-inset-right),var(--tg-content-safe-right,0px))]">
@@ -82,6 +70,12 @@ export default function Dialog({
         initial={{ scale: reduceMotion ? 1 : 0.95, opacity: 0, y: 10 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
         exit={{ scale: reduceMotion ? 1 : 0.95, opacity: 0, y: 10 }}
+        onKeyDown={(event) => {
+          if (event.key === 'Escape') {
+            event.stopPropagation();
+            requestClose();
+          }
+        }}
         role="dialog"
         tabIndex={-1}
         transition={{ type: 'spring', duration: reduceMotion ? 0 : 0.4, bounce: 0.3 }}

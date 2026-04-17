@@ -19,9 +19,6 @@ import {
 import { isSameDay } from 'date-fns';
 import {
 	motion,
-	type AnimationDefinition,
-	type PanInfo,
-	useDragControls,
 	useReducedMotion,
 } from 'framer-motion';
 import { cn } from '../lib/cn';
@@ -93,9 +90,6 @@ export default function TaskSheet({
 	const [showRepeatOptions, setShowRepeatOptions] = useState(
 		mode === 'edit' || initialRepeat !== 'none',
 	);
-
-	const [isSettled, setIsSettled] = useState(false);
-	const [isDragging, setIsDragging] = useState(false);
 	const [timeDetailsHeight, setTimeDetailsHeight] = useState<number | 'auto'>(
 		'auto',
 	);
@@ -107,7 +101,6 @@ export default function TaskSheet({
 	const formRef = useRef<HTMLFormElement>(null);
 	const timeDetailsRef = useRef<HTMLDivElement>(null);
 	const repeatDetailsRef = useRef<HTMLDivElement>(null);
-	const dragControls = useDragControls();
 	const { impact, notification } = useHaptic();
 	const prefersReducedMotion = useReducedMotion();
 	useKeyboardInset();
@@ -132,24 +125,8 @@ export default function TaskSheet({
 		if (document.activeElement instanceof HTMLElement) {
 			document.activeElement.blur();
 		}
-		setIsSettled(false);
 		setTimeout(onClose, 10);
 	}, [onClose]);
-
-	const handleDragEnd = (
-		_event: MouseEvent | TouchEvent | PointerEvent,
-		info: PanInfo,
-	) => {
-		if (isDesktop) return;
-		setIsDragging(false);
-		const draggingDown = info.offset.y > 0;
-		const fastDrag = info.velocity.y > 300;
-		const farDrag = info.offset.y > 100;
-
-		if (draggingDown && (fastDrag || farDrag)) {
-			handleClose();
-		}
-	};
 
 	const handleSubmit = (event?: FormEvent<HTMLFormElement>) => {
 		event?.preventDefault();
@@ -221,31 +198,6 @@ export default function TaskSheet({
 		observer.observe(el);
 		return () => observer.disconnect();
 	}, [showRepeatOptions, repeat, repeatCount, isDesktop]);
-
-	const handleAnimationComplete = useCallback(
-		(definition: AnimationDefinition) => {
-			const isOpening =
-				definition === 'visible' ||
-				(typeof definition === 'object' &&
-					definition !== null &&
-					!Array.isArray(definition) &&
-					'y' in definition &&
-					(definition as { y?: number | string }).y === 0) ||
-				(isDesktop && definition === undefined);
-
-			if (isOpening || (isDesktop && !isSettled)) {
-				setIsSettled(true);
-				if (mode === 'create') {
-					requestAnimationFrame(() => {
-						setTimeout(() => {
-							inputRef.current?.focus({ preventScroll: true });
-						}, 50);
-					});
-				}
-			}
-		},
-		[mode, isDesktop, isSettled],
-	);
 
 	const renderTimeSection = () => (
 		<div className="flex flex-col gap-2">
@@ -696,32 +648,8 @@ export default function TaskSheet({
 		<BottomSheet
 			ariaLabelledby="task-sheet-title"
 			bodyClassName="min-h-0"
-			contentClassName={cn(
-				isDesktop ? 'max-w-3xl' : 'max-w-lg',
-			)}
-			contentMotionProps={{
-				initial: isDesktop ? { opacity: 0, scale: 0.95 } : { y: '100%' },
-				animate: isDesktop ? { opacity: 1, scale: 1 } : { y: 0 },
-				exit: isDesktop ? { opacity: 0, scale: 0.95 } : { y: '100%' },
-				transition: reduceMotion
-					? { duration: 0 }
-					: isDesktop
-						? { type: 'spring', damping: 25, stiffness: 300 }
-						: { type: 'spring', damping: 32, stiffness: 400, mass: 0.8 },
-				onAnimationStart: () => setIsSettled(false),
-				onAnimationComplete: handleAnimationComplete,
-				drag: isDesktop ? false : 'y',
-				dragControls,
-				dragListener: false,
-				dragConstraints: { top: 0 },
-				dragElastic: reduceMotion ? 0 : 0.05,
-				onDragStart: () => setIsDragging(true),
-				onDragEnd: handleDragEnd,
-				transformTemplate: (_transforms, generatedTransform) =>
-					isSettled && !isDragging && !isDesktop
-						? 'none'
-						: generatedTransform,
-			}}
+			contentClassName={cn(isDesktop ? 'max-w-3xl' : 'max-w-lg')}
+			enableDesktopModalAnimation
 			header={
 				<ModalHeader
 					action={submitButton}
@@ -743,9 +671,13 @@ export default function TaskSheet({
 			)}
 			isDesktop={isDesktop}
 			onClose={handleClose}
-			onHandlePointerDown={(event) => {
-				if (!isDesktop) {
-					dragControls.start(event);
+			onOpenComplete={() => {
+				if (mode === 'create') {
+					requestAnimationFrame(() => {
+						setTimeout(() => {
+							inputRef.current?.focus({ preventScroll: true });
+						}, 50);
+					});
 				}
 			}}
 		>

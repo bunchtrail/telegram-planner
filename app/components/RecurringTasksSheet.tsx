@@ -1,9 +1,6 @@
 import {
-	type AnimationDefinition,
-	type PanInfo,
 	AnimatePresence,
 	motion,
-	useDragControls,
 	useReducedMotion,
 	LayoutGroup,
 } from 'framer-motion';
@@ -15,7 +12,7 @@ import {
 	Trash2,
 	X,
 } from 'lucide-react';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { addDays, format, getDay, startOfDay, isSameYear } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { cn } from '../lib/cn';
@@ -23,6 +20,7 @@ import { useHaptic } from '../hooks/useHaptic';
 import type { TaskSeriesRow, TaskSeriesSkipRow } from '../hooks/usePlanner';
 import BottomSheet from './planner/shared/ui/BottomSheet';
 import ModalHeader from './planner/shared/ui/ModalHeader';
+import useFrameFocusScope from './planner/shared/ui/useFrameFocusScope';
 
 const UPCOMING_OCCURRENCES_COUNT = 5;
 const WEEKDAY_SHORT_RU = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'] as const;
@@ -96,7 +94,6 @@ export default function RecurringTasksSheet({
 	isDesktop = false,
 }: RecurringTasksSheetProps) {
 	const [isSettled, setIsSettled] = useState(false);
-	const [isDragging, setIsDragging] = useState(false);
 	const [expandedSeriesId, setExpandedSeriesId] = useState<string | null>(
 		null,
 	);
@@ -104,49 +101,34 @@ export default function RecurringTasksSheet({
 		null,
 	);
 
-	const dragControls = useDragControls();
 	const { impact, notification } = useHaptic();
 	const prefersReducedMotion = useReducedMotion();
 	const reduceMotion = Boolean(prefersReducedMotion);
+	const confirmDialogRef = useRef<HTMLDivElement>(null);
+
+	useFrameFocusScope(confirmDialogRef, { active: confirmAction != null });
+
+	useEffect(() => {
+		if (confirmAction == null) {
+			return;
+		}
+
+		const handleKeyDown = (event: KeyboardEvent) => {
+			if (event.key === 'Escape') {
+				event.preventDefault();
+				setConfirmAction(null);
+			}
+		};
+
+		document.addEventListener('keydown', handleKeyDown, true);
+		return () => document.removeEventListener('keydown', handleKeyDown, true);
+	}, [confirmAction]);
 
 	const handleClose = useCallback(() => {
 		setConfirmAction(null);
 		setIsSettled(false);
 		setTimeout(onClose, 10);
 	}, [onClose]);
-
-	const handleDragEnd = (
-		_event: MouseEvent | TouchEvent | PointerEvent,
-		info: PanInfo,
-	) => {
-		if (isDesktop || confirmAction) return;
-		setIsDragging(false);
-		const draggingDown = info.offset.y > 0;
-		const fastDrag = info.velocity.y > 300;
-		const farDrag = info.offset.y > 100;
-
-		if (draggingDown && (fastDrag || farDrag)) {
-			handleClose();
-		}
-	};
-
-	const handleAnimationComplete = useCallback(
-		(definition: AnimationDefinition) => {
-			const isOpening =
-				definition === 'visible' ||
-				(typeof definition === 'object' &&
-					definition !== null &&
-					!Array.isArray(definition) &&
-					'y' in definition &&
-					(definition as { y?: number | string }).y === 0) ||
-				(isDesktop && definition === undefined);
-
-			if (isOpening || (isDesktop && !isSettled)) {
-				setIsSettled(true);
-			}
-		},
-		[isDesktop, isSettled],
-	);
 
 	const skipsBySeriesId = useMemo(() => {
 		const map = new Map<string, Set<string>>();
@@ -270,30 +252,9 @@ export default function RecurringTasksSheet({
 						: 'px-0 pt-0 pb-[max(env(safe-area-inset-bottom),32px)]',
 				)}
 				contentClassName={cn(isDesktop ? 'max-w-2xl' : 'max-w-lg h-[80vh]')}
-				contentMotionProps={{
-					initial: isDesktop ? { opacity: 0, scale: 0.95 } : { y: '100%' },
-					animate: isDesktop ? { opacity: 1, scale: 1 } : { y: 0 },
-					exit: isDesktop ? { opacity: 0, scale: 0.95 } : { y: '100%' },
-					transition: reduceMotion
-						? { duration: 0 }
-						: isDesktop
-							? { type: 'spring', damping: 25, stiffness: 300 }
-							: { type: 'spring', damping: 32, stiffness: 400, mass: 0.8 },
-					onAnimationStart: () => setIsSettled(false),
-					onAnimationComplete: handleAnimationComplete,
-					drag: isDesktop || confirmAction ? false : 'y',
-					dragControls,
-					dragListener: false,
-					dragConstraints: { top: 0 },
-					dragElastic: reduceMotion ? 0 : 0.05,
-					onDragStart: () => setIsDragging(true),
-					onDragEnd: handleDragEnd,
-					transformTemplate: (_transforms, generatedTransform) =>
-						isSettled && !isDragging && !isDesktop
-							? 'none'
-							: generatedTransform,
-				}}
+				disableDragDismiss={confirmAction != null}
 				dragHandleClassName="h-1.5 w-12 bg-[var(--muted)]/20"
+				enableDesktopModalAnimation
 				header={
 					<ModalHeader
 						action={
@@ -326,12 +287,9 @@ export default function RecurringTasksSheet({
 						'cursor-grab active:cursor-grabbing touch-none [touch-action:none]',
 				)}
 				isDesktop={isDesktop}
+				onFrameAnimationStart={() => setIsSettled(false)}
 				onClose={handleClose}
-				onHandlePointerDown={(event) => {
-					if (!isDesktop && !confirmAction) {
-						dragControls.start(event);
-					}
-				}}
+				onOpenComplete={() => setIsSettled(true)}
 				onRequestClose={() => {
 					if (confirmAction) {
 						setConfirmAction(null);
@@ -355,6 +313,8 @@ export default function RecurringTasksSheet({
 								/>
 
 								<motion.div
+									ref={confirmDialogRef}
+									aria-modal="true"
 									initial={
 										isDesktop
 											? { opacity: 0, scale: 0.9, y: 0 }
@@ -381,6 +341,14 @@ export default function RecurringTasksSheet({
 										'relative mx-4 w-full max-w-sm overflow-hidden rounded-[32px] bg-[var(--surface)] p-6 shadow-2xl ring-1 ring-white/20',
 										!isDesktop && 'mb-8',
 									)}
+									onKeyDown={(event) => {
+										if (event.key === 'Escape') {
+											event.stopPropagation();
+											setConfirmAction(null);
+										}
+									}}
+									role="dialog"
+									tabIndex={-1}
 								>
 									<div className="flex flex-col items-center text-center">
 										<h3 className="mb-2 flex items-center gap-2 font-[var(--font-display)] text-[17px] font-bold leading-tight text-[var(--ink)]">
