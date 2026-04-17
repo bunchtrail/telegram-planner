@@ -3,19 +3,30 @@
 import { motion } from 'framer-motion';
 import { ChevronDown, Clock } from 'lucide-react';
 import { cn } from '@/app/lib/cn';
+import type { Task } from '@/app/types/task';
 
 type TaskCardMetaProps = {
-	completedSteps: number;
-	duration: number;
-	elapsedLabel: string;
-	hasElapsed: boolean;
+	elapsedMs: number;
 	isActive: boolean;
 	isDesktop?: boolean;
 	isExpanded: boolean;
 	reduceMotion?: boolean;
-	startTimeLabel: string | null;
-	taskColor: string;
-	totalSteps: number;
+	task: Task;
+};
+
+const formatElapsed = (value: number) => {
+	const totalSeconds = Math.floor(value / 1000);
+	const hours = Math.floor(totalSeconds / 3600);
+	const minutes = Math.floor((totalSeconds % 3600) / 60);
+	const seconds = totalSeconds % 60;
+
+	if (hours > 0) {
+		return `${hours}:${String(minutes).padStart(2, '0')}:${String(
+			seconds,
+		).padStart(2, '0')}`;
+	}
+
+	return `${minutes}:${String(seconds).padStart(2, '0')}`;
 };
 
 function ActiveWave() {
@@ -39,18 +50,24 @@ function ActiveWave() {
 }
 
 export default function TaskCardMeta({
-	completedSteps,
-	duration,
-	elapsedLabel,
-	hasElapsed,
+	elapsedMs,
 	isActive,
 	isDesktop = false,
 	isExpanded,
 	reduceMotion = false,
-	startTimeLabel,
-	taskColor,
-	totalSteps,
+	task,
 }: TaskCardMetaProps) {
+	const elapsedLabel = formatElapsed(elapsedMs);
+	const hasElapsed = elapsedMs > 0;
+	const completedSteps = task.checklist.filter((item) => item.done).length;
+	const totalSteps = task.checklist.length;
+	const startTimeLabel =
+		task.startMinutes != null
+			? `${String(Math.floor(task.startMinutes / 60)).padStart(2, '0')}:${String(
+					task.startMinutes % 60,
+				).padStart(2, '0')}`
+			: null;
+
 	if (isActive) {
 		return reduceMotion ? (
 			<div className="inline-flex items-center text-[var(--task-color)] font-bold tabular-nums">
@@ -88,7 +105,7 @@ export default function TaskCardMeta({
 				) : null}
 				<div className="inline-flex items-center gap-1 text-[11px] font-bold text-[var(--muted)] opacity-80 uppercase tracking-wide">
 					<Clock size={11} strokeWidth={2.5} />
-					<span>{duration} мин</span>
+					<span>{task.duration} мин</span>
 				</div>
 
 				{hasElapsed ? (
@@ -104,7 +121,7 @@ export default function TaskCardMeta({
 							style={{
 								backgroundColor:
 									completedSteps === totalSteps
-										? taskColor
+										? task.color
 										: 'var(--muted)',
 							}}
 						/>

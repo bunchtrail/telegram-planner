@@ -9,7 +9,15 @@ import {
 	type PointerEvent as ReactPointerEvent,
 } from 'react';
 import { addDays, format } from 'date-fns';
-import { Reorder, useDragControls, useReducedMotion } from 'framer-motion';
+import {
+	Reorder,
+	animate,
+	motion,
+	useDragControls,
+	useMotionTemplate,
+	useMotionValue,
+	useReducedMotion,
+} from 'framer-motion';
 import {
 	ArrowRight,
 	Calendar,
@@ -49,6 +57,28 @@ type TaskItemProps = {
 
 interface CustomCSSProperties extends CSSProperties {
 	'--task-color'?: string;
+}
+
+function ActiveBorder({ color }: { color: string }) {
+	const angle = useMotionValue(0);
+
+	useEffect(() => {
+		const controls = animate(angle, 360, {
+			duration: 3,
+			ease: 'linear',
+			repeat: Infinity,
+		});
+		return controls.stop;
+	}, [angle]);
+
+	const background = useMotionTemplate`conic-gradient(from ${angle}deg, transparent 0%, ${color} 50%, transparent 100%)`;
+
+	return (
+		<motion.div
+			className="absolute inset-[-2px] rounded-[30px] z-0 opacity-60 pointer-events-none"
+			style={{ background }}
+		/>
+	);
 }
 
 const formatElapsed = (value: number) => {
@@ -95,13 +125,6 @@ const TaskItem = memo(function TaskItem({
 	const currentKey = format(task.date, 'yyyy-MM-dd');
 	const effectivePickerValue = pendingDate ?? currentKey;
 	const hasPendingChange = pendingDate != null && pendingDate !== currentKey;
-	const startTimeLabel =
-		task.startMinutes != null
-			? `${String(Math.floor(task.startMinutes / 60)).padStart(2, '0')}:${String(
-					task.startMinutes % 60,
-				).padStart(2, '0')}`
-			: null;
-
 	useEffect(() => {
 		if (!isActive || !task.activeStartedAt) return;
 		const interval = window.setInterval(() => {
@@ -130,8 +153,6 @@ const TaskItem = memo(function TaskItem({
 			: (task.elapsedMs ?? 0);
 	const elapsedLabel = formatElapsed(elapsedMs);
 	const hasElapsed = elapsedMs > 0;
-	const completedSteps = task.checklist.filter((item) => item.done).length;
-	const totalSteps = task.checklist.length;
 	const targetMs = (task.duration || 30) * 60 * 1000;
 	const timeProgress = Math.min(100, (elapsedMs / targetMs) * 100);
 
@@ -410,6 +431,56 @@ const TaskItem = memo(function TaskItem({
 		</TaskCardActions>
 	);
 
+	const surfaceStyle =
+		isExpanded && !isActive
+			? {
+					background: `color-mix(in srgb, ${task.color} 5%, var(--surface))`,
+				}
+			: undefined;
+
+	const overlay =
+		isActive && !isExpanded ? (
+			<>
+				{!reduceHeavyEffects ? (
+					<motion.div
+						animate={{
+							opacity: [0.3, 0.5, 0.3],
+							scale: [0.98, 1.01, 0.98],
+						}}
+						transition={{
+							duration: 3,
+							repeat: Infinity,
+							ease: 'easeInOut',
+						}}
+						className={cn(
+							'absolute inset-0 bg-[var(--task-color)] blur-xl opacity-40 -z-10',
+							isDesktop ? 'rounded-[20px]' : 'rounded-[28px]',
+						)}
+					/>
+				) : null}
+
+				{!reduceHeavyEffects ? <ActiveBorder color={task.color} /> : null}
+
+				<div
+					className={cn(
+						'absolute inset-0 overflow-hidden bg-[var(--surface)] z-0',
+						isDesktop ? 'rounded-[20px]' : 'rounded-[28px]',
+					)}
+				>
+					<motion.div
+						className="absolute inset-0 bg-[var(--task-color)] opacity-[0.08]"
+						initial={reduceMotion ? false : { width: 0 }}
+						animate={{ width: `${timeProgress}%` }}
+						transition={
+							reduceMotion
+								? { duration: 0 }
+								: { duration: 1, ease: 'linear' }
+						}
+					/>
+				</div>
+			</>
+		) : null;
+
 	return (
 		<Reorder.Item
 			value={task.clientId}
@@ -451,13 +522,10 @@ const TaskItem = memo(function TaskItem({
 		>
 			<TaskCard
 				detailsHeight={detailsHeight}
-				isActive={isActive}
-				isDesktop={isDesktop}
 				isExpanded={isExpanded}
-				reduceHeavyEffects={reduceHeavyEffects}
+				overlay={overlay}
 				reduceMotion={reduceMotion}
-				taskColor={task.color}
-				timeProgress={timeProgress}
+				surfaceStyle={surfaceStyle}
 				details={
 					<div
 						ref={detailsRef}
@@ -614,17 +682,12 @@ const TaskItem = memo(function TaskItem({
 					isExpanded={isExpanded}
 					meta={
 						<TaskCardMeta
-							completedSteps={completedSteps}
-							duration={task.duration}
-							elapsedLabel={elapsedLabel}
-							hasElapsed={hasElapsed}
+							elapsedMs={elapsedMs}
 							isActive={isActive}
 							isDesktop={isDesktop}
 							isExpanded={isExpanded}
 							reduceMotion={reduceMotion}
-							startTimeLabel={startTimeLabel}
-							taskColor={task.color}
-							totalSteps={totalSteps}
+							task={task}
 						/>
 					}
 					onToggleExpand={toggleExpand}

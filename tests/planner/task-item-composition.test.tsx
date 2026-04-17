@@ -79,17 +79,19 @@ beforeEach(() => {
 });
 
 describe('task item shared composition', () => {
-	test('shared task card primitives compose a reusable header outside TaskItem', () => {
+	test('shared task card primitives compose a reusable shell and task-aware meta outside TaskItem', () => {
+		const task = createTask({
+			elapsedMs: 5 * 60 * 1000,
+			isPinned: true,
+		});
+
 		render(
 			<Reorder.Group axis="y" values={['task-1']} onReorder={() => undefined}>
 				<TaskCard
-					taskColor="#ff9f0a"
-					isActive={false}
-					isDesktop={false}
-					isExpanded={false}
-					listMotionEnabled={false}
-					reduceHeavyEffects={false}
-					timeProgress={0}
+					overlay={<div data-testid="task-overlay">overlay</div>}
+					surfaceStyle={{
+						background: 'color-mix(in srgb, #ff9f0a 5%, var(--surface))',
+					}}
 				>
 					<TaskCardHeader
 						actions={
@@ -108,33 +110,33 @@ describe('task item shared composition', () => {
 						isExpanded={false}
 						meta={
 							<TaskCardMeta
-								completedSteps={1}
-								duration={45}
-								elapsedLabel="5:00"
-								hasElapsed
 								isActive={false}
 								isDesktop={false}
 								isExpanded={false}
-								startTimeLabel="09:00"
-								taskColor="#ff9f0a"
-								totalSteps={2}
+								task={task}
+								elapsedMs={task.elapsedMs}
 							/>
 						}
 						onToggleExpand={() => undefined}
-						title="Подготовить релиз"
+						title={task.title}
+						titleSuffix={<TaskCardHeaderPinProbe />}
 					/>
 				</TaskCard>
 			</Reorder.Group>,
 		);
 
+		expect(screen.getByTestId('task-overlay')).toBeInTheDocument();
 		expect(
 			screen.getByRole('button', {
 				name: 'Отметить задачу выполненной',
 			}),
 		).toBeInTheDocument();
-		expect(screen.getByText('Подготовить релиз')).toBeInTheDocument();
+		expect(screen.getByText(task.title)).toBeInTheDocument();
+		expect(screen.getByTestId('pin-probe')).toBeInTheDocument();
+		expect(screen.getByText('09:00')).toBeInTheDocument();
 		expect(screen.getByText('45 мин')).toBeInTheDocument();
 		expect(screen.getByText('1/2')).toBeInTheDocument();
+		expect(screen.getByText('Факт: 5:00')).toBeInTheDocument();
 		expect(
 			screen.getByRole('button', { name: 'Запустить таймер' }),
 		).toBeInTheDocument();
@@ -240,3 +242,7 @@ describe('task item shared composition', () => {
 		expect(onToggle).not.toHaveBeenCalled();
 	});
 });
+
+function TaskCardHeaderPinProbe() {
+	return <span data-testid="pin-probe">pin</span>;
+}
