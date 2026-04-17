@@ -1,5 +1,6 @@
 'use client';
 
+import { format } from 'date-fns';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Clock, ListTodo, Sparkles } from 'lucide-react';
 import FloatingActionButton from '../../FloatingActionButton';
@@ -12,8 +13,8 @@ import MobileStatsModal from './MobileStatsModal';
 import MobileTaskList from './MobileTaskList';
 import MobileTaskSheet from './MobileTaskSheet';
 import {
-  createPlannerShellViewModel,
   PLANNER_TABS,
+  type PlannerHeaderViewModel,
   type PlannerShellProps,
 } from '../shared/types';
 
@@ -23,19 +24,111 @@ export default function MobilePlannerShell({
 }: PlannerShellProps) {
   const keyboardHeight = useKeyboardInset();
   const isKeyboardOpen = keyboardHeight > 0;
-  const shell = createPlannerShellViewModel(planner, ui);
+  const editingTask = ui.sheet.editingTask;
+  const focusTask = ui.activeTask;
+
+  const header: PlannerHeaderViewModel = {
+    selectedDate: planner.selectedDate,
+    weekDays: planner.weekDays,
+    monthDays: planner.monthDays,
+    taskDates: planner.taskDates,
+    viewMode: planner.viewMode,
+    hours: planner.hours,
+    minutes: planner.minutes,
+    completedCount: ui.completedCount,
+    totalCount: ui.totalCount,
+    onSelectDate: planner.setSelectedDate,
+    onViewModeChange: planner.setViewMode,
+    onPrev: planner.goToPreviousPeriod,
+    onNext: planner.goToNextPeriod,
+    onToday: planner.goToToday,
+    onOpenStats: ui.openStats,
+    onOpenRecurring: ui.openRecurring,
+  };
+
+  const taskListProps = {
+    dateKey: format(planner.selectedDate, 'yyyy-MM-dd'),
+    tasks: planner.currentTasks,
+    isLoading: planner.isLoading,
+    onToggle: ui.toggleTask,
+    onDelete: ui.deleteTask,
+    onEdit: ui.openEdit,
+    onMove: planner.moveTask,
+    onAdd: ui.openCreate,
+    onReorder: planner.handleReorder,
+    onToggleActive: planner.toggleActiveTask,
+    updateTask: planner.updateTask,
+  };
+
+  const habitsTabProps = {
+    habits: planner.habits,
+    isLoading: planner.habitsLoading,
+    isChecked: planner.isHabitChecked,
+    isLogPending: planner.isHabitLogPending,
+    onToggleLog: planner.toggleHabitLog,
+    onAddHabit: planner.addHabit,
+    onDeleteHabit: planner.deleteHabit,
+    selectedDate: planner.selectedDate,
+  };
+
+  const taskSheetProps = {
+    onClose: ui.closeSheet,
+    mode: ui.sheet.mode,
+    initialTitle: ui.sheet.mode === 'edit' ? editingTask?.title : '',
+    initialDuration: ui.sheet.mode === 'edit' ? editingTask?.duration : 30,
+    initialColor: ui.sheet.mode === 'edit' ? editingTask?.color : undefined,
+    initialRepeat: 'none' as const,
+    initialRepeatCount: 7,
+    initialStartMinutes:
+      ui.sheet.mode === 'edit' ? editingTask?.startMinutes : null,
+    initialRemindBeforeMinutes:
+      ui.sheet.mode === 'edit' ? editingTask?.remindBeforeMinutes : 0,
+    taskDate:
+      ui.sheet.mode === 'edit'
+        ? (editingTask?.date ?? planner.selectedDate)
+        : planner.selectedDate,
+    onSubmit: ui.submitSheet,
+  };
+
+  const statsModalProps = {
+    streak: planner.streak,
+    tasks: planner.tasks,
+    selectedDate: planner.selectedDate,
+    onClose: ui.closeStats,
+    pomodoroStats: planner.pomodoroStats,
+  };
+
+  const recurringSheetProps = {
+    onClose: ui.closeRecurring,
+    recurringTasks: planner.recurringTasks,
+    recurringSkips: planner.recurringSkips,
+    onDeleteSeries: planner.deleteTaskSeries,
+    onSkipDate: planner.skipTaskSeriesDate,
+  };
+
+  const focusOverlayProps = focusTask
+    ? {
+        task: focusTask,
+        isActive: planner.activeTaskId === focusTask.id,
+        onToggleTimer: () => planner.toggleActiveTask(focusTask.id),
+        onClose: ui.closeFocus,
+        runWithAuthRetry: planner.runWithAuthRetry,
+      }
+    : null;
+
+  const showFocusShortcut = Boolean(planner.activeTaskId && !ui.showFocus);
 
   return (
     <div className="fixed inset-0 flex flex-col overflow-hidden bg-[var(--bg)] font-sans text-[var(--ink)]">
       <div className="relative z-10 flex-none">
-        <PlannerHeader header={shell.header} />
+        <PlannerHeader header={header} />
       </div>
 
       <main className="relative h-full w-full flex-1 overflow-hidden">
-        {shell.activeTab === 'tasks' ? (
-          <MobileTaskList {...shell.taskListProps} />
+        {ui.activeTab === 'tasks' ? (
+          <MobileTaskList {...taskListProps} />
         ) : (
-          <MobileHabitsTab {...shell.habitsTabProps} />
+          <MobileHabitsTab {...habitsTabProps} />
         )}
         <div className="pointer-events-none absolute bottom-0 left-0 right-0 z-20 h-16 bg-gradient-to-t from-[var(--bg)] to-transparent" />
       </main>
@@ -56,9 +149,9 @@ export default function MobilePlannerShell({
                 <button
                   key={tab.id}
                   type="button"
-                  onClick={() => shell.setActiveTab(tab.id)}
+                  onClick={() => ui.setActiveTab(tab.id)}
                   className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 transition-colors ${
-                    shell.activeTab === tab.id
+                    ui.activeTab === tab.id
                       ? 'text-[var(--accent)]'
                       : 'text-[var(--muted)]'
                   }`}
@@ -73,7 +166,7 @@ export default function MobilePlannerShell({
       )}
 
       <AnimatePresence>
-        {shell.overlays.isSyncing && (
+        {planner.isSyncing && (
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
@@ -90,7 +183,7 @@ export default function MobilePlannerShell({
       </AnimatePresence>
 
       <AnimatePresence>
-        {shell.overlays.syncError && (
+        {planner.syncError && (
           <motion.div
             initial={{ opacity: 0, y: 40, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -100,10 +193,10 @@ export default function MobilePlannerShell({
             aria-live="polite"
           >
             <div className="flex items-center justify-between gap-3 rounded-2xl border border-[var(--danger)]/20 bg-[var(--surface)] px-4 py-3 text-sm shadow-[var(--shadow-pop)]">
-              <span className="text-[var(--ink)]">{shell.overlays.syncError}</span>
+              <span className="text-[var(--ink)]">{planner.syncError}</span>
               <button
                 type="button"
-                onClick={shell.overlays.clearSyncError}
+                onClick={planner.clearSyncError}
                 className="rounded-full bg-[var(--surface-2)] px-3 py-1 text-xs font-bold text-[var(--muted)] transition-transform active:scale-95"
               >
                 Ок
@@ -114,45 +207,37 @@ export default function MobilePlannerShell({
       </AnimatePresence>
 
       <AnimatePresence>
-        {!shell.overlays.showTaskSheet &&
-          shell.activeTab === 'tasks' &&
-          !isKeyboardOpen && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-            >
-              <FloatingActionButton onClick={ui.openCreate} />
-            </motion.div>
-          )}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {shell.overlays.showTaskSheet && (
-          <MobileTaskSheet key="task-sheet" {...shell.overlays.taskSheetProps} />
+        {!ui.sheet.isOpen && ui.activeTab === 'tasks' && !isKeyboardOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            <FloatingActionButton onClick={ui.openCreate} />
+          </motion.div>
         )}
       </AnimatePresence>
 
       <AnimatePresence>
-        {shell.overlays.showStats && (
-          <MobileStatsModal {...shell.overlays.statsModalProps} />
-        )}
+        {ui.sheet.isOpen && <MobileTaskSheet key="task-sheet" {...taskSheetProps} />}
+      </AnimatePresence>
 
-        {shell.overlays.showRecurring && (
-          <MobileRecurringTasksSheet {...shell.overlays.recurringSheetProps} />
-        )}
+      <AnimatePresence>
+        {ui.showStats && <MobileStatsModal {...statsModalProps} />}
 
-        {shell.overlays.showFocus && shell.overlays.focusOverlayProps && (
-          <MobileFocusOverlay {...shell.overlays.focusOverlayProps} />
+        {ui.showRecurring && <MobileRecurringTasksSheet {...recurringSheetProps} />}
+
+        {ui.showFocus && focusOverlayProps && (
+          <MobileFocusOverlay {...focusOverlayProps} />
         )}
       </AnimatePresence>
 
-      {shell.overlays.showFocusShortcut && (
+      {showFocusShortcut && (
         <motion.button
           layoutId="focus-fab"
           type="button"
-          onClick={shell.overlays.openFocus}
+          onClick={ui.openFocus}
           className="fixed bottom-[calc(6rem+max(env(safe-area-inset-bottom),var(--tg-content-safe-bottom,0px)))] right-[max(1rem,env(safe-area-inset-right),var(--tg-content-safe-right,0px))] z-40 flex h-14 items-center gap-2 rounded-full bg-[var(--accent)] px-6 font-bold text-[var(--accent-ink)] shadow-lg"
         >
           <Clock size={20} className="animate-pulse" /> В фокус
@@ -160,7 +245,7 @@ export default function MobilePlannerShell({
       )}
 
       <AnimatePresence>
-        {shell.overlays.undoTask && (
+        {ui.undoTask && (
           <motion.div
             initial={{ opacity: 0, y: 50, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -173,7 +258,7 @@ export default function MobilePlannerShell({
               <span>Задача удалена</span>
               <button
                 type="button"
-                onClick={shell.overlays.undoDelete}
+                onClick={ui.undoDelete}
                 className="rounded-full bg-[var(--ink)] px-3 py-1.5 font-bold text-[var(--bg)] transition-transform active:scale-95"
               >
                 Отменить
@@ -184,7 +269,7 @@ export default function MobilePlannerShell({
       </AnimatePresence>
 
       <AnimatePresence>
-        {shell.overlays.dayCompleteVisible && (
+        {ui.dayCompleteVisible && (
           <motion.div
             initial={{ opacity: 0, scale: 0.5, y: -20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}

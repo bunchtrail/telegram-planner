@@ -266,6 +266,12 @@ describe('PlannerApp platform routing', () => {
 });
 
 describe('planner shells shared block orchestration', () => {
+  test('does not expose a shared shell view-model builder from the shared shell module', async () => {
+    const sharedShellModule = await import('../app/components/planner/shared/types');
+
+    expect(sharedShellModule).not.toHaveProperty('createPlannerShellViewModel');
+  });
+
   test('routes the mobile shell between tasks and habits blocks', async () => {
     const MobilePlannerShell = await getActualMobilePlannerShell();
     const planner = createPlannerStub('mobile');
@@ -321,5 +327,54 @@ describe('planner shells shared block orchestration', () => {
     );
 
     expect(screen.getByTestId('desktop-recurring-sheet')).toBeInTheDocument();
+  });
+
+  test('renders the mobile task sheet and hides the mobile fab while it is open', async () => {
+    const MobilePlannerShell = await getActualMobilePlannerShell();
+    const planner = createPlannerStub('mobile');
+    const ui = createUiControllerStub();
+
+    render(
+      <MobilePlannerShell
+        planner={planner}
+        ui={{
+          ...ui,
+          sheet: {
+            isOpen: true,
+            mode: 'create',
+            editingTask: null,
+          },
+        }}
+      />,
+    );
+
+    expect(screen.getByTestId('mobile-task-sheet')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'fab' })).not.toBeInTheDocument();
+  });
+
+  test('renders mobile focus, sync, undo, and completion overlays from shell state', async () => {
+    const MobilePlannerShell = await getActualMobilePlannerShell();
+    const planner = {
+      ...createPlannerStub('mobile'),
+      activeTaskId: 'task-1',
+      syncError: 'Sync failed',
+    };
+    const ui = {
+      ...createUiControllerStub(),
+      showFocus: true,
+      undoTask: { id: 'deleted-task' },
+      dayCompleteVisible: true,
+      activeTask: {
+        id: 'task-1',
+        title: 'Focus task',
+      },
+    };
+
+    render(<MobilePlannerShell planner={planner} ui={ui} />);
+
+    expect(screen.getByTestId('mobile-focus-overlay')).toBeInTheDocument();
+    expect(screen.getByText('Sync failed')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Отменить' })).toBeInTheDocument();
+    expect(screen.getByText('День завершен!')).toBeInTheDocument();
   });
 });

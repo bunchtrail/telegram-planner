@@ -22,8 +22,8 @@ import DesktopStatsModal from './DesktopStatsModal';
 import DesktopTaskList from './DesktopTaskList';
 import DesktopTaskSheet from './DesktopTaskSheet';
 import {
-  createPlannerShellViewModel,
   PLANNER_TABS,
+  type PlannerHeaderViewModel,
   type PlannerShellProps,
 } from '../shared/types';
 
@@ -31,8 +31,99 @@ export default function DesktopPlannerShell({
   planner,
   ui,
 }: PlannerShellProps) {
-  const shell = createPlannerShellViewModel(planner, ui);
-  const header = shell.header;
+  const editingTask = ui.sheet.editingTask;
+  const focusTask = ui.activeTask;
+
+  const header: PlannerHeaderViewModel = {
+    selectedDate: planner.selectedDate,
+    weekDays: planner.weekDays,
+    monthDays: planner.monthDays,
+    taskDates: planner.taskDates,
+    viewMode: planner.viewMode,
+    hours: planner.hours,
+    minutes: planner.minutes,
+    completedCount: ui.completedCount,
+    totalCount: ui.totalCount,
+    onSelectDate: planner.setSelectedDate,
+    onViewModeChange: planner.setViewMode,
+    onPrev: planner.goToPreviousPeriod,
+    onNext: planner.goToNextPeriod,
+    onToday: planner.goToToday,
+    onOpenStats: ui.openStats,
+    onOpenRecurring: ui.openRecurring,
+  };
+
+  const taskListProps = {
+    dateKey: format(planner.selectedDate, 'yyyy-MM-dd'),
+    tasks: planner.currentTasks,
+    isLoading: planner.isLoading,
+    onToggle: ui.toggleTask,
+    onDelete: ui.deleteTask,
+    onEdit: ui.openEdit,
+    onMove: planner.moveTask,
+    onAdd: ui.openCreate,
+    onReorder: planner.handleReorder,
+    onToggleActive: planner.toggleActiveTask,
+    updateTask: planner.updateTask,
+    className: 'pl-0 pr-0',
+  };
+
+  const habitsTabProps = {
+    habits: planner.habits,
+    isLoading: planner.habitsLoading,
+    isChecked: planner.isHabitChecked,
+    isLogPending: planner.isHabitLogPending,
+    onToggleLog: planner.toggleHabitLog,
+    onAddHabit: planner.addHabit,
+    onDeleteHabit: planner.deleteHabit,
+    selectedDate: planner.selectedDate,
+  };
+
+  const taskSheetProps = {
+    onClose: ui.closeSheet,
+    mode: ui.sheet.mode,
+    initialTitle: ui.sheet.mode === 'edit' ? editingTask?.title : '',
+    initialDuration: ui.sheet.mode === 'edit' ? editingTask?.duration : 30,
+    initialColor: ui.sheet.mode === 'edit' ? editingTask?.color : undefined,
+    initialRepeat: 'none' as const,
+    initialRepeatCount: 7,
+    initialStartMinutes:
+      ui.sheet.mode === 'edit' ? editingTask?.startMinutes : null,
+    initialRemindBeforeMinutes:
+      ui.sheet.mode === 'edit' ? editingTask?.remindBeforeMinutes : 0,
+    taskDate:
+      ui.sheet.mode === 'edit'
+        ? (editingTask?.date ?? planner.selectedDate)
+        : planner.selectedDate,
+    onSubmit: ui.submitSheet,
+  };
+
+  const statsModalProps = {
+    streak: planner.streak,
+    tasks: planner.tasks,
+    selectedDate: planner.selectedDate,
+    onClose: ui.closeStats,
+    pomodoroStats: planner.pomodoroStats,
+  };
+
+  const recurringSheetProps = {
+    onClose: ui.closeRecurring,
+    recurringTasks: planner.recurringTasks,
+    recurringSkips: planner.recurringSkips,
+    onDeleteSeries: planner.deleteTaskSeries,
+    onSkipDate: planner.skipTaskSeriesDate,
+  };
+
+  const focusOverlayProps = focusTask
+    ? {
+        task: focusTask,
+        isActive: planner.activeTaskId === focusTask.id,
+        onToggleTimer: () => planner.toggleActiveTask(focusTask.id),
+        onClose: ui.closeFocus,
+        runWithAuthRetry: planner.runWithAuthRetry,
+      }
+    : null;
+
   const isToday = isSameDay(header.selectedDate, new Date());
 
   return (
@@ -127,14 +218,14 @@ export default function DesktopPlannerShell({
           {ui.activeTask && (
             <button
               type="button"
-              onClick={shell.overlays.openFocus}
+              onClick={ui.openFocus}
               className="mb-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-[var(--accent)] py-4 font-bold text-[var(--accent-ink)] shadow-lg transition-all hover:brightness-110 active:scale-95"
             >
               <Clock className="animate-pulse" /> Текущая задача
             </button>
           )}
 
-          {shell.activeTab === 'tasks' && (
+          {ui.activeTab === 'tasks' && (
             <button
               type="button"
               onClick={header.onOpenRecurring}
@@ -145,7 +236,7 @@ export default function DesktopPlannerShell({
             </button>
           )}
 
-          {shell.activeTab === 'tasks' && (
+          {ui.activeTab === 'tasks' && (
             <button
               type="button"
               onClick={ui.openCreate}
@@ -202,9 +293,9 @@ export default function DesktopPlannerShell({
                 <button
                   key={tab.id}
                   type="button"
-                  onClick={() => shell.setActiveTab(tab.id)}
+                  onClick={() => ui.setActiveTab(tab.id)}
                   className={`flex items-center gap-2 border-b-2 px-5 py-3 text-sm font-bold transition-colors ${
-                    shell.activeTab === tab.id
+                    ui.activeTab === tab.id
                       ? 'border-[var(--accent)] text-[var(--accent)]'
                       : 'border-transparent text-[var(--muted)] hover:text-[var(--ink)]'
                   }`}
@@ -218,10 +309,10 @@ export default function DesktopPlannerShell({
 
         <div className="relative flex-1 overflow-hidden">
           <div className="no-scrollbar absolute inset-0 mx-auto w-full max-w-6xl overflow-y-auto px-12 py-10">
-            {shell.activeTab === 'tasks' ? (
-              <DesktopTaskList {...shell.taskListProps} className="pl-0 pr-0" />
+            {ui.activeTab === 'tasks' ? (
+              <DesktopTaskList {...taskListProps} />
             ) : (
-              <DesktopHabitsTab {...shell.habitsTabProps} />
+              <DesktopHabitsTab {...habitsTabProps} />
             )}
             <div className="h-32" />
           </div>
@@ -229,23 +320,19 @@ export default function DesktopPlannerShell({
       </main>
 
       <AnimatePresence>
-        {shell.overlays.showTaskSheet && (
-          <DesktopTaskSheet key="task-sheet" {...shell.overlays.taskSheetProps} />
+        {ui.sheet.isOpen && <DesktopTaskSheet key="task-sheet" {...taskSheetProps} />}
+
+        {ui.showStats && <DesktopStatsModal {...statsModalProps} />}
+
+        {ui.showRecurring && (
+          <DesktopRecurringTasksSheet {...recurringSheetProps} />
         )}
 
-        {shell.overlays.showStats && (
-          <DesktopStatsModal {...shell.overlays.statsModalProps} />
+        {ui.showFocus && focusOverlayProps && (
+          <DesktopFocusOverlay {...focusOverlayProps} />
         )}
 
-        {shell.overlays.showRecurring && (
-          <DesktopRecurringTasksSheet {...shell.overlays.recurringSheetProps} />
-        )}
-
-        {shell.overlays.showFocus && shell.overlays.focusOverlayProps && (
-          <DesktopFocusOverlay {...shell.overlays.focusOverlayProps} />
-        )}
-
-        {shell.overlays.undoTask && (
+        {ui.undoTask && (
           <motion.div
             initial={{ opacity: 0, y: 50, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -258,7 +345,7 @@ export default function DesktopPlannerShell({
               <span>Задача удалена</span>
               <button
                 type="button"
-                onClick={shell.overlays.undoDelete}
+                onClick={ui.undoDelete}
                 className="font-bold text-[var(--accent)] hover:underline"
               >
                 Отменить
@@ -267,7 +354,7 @@ export default function DesktopPlannerShell({
           </motion.div>
         )}
 
-        {shell.overlays.dayCompleteVisible && (
+        {ui.dayCompleteVisible && (
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
