@@ -9,17 +9,17 @@ export type FieldLabelProps = LabelHTMLAttributes<HTMLLabelElement> & {
 const FieldLabel = forwardRef<HTMLLabelElement, FieldLabelProps>(
   ({ children, className, hint, ...props }, ref) => {
     return (
-      <label
-        ref={ref}
+      <div
         className={cn(
           'mb-2 flex items-center justify-between gap-3 text-[13px] font-semibold uppercase tracking-[0.16em] text-[var(--muted)]',
           className,
         )}
-        {...props}
       >
-        <span>{children}</span>
+        <label ref={ref} {...props}>
+          <span>{children}</span>
+        </label>
         {hint ? <span className="text-[11px] tracking-[0.08em]">{hint}</span> : null}
-      </label>
+      </div>
     );
   },
 );

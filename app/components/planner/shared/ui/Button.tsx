@@ -1,7 +1,7 @@
 import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from 'react';
 import { cn } from '@/app/lib/cn';
 
-type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
+type ButtonVariant = 'primary' | 'accent' | 'secondary' | 'ghost' | 'danger';
 type ButtonSize = 'sm' | 'md';
 
 export type ButtonProps = Omit<
@@ -18,6 +18,8 @@ export type ButtonProps = Omit<
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
     'bg-[var(--ink)] text-[var(--bg)] hover:brightness-110 active:brightness-95',
+  accent:
+    'bg-[var(--accent)] text-[var(--accent-ink)] hover:brightness-110 active:brightness-95',
   secondary:
     'bg-[var(--surface)] text-[var(--ink)] border border-[var(--border)] hover:border-[var(--ink)]/15 hover:bg-[var(--surface)]/95 active:bg-[var(--surface)]/90',
   ghost:
@@ -38,7 +40,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       className,
       disabled = false,
       isLoading = false,
-      loadingText = 'Saving…',
+      loadingText = 'Сохранение…',
       size = 'md',
       type = 'button',
       variant = 'primary',

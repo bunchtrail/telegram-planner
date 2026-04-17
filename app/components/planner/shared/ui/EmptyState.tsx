@@ -2,18 +2,22 @@ import type { ReactNode } from 'react';
 import { cn } from '@/app/lib/cn';
 
 export type EmptyStateProps = {
-  title: string;
+  title: ReactNode;
   description?: string;
   action?: ReactNode;
   className?: string;
+  headingAs?: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
 };
 
 export default function EmptyState({
   action,
   className,
   description,
+  headingAs = 'h2',
   title,
 }: EmptyStateProps) {
+  const HeadingTag = headingAs;
+
   return (
     <section
       className={cn(
@@ -21,7 +25,9 @@ export default function EmptyState({
         className,
       )}
     >
-      <h2 className="text-lg font-semibold text-[var(--ink)]">{title}</h2>
+      <HeadingTag className="text-lg font-semibold text-[var(--ink)]">
+        {title}
+      </HeadingTag>
       {description ? (
         <p className="mt-2 max-w-sm text-sm leading-6 text-[var(--muted)]">
           {description}
