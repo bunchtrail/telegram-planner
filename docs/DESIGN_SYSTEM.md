@@ -33,6 +33,9 @@
 - Это единая база визуальных контролов и frame helpers.
 - Кнопки, surface wrappers, dialog/sheet контейнеры, заголовки модалок и field labels должны переиспользоваться, а не копироваться по доменным экранам.
 - Если новая сущность нужна не только задачам или привычкам, начинайте с этого слоя.
+- `Dialog` и `BottomSheet` используют общий close-interception contract: системные close intents (`Escape`, backdrop, drag-dismiss) сначала идут в `onRequestClose`.
+- Если открыт вложенный confirm/guard слой, `onRequestClose` закрывает его первым и не должен сразу закрывать весь frame.
+- `onClose` вызывается только как финальный close path, когда interception больше не удерживает frame открытым.
 
 ### `planner/shared/task/*` и `planner/shared/habit/*` — domain composition
 

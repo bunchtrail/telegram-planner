@@ -21,6 +21,9 @@
 - Набор primitive controls и frame helpers: `Button`, `Dialog`, `BottomSheet`, `SurfaceCard`, `FieldLabel`, `ModalHeader`, `useFrameFocusScope`.
 - Компоненты здесь не знают про задачи, привычки, лимиты целей или planner state.
 - Если блок можно переиспользовать вне конкретного домена, он должен жить здесь.
+- Для frame primitives действует единый close contract: `Escape`, backdrop click и drag-dismiss идут в `onRequestClose`, если у контейнера есть вложенный confirm/guard слой.
+- `onRequestClose` должен сначала закрыть внутренний guard/confirm, а не весь `Dialog`/`BottomSheet`.
+- `onClose` — финальный путь закрытия frame после того, как interception logic больше не нужна.
 
 ### `app/components/planner/shared/task/*` и `app/components/planner/shared/habit/*`
 
@@ -47,6 +50,7 @@
 - Platform-specific keyboard и safe-area handling живут в frame/shell слое.
 - Shared формы не должны сами вычислять `visualViewport`, Telegram safe-area переменные или platform offset.
 - Допустим только явно проброшенный layout variant вроде `isDesktop`, если меняется раскладка секций, а не поведение платформы.
+- Если внутри frame есть confirm/unsaved-changes guard, shell или контейнер должен пробросить interception через `onRequestClose`, а не вызывать финальный `onClose` напрямую из backdrop/Escape/drag-dismiss.
 
 ## Accessibility (a11y)
 
