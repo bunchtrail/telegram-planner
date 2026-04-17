@@ -12,7 +12,7 @@ import {
 	Trash2,
 	X,
 } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { addDays, format, getDay, startOfDay, isSameYear } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { cn } from '../lib/cn';
@@ -106,28 +106,15 @@ export default function RecurringTasksSheet({
 	const reduceMotion = Boolean(prefersReducedMotion);
 	const confirmDialogRef = useRef<HTMLDivElement>(null);
 
-	useFrameFocusScope(confirmDialogRef, { active: confirmAction != null });
-
-	useEffect(() => {
-		if (confirmAction == null) {
-			return;
-		}
-
-		const handleKeyDown = (event: KeyboardEvent) => {
-			if (event.key === 'Escape') {
-				event.preventDefault();
-				setConfirmAction(null);
-			}
-		};
-
-		document.addEventListener('keydown', handleKeyDown, true);
-		return () => document.removeEventListener('keydown', handleKeyDown, true);
-	}, [confirmAction]);
+	useFrameFocusScope(confirmDialogRef, {
+		active: confirmAction != null,
+		onEscape: () => setConfirmAction(null),
+	});
 
 	const handleClose = useCallback(() => {
 		setConfirmAction(null);
 		setIsSettled(false);
-		setTimeout(onClose, 10);
+		onClose();
 	}, [onClose]);
 
 	const skipsBySeriesId = useMemo(() => {

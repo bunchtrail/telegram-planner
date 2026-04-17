@@ -40,7 +40,7 @@ export default function Dialog({
   const reduceMotion = Boolean(prefersReducedMotion);
   const requestClose = onRequestClose ?? onClose;
 
-  useFrameFocusScope(contentRef);
+  useFrameFocusScope(contentRef, { onEscape: requestClose });
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center py-4 pl-[max(1rem,env(safe-area-inset-left),var(--tg-content-safe-left,0px))] pr-[max(1rem,env(safe-area-inset-right),var(--tg-content-safe-right,0px))]">
@@ -70,12 +70,6 @@ export default function Dialog({
         initial={{ scale: reduceMotion ? 1 : 0.95, opacity: 0, y: 10 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
         exit={{ scale: reduceMotion ? 1 : 0.95, opacity: 0, y: 10 }}
-        onKeyDown={(event) => {
-          if (event.key === 'Escape') {
-            event.stopPropagation();
-            requestClose();
-          }
-        }}
         role="dialog"
         tabIndex={-1}
         transition={{ type: 'spring', duration: reduceMotion ? 0 : 0.4, bounce: 0.3 }}

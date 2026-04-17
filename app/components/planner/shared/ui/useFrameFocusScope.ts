@@ -1,6 +1,6 @@
 'use client';
 
-import { type RefObject, useEffect, useRef } from 'react';
+import { type RefObject, useLayoutEffect, useRef } from 'react';
 
 const FOCUSABLE_SELECTOR = [
   'a[href]',
@@ -35,16 +35,17 @@ const removeTrapFromStack = (trapId: string) => {
 
 type UseFrameFocusScopeOptions = {
   active?: boolean;
+  onEscape?: () => void;
 };
 
 export default function useFrameFocusScope(
   containerRef: RefObject<HTMLElement | null>,
-  { active = true }: UseFrameFocusScopeOptions = {},
+  { active = true, onEscape }: UseFrameFocusScopeOptions = {},
 ) {
   const previousFocusedRef = useRef<HTMLElement | null>(null);
   const trapIdRef = useRef(`frame-focus-trap-${focusTrapCounter++}`);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!active) {
       return;
     }
@@ -68,6 +69,13 @@ export default function useFrameFocusScope(
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (focusTrapStack.at(-1) !== trapId) {
+        return;
+      }
+
+      if (event.key === 'Escape' && onEscape) {
+        event.preventDefault();
+        event.stopPropagation();
+        onEscape();
         return;
       }
 
@@ -136,5 +144,5 @@ export default function useFrameFocusScope(
         previousFocusedRef.current.focus({ preventScroll: true });
       }
     };
-  }, [active, containerRef]);
+  }, [active, containerRef, onEscape]);
 }

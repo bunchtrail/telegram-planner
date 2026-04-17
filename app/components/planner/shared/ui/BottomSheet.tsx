@@ -57,7 +57,7 @@ export default function BottomSheet({
   const dragDismissEnabled = !isDesktop && !disableDragDismiss;
   const dragControls = useDragControls();
 
-  useFrameFocusScope(contentRef);
+  useFrameFocusScope(contentRef, { onEscape: requestClose });
 
   return (
     <div
@@ -154,12 +154,6 @@ export default function BottomSheet({
           }
         }}
         onDragStart={() => setIsDragging(true)}
-        onKeyDown={(event) => {
-          if (event.key === 'Escape') {
-            event.stopPropagation();
-            requestClose();
-          }
-        }}
         role="dialog"
         tabIndex={-1}
         transition={

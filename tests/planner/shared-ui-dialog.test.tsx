@@ -227,4 +227,45 @@ describe('shared dialog and sheet primitives', () => {
       expect(within(document.body).queryByText('Удалить все повторы?')).not.toBeInTheDocument();
     }
   });
+
+  test('RecurringTasksSheet still closes on Escape after dismissing confirm before focus returns to the sheet', async () => {
+    const user = userEvent.setup();
+    const onClose = vi.fn();
+    const recurringTasks: TaskSeriesRow[] = [
+      {
+        id: 'series-1',
+        title: 'Повтор задачи',
+        duration: 30,
+        repeat: 'daily',
+        weekday: null,
+        start_minutes: 540,
+        remind_before_minutes: 10,
+        start_date: '2026-04-17',
+        end_date: null,
+      },
+    ];
+
+    render(
+      <RecurringTasksSheet
+        onClose={onClose}
+        recurringTasks={recurringTasks}
+        recurringSkips={[]}
+        onDeleteSeries={vi.fn()}
+        onSkipDate={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: /Повтор задачи/i }));
+    await user.click(screen.getByRole('button', { name: /Остановить серию/i }));
+    await user.keyboard('{Escape}');
+    await waitForElementToBeRemoved(() => screen.queryByText('Удалить все повторы?'));
+
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+
+    await user.keyboard('{Escape}');
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
 });
