@@ -12,12 +12,15 @@
 
 ### UI (компоненты в `app/components/`)
 
-- Только отображение и локальные UI-состояния (открыт/закрыт sheet, фокус, анимации).
-- Не хранить там бизнес-правила (лимиты, правила слотов, фильтры дат) — это зона `usePlanner`.
+- `app/components/PlannerApp.tsx` — только platform router.
+- `app/components/planner/mobile/*` и `app/components/planner/desktop/*` — platform shells и platform-specific adapters.
+- `app/components/planner/shared/*` — общие типы и маленькие примитивы без platform-ветвления.
+- В UI допустимы только отображение и локальные shell-состояния; бизнес-правила не хранить.
 
 ### Бизнес-логика (хуки в `app/hooks/`)
 
 - `usePlanner`: источник истины для задач/целей, подсчётов, навигации по датам, optimistic updates, supabase IO.
+- `usePlannerUiController`: общий UI orchestration для shell-ов (sheet, undo, overlays, completion feedback).
 - `useHaptic`: тонкая обёртка над Telegram WebApp HapticFeedback.
 
 ### Интеграции (в `app/lib/` и `app/api/`)
@@ -54,6 +57,15 @@
 3. **Optimistic updates + reconciliation**
    - UI всегда быстрый; при ошибке откатываем.
    - Для INSERT используем временный id и “сопоставление” по полям (см. `STATE_REALTIME.md`).
+4. **Platform boundary на уровне shell**
+   - Router определяет `platform` один раз.
+   - mobile/desktop различия замыкаются в shell-слое и platform wrappers, а не размазываются по всему дереву.
+
+## Правило платформенного разделения
+
+- `app/lib/platform.ts` — единственный источник truth для platform detection.
+- shared hooks/компоненты не должны напрямую вычислять desktop/mobile через `window`, Telegram API или user agent.
+- Если поведение реально отличается, это оформляется отдельными mobile/desktop wrapper-ами или shell-компонентами.
 
 ## Рекомендации по развитию (проверенные направления)
 

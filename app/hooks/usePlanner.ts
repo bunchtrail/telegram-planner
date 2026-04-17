@@ -11,7 +11,7 @@ import {
 	subDays,
 	subMonths,
 } from 'date-fns';
-import { isDesktop as checkIsDesktop } from '../lib/platform';
+import { getPlannerPlatform, type PlannerPlatform } from '../lib/platform';
 import { setSupabaseAccessToken } from '../lib/supabase';
 import type { Task } from '../types/task';
 import {
@@ -142,7 +142,7 @@ export function usePlanner() {
 	const [viewMode, setViewMode] = useState<PlannerViewMode>('week');
 	const [userId, setUserId] = useState<string | null>(null);
 	const [isAddOpen, setIsAddOpen] = useState(false);
-	const [isDesktop, setIsDesktop] = useState(false);
+	const [platform, setPlatform] = useState<PlannerPlatform>('mobile');
 	const authRefreshPromiseRef = useRef<Promise<boolean> | null>(null);
 
 	// --- Auth ---
@@ -456,15 +456,15 @@ export function usePlanner() {
 		const root = document.documentElement;
 
 		const applyPlatform = () => {
-			const platform = webApp?.platform;
-			if (platform) {
-				root.dataset.tgPlatform = platform;
+			const telegramPlatform = webApp?.platform;
+			if (telegramPlatform) {
+				root.dataset.tgPlatform = telegramPlatform;
 			} else {
 				delete root.dataset.tgPlatform;
 			}
-			const desktop = checkIsDesktop();
-			setIsDesktop(desktop);
-			root.classList.toggle('tg-desktop', desktop);
+			const nextPlatform = getPlannerPlatform();
+			setPlatform(nextPlatform);
+			root.classList.toggle('tg-desktop', nextPlatform === 'desktop');
 		};
 
 		applyPlatform();
@@ -680,7 +680,7 @@ export function usePlanner() {
 		fetchRecurringTasks,
 		deleteTaskSeries,
 		skipTaskSeriesDate,
-		isDesktop,
+		platform,
 		runWithAuthRetry,
 		userId,
 		isSyncing,

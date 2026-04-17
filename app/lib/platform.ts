@@ -1,28 +1,36 @@
-export const isIOSDevice = () => {
-  if (typeof navigator === 'undefined') return false;
-  // Standard iOS UA check
-  if (/iPad|iPhone|iPod/.test(navigator.userAgent)) return true;
-  // iPadOS with desktop user-agent
-  if (
-    navigator.platform === 'MacIntel' &&
-    typeof navigator.maxTouchPoints === 'number' &&
-    navigator.maxTouchPoints > 1
-  ) {
-    return true;
-  }
-  return false;
-};
+export type PlannerPlatform = 'mobile' | 'desktop';
 
 type TelegramWebApp = {
   platform?: string;
 };
 
-export const isDesktop = () => {
-  if (typeof window === 'undefined') return false;
+const MOBILE_USER_AGENT_PATTERN =
+  /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i;
+
+const getTelegramPlatform = () => {
+  if (typeof window === 'undefined') return null;
+
   const telegram = (
     window as Window & { Telegram?: { WebApp?: TelegramWebApp } }
   ).Telegram;
-  const platform = telegram?.WebApp?.platform;
+
+  return telegram?.WebApp?.platform ?? null;
+};
+
+export const isIOSDevice = () => {
+  if (typeof navigator === 'undefined') return false;
+
+  if (/iPad|iPhone|iPod/.test(navigator.userAgent)) return true;
+
+  return (
+    navigator.platform === 'MacIntel' &&
+    typeof navigator.maxTouchPoints === 'number' &&
+    navigator.maxTouchPoints > 1
+  );
+};
+
+export const getPlannerPlatform = (): PlannerPlatform => {
+  const platform = getTelegramPlatform();
 
   if (platform) {
     const desktopPlatforms = new Set([
@@ -33,22 +41,26 @@ export const isDesktop = () => {
       'webk',
       'unknown',
     ]);
+
     if (desktopPlatforms.has(platform)) {
-      return true;
+      return 'desktop';
     }
+
     if (platform === 'android' || platform === 'ios') {
-      return false;
+      return 'mobile';
     }
   }
 
   if (typeof navigator !== 'undefined') {
-    const userAgent = navigator.userAgent;
-    const isMobile =
-      /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-        userAgent
-      );
-    return !isMobile;
+    return MOBILE_USER_AGENT_PATTERN.test(navigator.userAgent)
+      ? 'mobile'
+      : 'desktop';
   }
 
-  return false;
+  return 'mobile';
 };
+
+export const isDesktop = () => getPlannerPlatform() === 'desktop';
+
+export const isIOSWithinMobile = () =>
+  getPlannerPlatform() === 'mobile' && isIOSDevice();

@@ -42,7 +42,6 @@ import {
 import type { Task } from '../types/task';
 import { cn } from '../lib/cn';
 import { useHaptic } from '../hooks/useHaptic';
-import { isIOSDevice } from '../lib/platform';
 
 type TaskItemProps = {
 	task: Task;
@@ -55,6 +54,7 @@ type TaskItemProps = {
 	updateTask: (id: string, updates: Partial<Task>) => void;
 	isDesktop?: boolean;
 	canReorder?: boolean;
+	reduceHeavyEffectsOnPlatform?: boolean;
 };
 
 interface CustomCSSProperties extends CSSProperties {
@@ -114,6 +114,7 @@ const TaskItem = memo(function TaskItem({
 	updateTask,
 	isDesktop = false,
 	canReorder = true,
+	reduceHeavyEffectsOnPlatform = false,
 }: TaskItemProps) {
 	const { impact, selection, notification } = useHaptic();
 	const dragControls = useDragControls();
@@ -124,11 +125,10 @@ const TaskItem = memo(function TaskItem({
 	const [detailsHeight, setDetailsHeight] = useState<number | 'auto'>('auto');
 	const inputRef = useRef<HTMLInputElement>(null);
 	const prefersReducedMotion = useReducedMotion();
-	const isIOS = isIOSDevice();
 	// reduceMotion: fully disable transitions (only for prefers-reduced-motion)
 	const reduceMotion = Boolean(prefersReducedMotion);
 	// reduceHeavyEffects: skip GPU-intensive glow, blur, conic-gradient (iOS + reduced motion)
-	const reduceHeavyEffects = reduceMotion || isIOS;
+	const reduceHeavyEffects = reduceMotion || reduceHeavyEffectsOnPlatform;
 	const listMotionEnabled = !reduceMotion;
 	const [tickNow, setTickNow] = useState(() => Date.now());
 	const startTimeLabel =

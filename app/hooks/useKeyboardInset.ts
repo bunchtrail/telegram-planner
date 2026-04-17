@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { isIOSDevice } from "../lib/platform";
+import { isIOSWithinMobile } from "../lib/platform";
 
 /**
  * Tracks the iOS virtual keyboard height using VisualViewport API
@@ -16,7 +16,7 @@ export function useKeyboardInset() {
     if (typeof window === "undefined") return;
 
     // Only activate on iOS – Android + desktop are handled by viewport meta
-    if (!isIOSDevice()) return;
+    if (!isIOSWithinMobile()) return;
 
     const vv = window.visualViewport;
     if (!vv) return;

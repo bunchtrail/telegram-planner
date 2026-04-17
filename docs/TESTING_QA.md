@@ -32,6 +32,12 @@
   - фокус внутри
   - ESC закрывает
   - сабмит пустого названия показывает ошибку
+- PlannerApp router:
+  - `platform=mobile` монтирует mobile shell
+  - `platform=desktop` монтирует desktop shell
+- usePlannerUiController:
+  - create/edit sheet flow общий для обоих shell-ов
+  - delete/undo работает без дублирования по layout-ам
 - WeekStrip/MonthGrid:
   - выбранная дата помечена aria-атрибутами
   - смена даты вызывает selection haptic (можно мокать)
@@ -43,6 +49,9 @@
   - нет скачка layout при открытии/закрытии
 - Safe-area:
   - FAB не “уползает” под системные элементы
+- На desktop:
+  - рендерится desktop shell, а не mobile layout с условными ветками
+  - create/edit/delete/undo проходят без regressions
 - Realtime:
   - изменения на другом устройстве приходят без дублей
 - Offline/плохая сеть:
