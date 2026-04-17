@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import type { SupabaseErrorLike } from '../lib/task-utils';
 
-export const POMODORO_STATS_QUERY_KEY = 'pomodoro_stats';
+const POMODORO_STATS_QUERY_KEY = 'pomodoro_stats';
 
 type WeeklyFocusRow = {
 	total_pomodoros: number;

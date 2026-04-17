@@ -4,8 +4,8 @@ import { supabase } from '../lib/supabase';
 import type { Habit, HabitLog } from '../types/habit';
 import type { SupabaseErrorLike } from '../lib/task-utils';
 
-export const HABITS_QUERY_KEY = 'habits';
-export const HABIT_LOGS_QUERY_KEY = 'habit_logs';
+const HABITS_QUERY_KEY = 'habits';
+const HABIT_LOGS_QUERY_KEY = 'habit_logs';
 
 type HabitRow = {
 	id: string;

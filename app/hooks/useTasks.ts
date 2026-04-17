@@ -25,7 +25,7 @@ import {
 	DEFAULT_DURATION,
 } from '../lib/task-utils';
 
-export const TASKS_QUERY_KEY = 'tasks';
+const TASKS_QUERY_KEY = 'tasks';
 
 type UseTasksConfig = {
 	userId: string | null;

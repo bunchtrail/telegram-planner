@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import type { SupabaseErrorLike } from '../lib/task-utils';
 
-export const STREAK_QUERY_KEY = 'streak';
+const STREAK_QUERY_KEY = 'streak';
 
 type UseStreakConfig = {
 	userId: string | null;

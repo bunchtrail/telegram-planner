@@ -3,9 +3,9 @@ import { DEFAULT_TASK_COLOR } from './constants';
 import type { Task, TaskChecklistItem } from '../types/task';
 
 export const DEFAULT_DURATION = 30;
-export const TASK_TITLE_MAX_LENGTH = 160;
-export const TASK_DURATION_MIN = 1;
-export const TASK_DURATION_MAX = 24 * 60;
+const TASK_TITLE_MAX_LENGTH = 160;
+const TASK_DURATION_MIN = 1;
+const TASK_DURATION_MAX = 24 * 60;
 
 export type TaskRow = {
 	id: string;
@@ -48,14 +48,14 @@ export const parseDateOnly = (value: string) => {
 	return new Date(year, month - 1, day);
 };
 
-export const parseElapsedMs = (value?: number | string | null) => {
+const parseElapsedMs = (value?: number | string | null) => {
 	if (value == null) return 0;
 	const numeric = typeof value === 'string' ? Number(value) : value;
 	if (!Number.isFinite(numeric)) return 0;
 	return Math.max(0, numeric);
 };
 
-export const parseTimestamp = (value?: string | null) => {
+const parseTimestamp = (value?: string | null) => {
 	if (!value) return null;
 	const date = new Date(value);
 	return Number.isNaN(date.getTime()) ? null : date;

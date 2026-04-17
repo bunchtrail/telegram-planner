@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase';
 import { type SupabaseErrorLike, formatDateOnly } from '../lib/task-utils';
 import type { TaskSeriesRow, TaskSeriesSkipRow } from './usePlanner';
 
-export const RECURRING_QUERY_KEY = 'recurring-tasks';
+const RECURRING_QUERY_KEY = 'recurring-tasks';
 
 type UseRecurringTasksConfig = {
 	userId: string | null;
