@@ -312,10 +312,11 @@ export default function RecurringTasksSheet({
 									onClick={() => setConfirmAction(null)}
 								/>
 
-								<motion.div
-									ref={confirmDialogRef}
-									aria-modal="true"
-									initial={
+							<motion.div
+								ref={confirmDialogRef}
+								aria-labelledby="recurring-confirm-title"
+								aria-modal="true"
+								initial={
 										isDesktop
 											? { opacity: 0, scale: 0.9, y: 0 }
 											: { opacity: 0, y: 20, scale: 0.95 }
@@ -351,7 +352,10 @@ export default function RecurringTasksSheet({
 									tabIndex={-1}
 								>
 									<div className="flex flex-col items-center text-center">
-										<h3 className="mb-2 flex items-center gap-2 font-[var(--font-display)] text-[17px] font-bold leading-tight text-[var(--ink)]">
+										<h3
+											id="recurring-confirm-title"
+											className="mb-2 flex items-center gap-2 font-[var(--font-display)] text-[17px] font-bold leading-tight text-[var(--ink)]"
+										>
 											<AlertTriangle
 												size={20}
 												className="text-[var(--danger)]"

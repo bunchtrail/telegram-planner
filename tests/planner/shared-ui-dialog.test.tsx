@@ -207,6 +207,10 @@ describe('shared dialog and sheet primitives', () => {
     await user.click(screen.getByRole('button', { name: /Повтор задачи/i }));
     await user.click(screen.getByRole('button', { name: /Остановить серию/i }));
 
+    expect(
+      screen.getByRole('dialog', { name: 'Удалить все повторы?' }),
+    ).toBeInTheDocument();
+
     const confirmLayer = screen.getByText('Удалить все повторы?').closest('div');
     expect(screen.getByText('Удалить все повторы?')).toBeInTheDocument();
 
