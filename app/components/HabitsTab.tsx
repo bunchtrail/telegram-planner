@@ -1,26 +1,15 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Trash2, Check } from 'lucide-react';
-import { addDays, format, startOfWeek } from 'date-fns';
-import { ru } from 'date-fns/locale';
+import { Plus } from 'lucide-react';
+import { addDays, startOfWeek } from 'date-fns';
 import { cn } from '../lib/cn';
-import { TASK_COLOR_OPTIONS } from '../lib/constants';
 import type { Habit } from '../types/habit';
-
-const HABIT_ICONS = [
-	'💧',
-	'🏃',
-	'📖',
-	'🧘',
-	'💊',
-	'🥗',
-	'😴',
-	'✍️',
-	'🎯',
-	'💪',
-];
+import HabitCard from './planner/shared/habit/HabitCard';
+import HabitForm, {
+	type HabitFormSubmitValue,
+} from './planner/shared/habit/HabitForm';
 
 type HabitsTabProps = {
 	habits: Habit[];
@@ -46,33 +35,44 @@ export default function HabitsTab({
 	isDesktop = false,
 }: HabitsTabProps) {
 	const [showAddForm, setShowAddForm] = useState(false);
-	const [newName, setNewName] = useState('');
-	const [newIcon, setNewIcon] = useState(HABIT_ICONS[0]);
-	const [newColor, setNewColor] = useState<string>(TASK_COLOR_OPTIONS[2]);
 	const [deletingId, setDeletingId] = useState<string | null>(null);
+	const deleteResetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+		null,
+	);
 
 	const weekDays = useMemo(() => {
 		const start = startOfWeek(selectedDate, { weekStartsOn: 1 });
 		return Array.from({ length: 7 }, (_, i) => addDays(start, i));
 	}, [selectedDate]);
 
-	const handleSubmit = () => {
-		const trimmed = newName.trim();
-		if (!trimmed) return;
-		onAddHabit(trimmed, newIcon, newColor);
-		setNewName('');
-		setNewIcon(HABIT_ICONS[0]);
-		setNewColor(TASK_COLOR_OPTIONS[2]);
+	useEffect(() => {
+		return () => {
+			if (deleteResetTimeoutRef.current) {
+				clearTimeout(deleteResetTimeoutRef.current);
+			}
+		};
+	}, []);
+
+	const handleSubmit = ({ color, icon, name }: HabitFormSubmitValue) => {
+		onAddHabit(name, icon, color);
 		setShowAddForm(false);
 	};
 
 	const handleDelete = (id: string) => {
+		if (deleteResetTimeoutRef.current) {
+			clearTimeout(deleteResetTimeoutRef.current);
+			deleteResetTimeoutRef.current = null;
+		}
+
 		if (deletingId === id) {
 			onDeleteHabit(id);
 			setDeletingId(null);
 		} else {
 			setDeletingId(id);
-			setTimeout(() => setDeletingId(null), 3000);
+			deleteResetTimeoutRef.current = setTimeout(() => {
+				setDeletingId((current) => (current === id ? null : current));
+				deleteResetTimeoutRef.current = null;
+			}, 3000);
 		}
 	};
 
@@ -114,155 +114,25 @@ export default function HabitsTab({
 			{/* Habits list */}
 			<div className="flex flex-col gap-3">
 				<AnimatePresence mode="popLayout">
-					{habits.map((habit) => {
-						const todayKey = format(new Date(), 'yyyy-MM-dd');
-						const checkedCount = weekDays.filter((d) =>
-							isChecked(habit.id, format(d, 'yyyy-MM-dd')),
-						).length;
-
-						return (
-							<motion.div
-								key={habit.id}
-								layout
-								initial={{ opacity: 0, scale: 0.95 }}
-								animate={{ opacity: 1, scale: 1 }}
-								exit={{ opacity: 0, scale: 0.9 }}
-								className="bg-[var(--surface)] rounded-[24px] shadow-[var(--shadow-card)] p-4 flex flex-col gap-3"
-							>
-								{/* Top row: icon + name + counter */}
-								<div className="flex items-center gap-3">
-									<button
-										className={cn(
-											'shrink-0 flex items-center justify-center w-9 h-9 rounded-xl transition-colors',
-											deletingId === habit.id
-												? 'bg-[var(--danger)]/10'
-												: 'bg-[var(--surface-2)]',
-										)}
-										onClick={() => handleDelete(habit.id)}
-										aria-label={
-											deletingId === habit.id
-												? 'Подтвердить удаление'
-												: 'Удалить привычку'
-										}
-									>
-										{deletingId === habit.id ? (
-											<Trash2
-												size={18}
-												className="text-[var(--danger)]"
-											/>
-										) : (
-											<span className="text-lg">
-												{habit.icon}
-											</span>
-										)}
-									</button>
-									<span className="flex-1 min-w-0 text-sm font-bold text-[var(--ink)] truncate">
-										{habit.name}
-									</span>
-									<span
-										className="shrink-0 text-xs font-bold tabular-nums"
-										style={{
-											color:
-												checkedCount === 7
-													? habit.color
-													: 'var(--muted)',
-										}}
-									>
-										{checkedCount}/7
-									</span>
-								</div>
-
-								{/* Day grid: labels + checkboxes, perfectly aligned via grid-cols-7 */}
-								<div className="grid grid-cols-7 gap-1">
-									{weekDays.map((day) => {
-										const dateKey = format(
-											day,
-											'yyyy-MM-dd',
-										);
-										const checked = isChecked(
-											habit.id,
-											dateKey,
-										);
-										const pending =
-											isLogPending?.(habit.id, dateKey) ??
-											false;
-										const isToday = dateKey === todayKey;
-
-										return (
-											<div
-												key={dateKey}
-												className="flex flex-col items-center gap-1"
-											>
-												<span
-													className={cn(
-														'text-[9px] font-bold uppercase tracking-wide',
-														isToday
-															? 'text-[var(--accent)]'
-															: 'text-[var(--muted)]',
-													)}
-												>
-													{format(day, 'EEEEEE', {
-														locale: ru,
-													})}
-												</span>
-												<motion.button
-													whileTap={{ scale: 0.85 }}
-													disabled={pending}
-													onClick={() =>
-														!pending &&
-														onToggleLog(
-															habit.id,
-															dateKey,
-														)
-													}
-													className={cn(
-														'w-full aspect-square rounded-xl border-2 flex items-center justify-center transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed',
-														checked
-															? 'border-transparent shadow-sm'
-															: isToday
-																? 'border-[var(--accent)]/60 bg-[var(--accent)]/5'
-																: 'border-[var(--border)] bg-transparent',
-													)}
-													style={
-														checked
-															? {
-																	backgroundColor:
-																		habit.color,
-																}
-															: undefined
-													}
-													aria-label={`${habit.name} ${format(day, 'd MMM', { locale: ru })}`}
-													aria-busy={pending}
-												>
-													{checked && (
-														<motion.div
-															initial={{
-																scale: 0,
-															}}
-															animate={{
-																scale: 1,
-															}}
-															transition={{
-																type: 'spring',
-																stiffness: 500,
-																damping: 25,
-															}}
-														>
-															<Check
-																size={14}
-																strokeWidth={3}
-																className="text-white"
-															/>
-														</motion.div>
-													)}
-												</motion.button>
-											</div>
-										);
-									})}
-								</div>
-							</motion.div>
-						);
-					})}
+					{habits.map((habit) => (
+						<motion.div
+							key={habit.id}
+							layout
+							initial={{ opacity: 0, scale: 0.95 }}
+							animate={{ opacity: 1, scale: 1 }}
+							exit={{ opacity: 0, scale: 0.9 }}
+						>
+							<HabitCard
+								habit={habit}
+								isChecked={isChecked}
+								isDeleting={deletingId === habit.id}
+								isLogPending={isLogPending}
+								onDelete={handleDelete}
+								onToggleLog={onToggleLog}
+								weekDays={weekDays}
+							/>
+						</motion.div>
+					))}
 				</AnimatePresence>
 
 				{habits.length === 0 && !showAddForm && (
@@ -287,101 +157,10 @@ export default function HabitsTab({
 							exit={{ opacity: 0, height: 0 }}
 							className="overflow-hidden"
 						>
-							<div className="bg-[var(--surface)] rounded-[24px] shadow-[var(--shadow-card)] p-5 flex flex-col gap-4">
-								<input
-									type="text"
-									value={newName}
-									onChange={(e) => setNewName(e.target.value)}
-									placeholder="Название привычки"
-									maxLength={100}
-									autoFocus
-									className="w-full bg-[var(--surface-2)] rounded-2xl px-4 py-3 text-[var(--ink)] placeholder:text-[var(--muted)] outline-none border border-[var(--border)] focus:border-[var(--accent)] transition-colors"
-									onKeyDown={(e) => {
-										if (e.key === 'Enter') handleSubmit();
-										if (e.key === 'Escape')
-											setShowAddForm(false);
-									}}
-									onFocus={(e) =>
-										setTimeout(
-											() =>
-												e.target.scrollIntoView({
-													behavior: 'smooth',
-													block: 'center',
-												}),
-											300,
-										)
-									}
-								/>
-
-								{/* Icon picker */}
-								<div>
-									<div className="text-[10px] font-bold text-[var(--muted)] uppercase tracking-wider mb-2">
-										Иконка
-									</div>
-									<div className="flex gap-2 flex-wrap">
-										{HABIT_ICONS.map((icon) => (
-											<button
-												key={icon}
-												onClick={() => setNewIcon(icon)}
-												className={cn(
-													'w-10 h-10 rounded-xl flex items-center justify-center text-xl transition-all',
-													newIcon === icon
-														? 'bg-[var(--accent)]/15 ring-2 ring-[var(--accent)] scale-110'
-														: 'bg-[var(--surface-2)]',
-												)}
-											>
-												{icon}
-											</button>
-										))}
-									</div>
-								</div>
-
-								{/* Color picker */}
-								<div>
-									<div className="text-[10px] font-bold text-[var(--muted)] uppercase tracking-wider mb-2">
-										Цвет
-									</div>
-									<div className="flex gap-2">
-										{TASK_COLOR_OPTIONS.map((color) => (
-											<button
-												key={color}
-												onClick={() =>
-													setNewColor(color)
-												}
-												className={cn(
-													'w-8 h-8 rounded-full transition-all',
-													newColor === color &&
-														'ring-2 ring-offset-2 ring-offset-[var(--surface)] scale-110',
-												)}
-												style={{
-													backgroundColor: color,
-													boxShadow:
-														newColor === color
-															? `0 0 0 2px ${color}`
-															: undefined,
-												}}
-											/>
-										))}
-									</div>
-								</div>
-
-								{/* Actions */}
-								<div className="flex gap-3">
-									<button
-										onClick={() => setShowAddForm(false)}
-										className="flex-1 py-3 rounded-2xl bg-[var(--surface-2)] text-[var(--muted)] font-bold transition-colors active:scale-95"
-									>
-										Отмена
-									</button>
-									<button
-										onClick={handleSubmit}
-										disabled={!newName.trim()}
-										className="flex-1 py-3 rounded-2xl bg-[var(--accent)] text-[var(--accent-ink)] font-bold transition-all active:scale-95 disabled:opacity-40"
-									>
-										Добавить
-									</button>
-								</div>
-							</div>
+							<HabitForm
+								onSubmit={handleSubmit}
+								onCancel={() => setShowAddForm(false)}
+							/>
 						</motion.div>
 					)}
 				</AnimatePresence>
@@ -393,7 +172,10 @@ export default function HabitsTab({
 					initial={{ scale: 0 }}
 					animate={{ scale: 1 }}
 					whileTap={{ scale: 0.9 }}
-					onClick={() => setShowAddForm(true)}
+					onClick={() => {
+						setDeletingId(null);
+						setShowAddForm(true);
+					}}
 					className={cn(
 						'fixed z-40 flex h-14 w-14 items-center justify-center rounded-full bg-[var(--accent)] text-[var(--accent-ink)] shadow-lg',
 						isDesktop
