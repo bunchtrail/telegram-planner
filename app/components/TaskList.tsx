@@ -199,6 +199,22 @@ export default function TaskList({
 		const taskById = new Map(
 			groupTasks.map((task) => [task.clientId, task]),
 		);
+		const renderTaskItem = (task: Task) => (
+			<TaskItem
+				key={task.clientId}
+				task={task}
+				onToggle={onToggle}
+				onDelete={onDelete}
+				onEdit={onEdit}
+				onMove={onMove}
+				isActive={isActiveTask(task)}
+				onToggleActive={onToggleActive}
+				updateTask={updateTask}
+				isDesktop={isDesktop}
+				canReorder={canReorder}
+				reduceHeavyEffectsOnPlatform={reduceHeavyEffectsOnPlatform}
+			/>
+		);
 		return (
 			<Reorder.Group
 				key={`${dateKey}-${groupKey}`}
@@ -218,44 +234,10 @@ export default function TaskList({
 				className={isDesktop ? 'space-y-4' : 'relative'}
 			>
 				{!listMotionEnabled ? (
-					groupTasks.map((task) => (
-						<TaskItem
-							key={task.clientId}
-							task={task}
-							onToggle={onToggle}
-							onDelete={onDelete}
-							onEdit={onEdit}
-							onMove={onMove}
-							isActive={isActiveTask(task)}
-							onToggleActive={onToggleActive}
-							updateTask={updateTask}
-							isDesktop={isDesktop}
-							canReorder={canReorder}
-							reduceHeavyEffectsOnPlatform={
-								reduceHeavyEffectsOnPlatform
-							}
-						/>
-					))
+					groupTasks.map(renderTaskItem)
 				) : (
 					<AnimatePresence initial={false} mode="popLayout">
-						{groupTasks.map((task) => (
-							<TaskItem
-								key={task.clientId}
-								task={task}
-								onToggle={onToggle}
-								onDelete={onDelete}
-								onEdit={onEdit}
-								onMove={onMove}
-								isActive={isActiveTask(task)}
-								onToggleActive={onToggleActive}
-								updateTask={updateTask}
-								isDesktop={isDesktop}
-								canReorder={canReorder}
-								reduceHeavyEffectsOnPlatform={
-									reduceHeavyEffectsOnPlatform
-								}
-							/>
-						))}
+						{groupTasks.map(renderTaskItem)}
 					</AnimatePresence>
 				)}
 			</Reorder.Group>
