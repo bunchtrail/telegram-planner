@@ -1,5 +1,6 @@
 'use client';
 
+import { useRef } from 'react';
 import { Calendar, Check, Sunrise, X } from 'lucide-react';
 
 type TaskMoveActionsProps = {
@@ -19,6 +20,20 @@ export default function TaskMoveActions({
 	onConfirmPendingDate,
 	onMoveTomorrow,
 }: TaskMoveActionsProps) {
+	const dateInputRef = useRef<HTMLInputElement>(null);
+
+	const handleOpenDatePicker = () => {
+		const input = dateInputRef.current;
+		if (!input) return;
+
+		if (typeof input.showPicker === 'function') {
+			input.showPicker();
+			return;
+		}
+
+		input.click();
+	};
+
 	return (
 		<div className="grid grid-cols-2 gap-2 md:gap-3">
 			<button
@@ -67,20 +82,30 @@ export default function TaskMoveActions({
 				) : (
 					<>
 						<input
+							ref={dateInputRef}
 							type="date"
 							value={effectivePickerValue}
 							onChange={(event) => onChangePendingDate(event.target.value)}
 							onClick={(event) => event.stopPropagation()}
-							className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
-							aria-label="Выбрать дату"
+							className="pointer-events-none absolute inset-0 w-full h-full opacity-0"
+							tabIndex={-1}
+							aria-hidden="true"
 						/>
-						<div className="absolute inset-0 flex flex-col items-center justify-center gap-1 rounded-[18px] bg-[var(--surface-2)] text-[var(--ink)] pointer-events-none hover:bg-[var(--border)] transition-colors">
+						<button
+							type="button"
+							aria-label="Выбрать дату"
+							onClick={(event) => {
+								event.stopPropagation();
+								handleOpenDatePicker();
+							}}
+							className="absolute inset-0 flex flex-col items-center justify-center gap-1 rounded-[18px] bg-[var(--surface-2)] text-[var(--ink)] border border-[var(--border)]/40 transition-colors hover:bg-[var(--border)] hover:border-[var(--border)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/35 focus-visible:border-[var(--accent)]"
+						>
 							<Calendar
 								size={20}
 								className="text-[var(--muted)] mb-0.5"
 							/>
 							<span className="text-[12px] font-bold">Дата</span>
-						</div>
+						</button>
 					</>
 				)}
 			</div>

@@ -102,10 +102,10 @@ function ChecklistRow({
 				onClick={() => onDeleteItem(index)}
 				aria-label={`Удалить шаг ${item.text}`}
 				className={cn(
-					'w-6 h-6 flex items-center justify-center rounded-full text-[var(--muted)]/40',
+					'w-6 h-6 flex items-center justify-center rounded-full text-[var(--muted)]/40 outline-none',
 					reduceMotion
 						? 'opacity-100'
-						: 'hover:text-[var(--danger)] hover:bg-[var(--danger)]/10 transition-[transform,opacity,colors] active:scale-90 opacity-100 sm:opacity-0 sm:group-hover:opacity-100',
+						: 'hover:text-[var(--danger)] hover:bg-[var(--danger)]/10 focus-visible:opacity-100 focus-visible:text-[var(--danger)] focus-visible:bg-[var(--danger)]/10 focus-visible:ring-2 focus-visible:ring-[var(--danger)]/20 transition-[transform,opacity,colors] active:scale-90 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100',
 				)}
 			>
 				<X size={14} />

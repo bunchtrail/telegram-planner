@@ -1,5 +1,5 @@
 import type { ComponentProps } from 'react';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Reorder } from 'framer-motion';
 import {
@@ -17,6 +17,7 @@ import TaskCard from '@/app/components/planner/shared/task/TaskCard';
 import TaskCardActions from '@/app/components/planner/shared/task/TaskCardActions';
 import TaskCardHeader from '@/app/components/planner/shared/task/TaskCardHeader';
 import TaskCardMeta from '@/app/components/planner/shared/task/TaskCardMeta';
+import TaskMoveActions from '@/app/components/planner/shared/task/TaskMoveActions';
 import type { Task } from '@/app/types/task';
 
 const { impactMock, notificationMock, selectionMock } = vi.hoisted(() => ({
@@ -178,6 +179,105 @@ describe('task item shared composition', () => {
 		expect(onToggleItem).toHaveBeenCalledWith(0);
 		expect(onDeleteItem).toHaveBeenCalledWith(0);
 		expect(onAddItem).toHaveBeenCalledWith('Сверить аналитику');
+	});
+
+	test('desktop ChecklistEditor delete action keeps hover behavior and adds keyboard-visible styles', async () => {
+		const user = userEvent.setup();
+
+		render(
+			<ChecklistEditor
+				items={createTask().checklist}
+				onAddItem={vi.fn()}
+				onDeleteItem={vi.fn()}
+				onToggleItem={vi.fn()}
+				taskColor="#ff9f0a"
+				taskId="task-1"
+			/>,
+		);
+
+		const deleteButton = screen.getByRole('button', {
+			name: 'Удалить шаг Проверить smoke',
+		});
+
+		expect(deleteButton).toHaveClass(
+			'sm:opacity-0',
+			'sm:group-hover:opacity-100',
+			'sm:group-focus-within:opacity-100',
+			'focus-visible:opacity-100',
+		);
+
+		await user.tab();
+		await user.tab();
+		await user.tab();
+
+		expect(deleteButton).toHaveFocus();
+	});
+
+	test('TaskMoveActions uses a visible date button and keeps date changes wired through the hidden input', async () => {
+		const user = userEvent.setup();
+		const onChangePendingDate = vi.fn();
+		const showPickerMock = vi.fn();
+		const originalShowPicker = HTMLInputElement.prototype.showPicker;
+
+		Object.defineProperty(HTMLInputElement.prototype, 'showPicker', {
+			configurable: true,
+			value: showPickerMock,
+		});
+
+		try {
+			const { container } = render(
+				<TaskMoveActions
+					effectivePickerValue="2026-04-17"
+					hasPendingChange={false}
+					onCancelPendingDate={vi.fn()}
+					onChangePendingDate={onChangePendingDate}
+					onConfirmPendingDate={vi.fn()}
+					onMoveTomorrow={vi.fn()}
+				/>,
+			);
+
+			const tomorrowButton = screen.getByRole('button', {
+				name: 'Перенести на завтра',
+			});
+			const dateButton = screen.getByRole('button', {
+				name: 'Выбрать дату',
+			});
+			const dateInput = container.querySelector(
+				'input[type="date"]',
+			) as HTMLInputElement | null;
+
+			expect(dateButton).toHaveClass(
+				'focus-visible:ring-2',
+				'focus-visible:ring-[var(--accent)]/35',
+			);
+			expect(dateInput).not.toBeNull();
+			expect(dateInput).toHaveAttribute('tabindex', '-1');
+			expect(screen.getAllByRole('button', { name: 'Выбрать дату' })).toHaveLength(1);
+
+			await user.tab();
+			expect(tomorrowButton).toHaveFocus();
+
+			await user.tab();
+			expect(dateButton).toHaveFocus();
+
+			await user.click(dateButton);
+			expect(showPickerMock).toHaveBeenCalledTimes(1);
+
+			fireEvent.change(dateInput!, {
+				target: { value: '2026-04-21' },
+			});
+
+			expect(onChangePendingDate).toHaveBeenCalledWith('2026-04-21');
+		} finally {
+			if (originalShowPicker) {
+				Object.defineProperty(HTMLInputElement.prototype, 'showPicker', {
+					configurable: true,
+					value: originalShowPicker,
+				});
+			} else {
+				delete HTMLInputElement.prototype.showPicker;
+			}
+		}
 	});
 
 	test('TaskItem keeps timer, move, checklist and delete interactions wired through shared blocks', async () => {
