@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef } from 'react';
+import { useMemo } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { Clock, Flame, Target, Timer, X, Zap } from 'lucide-react';
 import { format, subDays, isSameDay, startOfDay } from 'date-fns';
@@ -8,6 +8,8 @@ import { ru } from 'date-fns/locale';
 import type { Task } from '../types/task';
 import type { PomodoroWeeklyStats } from '../hooks/usePomodoroStats';
 import { cn } from '../lib/cn';
+import Dialog from './planner/shared/ui/Dialog';
+import ModalHeader from './planner/shared/ui/ModalHeader';
 
 type StatsModalProps = {
 	onClose: () => void;
@@ -24,7 +26,6 @@ export default function StatsModal({
 	selectedDate,
 	pomodoroStats,
 }: StatsModalProps) {
-	const dialogRef = useRef<HTMLDivElement>(null);
 	const prefersReducedMotion = useReducedMotion();
 	const reduceMotion = Boolean(prefersReducedMotion);
 
@@ -131,78 +132,39 @@ export default function StatsModal({
 				? 100
 				: 0;
 
-	useEffect(() => {
-		dialogRef.current?.focus();
-	}, []);
-
-	useEffect(() => {
-		const handleKeyDown = (event: KeyboardEvent) => {
-			if (event.key === 'Escape') onClose();
-		};
-		window.addEventListener('keydown', handleKeyDown);
-		return () => window.removeEventListener('keydown', handleKeyDown);
-	}, [onClose]);
-
 	return (
-		<div className="fixed inset-0 z-50 flex items-center justify-center py-4 pl-[max(1rem,env(safe-area-inset-left),var(--tg-content-safe-left,0px))] pr-[max(1rem,env(safe-area-inset-right),var(--tg-content-safe-right,0px))]">
-			<motion.div
-				initial={{ opacity: 0 }}
-				animate={{ opacity: 1 }}
-				exit={{ opacity: 0 }}
-				className="absolute inset-0 bg-black/40 backdrop-blur-sm sheet-backdrop"
-				onClick={onClose}
-				aria-hidden
+		<Dialog
+			ariaLabelledby="stats-title"
+			backdropClassName="sheet-backdrop"
+			contentClassName="max-w-sm p-6"
+			onClose={onClose}
+		>
+			<ModalHeader
+				className="mb-5 shrink-0"
+				closeClassName="rounded-full bg-[var(--surface-2)] text-[var(--muted)] hover:text-[var(--ink)] active:scale-95"
+				closeIcon={<X size={20} />}
+				description={stats.rangeLabel}
+				descriptionClassName="text-[13px] font-medium"
+				meta={
+					<>
+						<div className="rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-[var(--muted)]">
+							7 дней
+						</div>
+						{streak > 0 ? (
+							<div className="flex items-center gap-1 rounded-lg border border-orange-500/20 bg-orange-500/10 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-orange-600">
+								<Flame size={12} fill="currentColor" />
+								Серия {streak}
+							</div>
+						) : null}
+					</>
+				}
+				onClose={onClose}
+				title="Прогресс"
+				titleClassName="text-2xl"
+				titleId="stats-title"
 			/>
 
-			<motion.div
-				ref={dialogRef}
-				role="dialog"
-				aria-modal="true"
-				aria-labelledby="stats-title"
-				tabIndex={-1}
-				initial={{ scale: reduceMotion ? 1 : 0.95, opacity: 0, y: 10 }}
-				animate={{ scale: 1, opacity: 1, y: 0 }}
-				exit={{ scale: reduceMotion ? 1 : 0.95, opacity: 0, y: 10 }}
-				transition={{ type: 'spring', duration: 0.4, bounce: 0.3 }}
-				className="relative bg-[var(--surface)] w-full max-w-sm rounded-[32px] p-6 shadow-2xl overflow-hidden ring-1 ring-[var(--border)] flex flex-col max-h-[90vh]"
-			>
-				{/* Header */}
-				<div className="flex justify-between items-start mb-5 shrink-0">
-					<div>
-						<h2
-							id="stats-title"
-							className="text-2xl font-bold font-[var(--font-display)] text-[var(--ink)]"
-						>
-							Прогресс
-						</h2>
-						<p className="text-[13px] font-medium text-[var(--muted)] mt-0.5">
-							{stats.rangeLabel}
-						</p>
-
-						<div className="flex items-center gap-2 mt-3">
-							<div className="px-2.5 py-1 rounded-lg bg-[var(--surface-2)] border border-[var(--border)] text-[11px] font-bold text-[var(--muted)] uppercase tracking-wider">
-								7 дней
-							</div>
-							{streak > 0 && (
-								<div className="px-2.5 py-1 rounded-lg bg-orange-500/10 border border-orange-500/20 text-[11px] font-bold text-orange-600 uppercase tracking-wider flex items-center gap-1">
-									<Flame size={12} fill="currentColor" />
-									Серия {streak}
-								</div>
-							)}
-						</div>
-					</div>
-
-					<button
-						onClick={onClose}
-						className="p-2 bg-[var(--surface-2)] rounded-full text-[var(--muted)] hover:text-[var(--ink)] transition-colors active:scale-95"
-						aria-label="Закрыть"
-					>
-						<X size={20} />
-					</button>
-				</div>
-
-				{/* Scrollable Content */}
-				<div className="flex-1 overflow-y-auto no-scrollbar min-h-0 -mx-6 px-6 pb-2">
+			<div className="flex-1 overflow-y-auto no-scrollbar min-h-0 -mx-6 px-6 pb-2">
 					{/* Grid Layout */}
 					<div className="grid grid-cols-2 gap-3 mb-4">
 						{/* Hero Card (Completion) */}
@@ -415,9 +377,8 @@ export default function StatsModal({
 							})}
 						</div>
 					</div>
-				</div>
-			</motion.div>
-		</div>
+			</div>
+		</Dialog>
 	);
 }
 

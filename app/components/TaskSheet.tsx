@@ -15,14 +15,12 @@ import {
 	Clock,
 	Palette,
 	Repeat,
-	X,
 } from 'lucide-react';
 import { isSameDay } from 'date-fns';
 import {
 	motion,
 	type AnimationDefinition,
 	type PanInfo,
-	type Transition,
 	useDragControls,
 	useReducedMotion,
 } from 'framer-motion';
@@ -31,22 +29,11 @@ import { DEFAULT_TASK_COLOR, TASK_COLOR_OPTIONS } from '../lib/constants';
 import { useHaptic } from '../hooks/useHaptic';
 import type { TaskRepeat } from '../types/task';
 import { useKeyboardInset } from '../hooks/useKeyboardInset';
+import BottomSheet from './planner/shared/ui/BottomSheet';
+import ModalHeader from './planner/shared/ui/ModalHeader';
 import TimeGridPicker from './TimeGridPicker';
 
 const DURATION_PRESETS = [15, 30, 45, 60, 90, 120];
-
-const SHEET_TRANSITION = {
-	type: 'spring',
-	damping: 32,
-	stiffness: 400,
-	mass: 0.8,
-} satisfies Transition;
-
-const MODAL_TRANSITION = {
-	type: 'spring',
-	damping: 25,
-	stiffness: 300,
-} satisfies Transition;
 
 const REPEAT_COUNT_MIN = 1;
 const REPEAT_COUNT_MAX = 365;
@@ -259,26 +246,6 @@ export default function TaskSheet({
 		},
 		[mode, isDesktop, isSettled],
 	);
-
-	const containerClasses = isDesktop
-		? 'fixed inset-0 z-50 flex items-center justify-center pointer-events-auto py-4 pl-[max(1rem,env(safe-area-inset-left),var(--tg-content-safe-left,0px))] pr-[max(1rem,env(safe-area-inset-right),var(--tg-content-safe-right,0px))]'
-		: 'fixed inset-0 z-50 flex flex-col justify-end pointer-events-none touch-none pl-[max(env(safe-area-inset-left),var(--tg-content-safe-left,0px))] pr-[max(env(safe-area-inset-right),var(--tg-content-safe-right,0px))]';
-
-	const sheetClasses = cn(
-		'pointer-events-auto relative w-full bg-[var(--surface)] flex flex-col shadow-[0_-10px_40px_-10px_rgba(0,0,0,0.1)] overflow-hidden ring-1 ring-inset ring-[var(--border)]',
-		isDesktop
-			? 'max-w-3xl rounded-3xl shadow-2xl max-h-[85vh] h-auto border border-[var(--border)]'
-			: 'max-w-lg mx-auto rounded-t-[32px] max-h-[92dvh]',
-	);
-
-	const initialAnim = isDesktop ? { opacity: 0, scale: 0.95 } : { y: '100%' };
-	const animateAnim = isDesktop ? { opacity: 1, scale: 1 } : { y: 0 };
-	const exitAnim = isDesktop ? { opacity: 0, scale: 0.95 } : { y: '100%' };
-	const transitionConfig = reduceMotion
-		? { duration: 0 }
-		: isDesktop
-			? MODAL_TRANSITION
-			: SHEET_TRANSITION;
 
 	const renderTimeSection = () => (
 		<div className="flex flex-col gap-2">
@@ -702,115 +669,96 @@ export default function TaskSheet({
 		</div>
 	);
 
-	return (
-		<div className={containerClasses}>
-			<motion.div
-				initial={{ opacity: 0 }}
-				animate={{ opacity: 1 }}
-				exit={{ opacity: 0 }}
-				transition={{ duration: reduceMotion ? 0 : 0.3 }}
-				className="absolute inset-0 bg-black/40 backdrop-blur-md sheet-backdrop pointer-events-auto"
-				onClick={handleClose}
-			/>
+	const submitButton = (
+		<button
+			type="button"
+			onClick={() => formRef.current?.requestSubmit()}
+			className={cn(
+				'rounded-xl font-bold text-[15px] shadow-lg transition-all hover:brightness-110 active:scale-[0.94] disabled:opacity-40 disabled:shadow-none flex items-center gap-2',
+				isDesktop
+					? 'h-10 px-6'
+					: 'h-10 px-5 disabled:active:scale-100',
+				mode === 'create'
+					? isDesktop
+						? 'bg-[var(--ink)] text-[var(--bg)]'
+						: 'bg-[var(--ink)] text-[var(--bg)] shadow-[var(--ink)]/20'
+					: isDesktop
+						? 'bg-[var(--accent)] text-[var(--accent-ink)]'
+						: 'bg-[var(--accent)] text-[var(--accent-ink)] shadow-[var(--accent)]/30',
+			)}
+			disabled={!title.trim()}
+		>
+			{mode === 'create' ? 'Создать' : 'Сохранить'}
+		</button>
+	);
 
-			<motion.div
-				initial={initialAnim}
-				animate={animateAnim}
-				exit={exitAnim}
-				transition={transitionConfig}
-				onAnimationStart={() => setIsSettled(false)}
-				onAnimationComplete={handleAnimationComplete}
-				drag={isDesktop ? false : 'y'}
-				dragControls={dragControls}
-				dragListener={false}
-				dragConstraints={{ top: 0 }}
-				dragElastic={reduceMotion ? 0 : 0.05}
-				onDragStart={() => setIsDragging(true)}
-				onDragEnd={handleDragEnd}
-				transformTemplate={(_transforms, generatedTransform) =>
+	return (
+		<BottomSheet
+			ariaLabelledby="task-sheet-title"
+			bodyClassName="min-h-0"
+			contentClassName={cn(
+				isDesktop ? 'max-w-3xl' : 'max-w-lg',
+			)}
+			contentMotionProps={{
+				initial: isDesktop ? { opacity: 0, scale: 0.95 } : { y: '100%' },
+				animate: isDesktop ? { opacity: 1, scale: 1 } : { y: 0 },
+				exit: isDesktop ? { opacity: 0, scale: 0.95 } : { y: '100%' },
+				transition: reduceMotion
+					? { duration: 0 }
+					: isDesktop
+						? { type: 'spring', damping: 25, stiffness: 300 }
+						: { type: 'spring', damping: 32, stiffness: 400, mass: 0.8 },
+				onAnimationStart: () => setIsSettled(false),
+				onAnimationComplete: handleAnimationComplete,
+				drag: isDesktop ? false : 'y',
+				dragControls,
+				dragListener: false,
+				dragConstraints: { top: 0 },
+				dragElastic: reduceMotion ? 0 : 0.05,
+				onDragStart: () => setIsDragging(true),
+				onDragEnd: handleDragEnd,
+				transformTemplate: (_transforms, generatedTransform) =>
 					isSettled && !isDragging && !isDesktop
 						? 'none'
-						: generatedTransform
+						: generatedTransform,
+			}}
+			header={
+				<ModalHeader
+					action={submitButton}
+					className={cn('items-center', !isDesktop && 'px-6')}
+					closeClassName={cn(
+						'rounded-xl border border-[var(--border)]/40 bg-[var(--surface-2)]/60 active:scale-[0.90]',
+						!isDesktop && '-ml-2',
+					)}
+					closePosition="start"
+					onClose={handleClose}
+					title={mode === 'create' ? 'Новая задача' : 'Редактирование задачи'}
+					titleClassName="sr-only"
+					titleId="task-sheet-title"
+				/>
+			}
+			headerClassName={cn(
+				!isDesktop &&
+					'cursor-grab active:cursor-grabbing touch-none [touch-action:none]',
+			)}
+			isDesktop={isDesktop}
+			onClose={handleClose}
+			onHandlePointerDown={(event) => {
+				if (!isDesktop) {
+					dragControls.start(event);
 				}
-				className={sheetClasses}
+			}}
+		>
+			<form
+				ref={formRef}
+				onSubmit={handleSubmit}
+				className={cn(
+					'h-full overflow-y-auto overflow-x-hidden no-scrollbar touch-pan-y flex flex-col min-h-0',
+					isDesktop
+						? 'p-8 pt-0'
+						: `px-0 pt-0 pb-[max(env(safe-area-inset-bottom),32px,var(--keyboard-height,0px))]`,
+				)}
 			>
-				<div
-					className={cn(
-						'shrink-0 w-full pt-4 pb-2 z-20 bg-[var(--surface)] select-none',
-						!isDesktop &&
-							'cursor-grab active:cursor-grabbing touch-none [touch-action:none]',
-						isDesktop && 'p-6 pb-0',
-					)}
-					onPointerDown={(e) => !isDesktop && dragControls.start(e)}
-				>
-					{!isDesktop && (
-						<div className="flex justify-center mb-4">
-							<div className="w-10 h-[5px] rounded-full bg-[var(--muted)]/16" />
-						</div>
-					)}
-
-					<div
-						className={cn(
-							'flex items-center justify-between pb-2',
-							isDesktop ? 'mb-4' : 'px-6',
-						)}
-					>
-						<button
-							type="button"
-							onClick={handleClose}
-							className={cn(
-								'w-10 h-10 flex items-center justify-center rounded-xl text-[var(--muted)] bg-[var(--surface-2)]/60 border border-[var(--border)]/40 hover:bg-[var(--surface-2)] hover:text-[var(--ink)] transition-all active:scale-[0.90]',
-								!isDesktop && '-ml-2',
-							)}
-							aria-label="Закрыть"
-						>
-							<X size={20} strokeWidth={2.5} />
-						</button>
-
-						{!isDesktop && (
-							<button
-								type="button"
-								onClick={() => formRef.current?.requestSubmit()}
-								className={cn(
-									'h-10 px-5 rounded-xl font-bold text-[15px] shadow-lg transition-all active:scale-[0.94] hover:brightness-110 disabled:opacity-40 disabled:shadow-none disabled:active:scale-100 flex items-center gap-2',
-									mode === 'create'
-										? 'bg-[var(--ink)] text-[var(--bg)] shadow-[var(--ink)]/20'
-										: 'bg-[var(--accent)] text-[var(--accent-ink)] shadow-[var(--accent)]/30',
-								)}
-								disabled={!title.trim()}
-							>
-								{mode === 'create' ? 'Создать' : 'Сохранить'}
-							</button>
-						)}
-
-						{isDesktop && (
-							<button
-								type="button"
-								onClick={() => formRef.current?.requestSubmit()}
-								className={cn(
-									'h-10 px-6 rounded-xl font-bold text-[15px] shadow-lg transition-all active:scale-[0.94] hover:brightness-110 disabled:opacity-40 disabled:shadow-none flex items-center gap-2',
-									mode === 'create'
-										? 'bg-[var(--ink)] text-[var(--bg)]'
-										: 'bg-[var(--accent)] text-[var(--accent-ink)]',
-								)}
-								disabled={!title.trim()}
-							>
-								{mode === 'create' ? 'Создать' : 'Сохранить'}
-							</button>
-						)}
-					</div>
-				</div>
-
-				<form
-					ref={formRef}
-					onSubmit={handleSubmit}
-					className={cn(
-						'flex-1 overflow-y-auto overflow-x-hidden no-scrollbar touch-pan-y flex flex-col min-h-0',
-						isDesktop
-							? 'p-8 pt-0'
-							: `px-0 pt-0 pb-[max(env(safe-area-inset-bottom),32px,var(--keyboard-height,0px))]`,
-					)}
-				>
 					<div
 						className={cn(
 							'shrink-0',
@@ -913,9 +861,8 @@ export default function TaskSheet({
 
 						{!isDesktop && <div className="h-6 shrink-0" />}
 					</div>
-				</form>
-			</motion.div>
-		</div>
+			</form>
+		</BottomSheet>
 	);
 }
 
