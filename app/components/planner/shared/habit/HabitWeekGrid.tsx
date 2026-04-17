@@ -31,6 +31,9 @@ export default function HabitWeekGrid({
     <div className="grid grid-cols-7 gap-1">
       {days.map((day) => {
         const dateKey = format(day, 'yyyy-MM-dd');
+        const localizedDayLabel = `${habitName}, ${format(day, 'EEEE, d MMMM', {
+          locale: ru,
+        })}`;
         const checked = isChecked(habitId, dateKey);
         const pending = isPending?.(habitId, dateKey) ?? false;
         const isToday = dateKey === todayKey;
@@ -63,7 +66,7 @@ export default function HabitWeekGrid({
                     : 'border-[var(--border)] bg-transparent',
               )}
               style={checked ? { backgroundColor: color } : undefined}
-              aria-label={`${habitName} ${dateKey}`}
+              aria-label={localizedDayLabel}
               aria-busy={pending}
             >
               {checked ? (

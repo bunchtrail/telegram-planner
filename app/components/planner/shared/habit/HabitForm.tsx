@@ -1,6 +1,13 @@
 'use client';
 
-import { useId, useMemo, useState, type FormEvent, type KeyboardEvent } from 'react';
+import {
+  useEffect,
+  useId,
+  useMemo,
+  useState,
+  type FormEvent,
+  type KeyboardEvent,
+} from 'react';
 import Button from '@/app/components/planner/shared/ui/Button';
 import FieldLabel from '@/app/components/planner/shared/ui/FieldLabel';
 import SurfaceCard from '@/app/components/planner/shared/ui/SurfaceCard';
@@ -39,15 +46,31 @@ export default function HabitForm({
   onSubmit,
   submitLabel = 'Добавить',
 }: HabitFormProps) {
-  const [value, setValue] = useState(() => createInitialValue(initialValue));
+  const initialName = initialValue?.name;
+  const initialIcon = initialValue?.icon;
+  const initialColor = initialValue?.color;
+  const resolvedInitialValue = useMemo(
+    () =>
+      createInitialValue({
+        name: initialName,
+        icon: initialIcon,
+        color: initialColor,
+      }),
+    [initialColor, initialIcon, initialName],
+  );
+  const [value, setValue] = useState(resolvedInitialValue);
   const nameFieldId = useId();
   const iconLabelId = useId();
   const colorLabelId = useId();
 
   const canSubmit = useMemo(() => value.name.trim().length > 0, [value.name]);
 
+  useEffect(() => {
+    setValue(resolvedInitialValue);
+  }, [resolvedInitialValue]);
+
   const reset = () => {
-    setValue(createInitialValue(initialValue));
+    setValue(resolvedInitialValue);
   };
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -119,6 +142,7 @@ export default function HabitForm({
         <div>
           <FieldLabel id={iconLabelId}>Иконка</FieldLabel>
           <HabitIconPicker
+            ariaLabelledBy={iconLabelId}
             value={value.icon}
             onChange={(icon) =>
               setValue((current) => ({
@@ -133,6 +157,7 @@ export default function HabitForm({
         <div>
           <FieldLabel id={colorLabelId}>Цвет</FieldLabel>
           <HabitColorPicker
+            ariaLabelledBy={colorLabelId}
             value={value.color}
             onChange={(color) =>
               setValue((current) => ({

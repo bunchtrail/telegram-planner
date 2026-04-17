@@ -18,6 +18,7 @@ export const HABIT_ICON_OPTIONS = [
 export const DEFAULT_HABIT_ICON = HABIT_ICON_OPTIONS[0];
 
 export type HabitIconPickerProps = {
+  ariaLabelledBy?: string;
   className?: string;
   onChange: (value: string) => void;
   options?: readonly string[];
@@ -25,13 +26,18 @@ export type HabitIconPickerProps = {
 };
 
 export default function HabitIconPicker({
+  ariaLabelledBy,
   className,
   onChange,
   options = HABIT_ICON_OPTIONS,
   value,
 }: HabitIconPickerProps) {
   return (
-    <div className={cn('flex flex-wrap gap-2', className)}>
+    <div
+      role="group"
+      aria-labelledby={ariaLabelledBy}
+      className={cn('flex flex-wrap gap-2', className)}
+    >
       {options.map((icon) => {
         const isSelected = value === icon;
 

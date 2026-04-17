@@ -8,6 +8,7 @@ import { cn } from '@/app/lib/cn';
 export const DEFAULT_HABIT_COLOR = TASK_COLOR_OPTIONS[2];
 
 export type HabitColorPickerProps = {
+  ariaLabelledBy?: string;
   className?: string;
   onChange: (value: string) => void;
   options?: readonly string[];
@@ -15,13 +16,18 @@ export type HabitColorPickerProps = {
 };
 
 export default function HabitColorPicker({
+  ariaLabelledBy,
   className,
   onChange,
   options = TASK_COLOR_OPTIONS,
   value,
 }: HabitColorPickerProps) {
   return (
-    <div className={cn('flex flex-wrap items-center gap-3', className)}>
+    <div
+      role="group"
+      aria-labelledby={ariaLabelledBy}
+      className={cn('flex flex-wrap items-center gap-3', className)}
+    >
       {options.map((option) => {
         const isSelected = value === option;
 
