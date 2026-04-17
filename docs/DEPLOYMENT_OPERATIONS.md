@@ -21,6 +21,8 @@
 - `TELEGRAM_BOT_TOKEN`
 - `SUPABASE_JWT_SECRET`
 - `SUPABASE_SERVICE_ROLE_KEY`
+- `REMINDERS_RUN_SECRET` для ручного/внешнего вызова reminders runner
+  На Vercel допускается fallback на `CRON_SECRET`, если используется Vercel Cron.
 
 ## Supabase настройки
 

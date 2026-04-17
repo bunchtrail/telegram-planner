@@ -24,6 +24,7 @@ type TaskListProps = {
 	updateTask: (id: string, updates: Partial<Task>) => void;
 	className?: string;
 	isDesktop?: boolean;
+	reduceHeavyEffectsOnPlatform?: boolean;
 };
 
 export default function TaskList({
@@ -40,6 +41,7 @@ export default function TaskList({
 	updateTask,
 	className,
 	isDesktop = false,
+	reduceHeavyEffectsOnPlatform = false,
 }: TaskListProps) {
 	const scrollContainerRef = useRef<HTMLDivElement>(null);
 	const prevTaskIdsRef = useRef<Set<string>>(new Set());
@@ -229,6 +231,9 @@ export default function TaskList({
 							updateTask={updateTask}
 							isDesktop={isDesktop}
 							canReorder={canReorder}
+							reduceHeavyEffectsOnPlatform={
+								reduceHeavyEffectsOnPlatform
+							}
 						/>
 					))
 				) : (
@@ -246,6 +251,9 @@ export default function TaskList({
 								updateTask={updateTask}
 								isDesktop={isDesktop}
 								canReorder={canReorder}
+								reduceHeavyEffectsOnPlatform={
+									reduceHeavyEffectsOnPlatform
+								}
 							/>
 						))}
 					</AnimatePresence>

@@ -14,6 +14,7 @@
 - `PascalCase.tsx` для компонентов.
 - Props типизировать явным `type ...Props = {}`.
 - Не хранить бизнес-правила в UI (лимиты, фильтры дат) — только отображение.
+- Не прокидывать `isDesktop`/`isIOS` через всё дерево как универсальный флаг. Platform choice делается на уровне shell/wrapper.
 
 ### Accessibility (a11y) — обязательно
 
@@ -52,8 +53,8 @@
 - Используем нативный ресайз контента: `interactiveWidget: 'resizes-content'` в `app/layout.tsx`.
 - Модалки/шиты строим от вьюпорта: `fixed inset-0`, без ручных `bottom/transform` на высоту клавиатуры.
 - Не перезаписывать Telegram CSS переменные `--tg-viewport-*`.
-- Не комбинировать ручные компенсации (`--kb`, `visualViewport`-сдвиги) с нативным ресайзом — это даёт двойной сдвиг.
-- Любые правки под iOS‑клавиатуру делать локально через UX (blur/focus), а не через JS‑перемещение модалки.
+- iOS keyboard inset допустим только в mobile shell/mobile wrapper-ах как локальная компенсация, а не в shared UI.
+- Любые правки под iOS‑клавиатуру делать локально через mobile shell/wrapper, не через общий layout приложения.
 
 ## Производительность
 
@@ -77,9 +78,17 @@
 ## Структура файлов (как развивать)
 
 - `app/components/` — UI компоненты
+- `app/components/planner/mobile/` — mobile/iOS/Telegram shell и adapters
+- `app/components/planner/desktop/` — desktop shell и adapters
+- `app/components/planner/shared/` — общие типы и малые примитивы
 - `app/hooks/` — orchestration/state/hooks
 - `app/lib/` — utils/config/clients
 - `app/types/` — доменные типы
+
+Правило:
+
+- platform-specific логика принадлежит shell/wrapper-слою;
+- shared компонент не должен сам решать, mobile он или desktop, если это влияет на поведение, а не только на косметику.
 
 Если появятся сложные домены:
 

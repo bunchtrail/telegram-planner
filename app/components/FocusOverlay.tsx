@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { Minimize2, Volume2, SkipForward, Timer, Clock } from 'lucide-react';
 import type { Task } from '../types/task';
-import { isIOSDevice } from '../lib/platform';
 import { usePomodoro } from '../hooks/usePomodoro';
 import type { SupabaseErrorLike } from '../lib/task-utils';
 import {
@@ -37,6 +36,7 @@ type FocusOverlayProps = {
 	>(
 		operation: () => PromiseLike<T> | T,
 	) => Promise<T>;
+	reduceHeavyEffectsOnPlatform?: boolean;
 };
 
 const formatTime = (ms: number) => {
@@ -65,14 +65,15 @@ export default function FocusOverlay({
 	onToggleTimer,
 	onClose,
 	runWithAuthRetry,
+	reduceHeavyEffectsOnPlatform = false,
 }: FocusOverlayProps) {
 	const [mode, setMode] = useState<FocusMode>('stopwatch');
 	const [soundIdx, setSoundIdx] = useState<number | null>(null);
 	const dialogRef = useRef<HTMLDivElement>(null);
 	const prefersReducedMotion = useReducedMotion();
-	const isIOS = isIOSDevice();
 	const reduceMotion = Boolean(prefersReducedMotion);
-	const reduceHeavyEffects = reduceMotion || isIOS;
+	const reduceHeavyEffects =
+		reduceMotion || reduceHeavyEffectsOnPlatform;
 	const [tickNow, setTickNow] = useState(() => Date.now());
 
 	const pomodoro = usePomodoro({ taskId: task.id, runWithAuthRetry });

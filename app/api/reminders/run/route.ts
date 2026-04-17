@@ -1,4 +1,5 @@
 import { errorNoStore, jsonNoStore } from '@/app/lib/api-response';
+import { getReminderRunSecret } from '@/app/lib/reminders-config';
 import { getSupabaseAdmin } from '@/app/lib/supabase-admin';
 import { ReminderRunHeaderSchema } from '@/app/lib/validations/reminders';
 
@@ -13,7 +14,7 @@ type DueReminderRow = {
 };
 
 export async function POST(request: Request) {
-	const expectedSecret = process.env.REMINDERS_RUN_SECRET;
+	const expectedSecret = getReminderRunSecret();
 
 	if (!expectedSecret) {
 		return errorNoStore(501, 'REMINDERS_NOT_CONFIGURED');
