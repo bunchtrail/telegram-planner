@@ -19,24 +19,20 @@ import {
 	useReducedMotion,
 } from 'framer-motion';
 import {
-	ArrowRight,
-	Calendar,
-	Check,
-	GripVertical,
 	Pause,
 	Pencil,
 	Play,
-	Sunrise,
 	Trash2,
-	X,
 } from 'lucide-react';
 import ChecklistEditor from '@/app/components/planner/shared/task/ChecklistEditor';
 import TaskCard from '@/app/components/planner/shared/task/TaskCard';
 import TaskCardActions from '@/app/components/planner/shared/task/TaskCardActions';
+import TaskCardHeaderControls from '@/app/components/planner/shared/task/TaskCardHeaderControls';
 import TaskCardHeader, {
 	TaskCardPin,
 } from '@/app/components/planner/shared/task/TaskCardHeader';
 import TaskCardMeta from '@/app/components/planner/shared/task/TaskCardMeta';
+import TaskMoveActions from '@/app/components/planner/shared/task/TaskMoveActions';
 import { useHaptic } from '@/app/hooks/useHaptic';
 import { cn } from '@/app/lib/cn';
 import type { Task } from '@/app/types/task';
@@ -214,7 +210,7 @@ const TaskItem = memo(function TaskItem({
 		});
 	};
 
-	const handleDragStart = (event: ReactPointerEvent<HTMLButtonElement>) => {
+	const handleDragStart = (event: ReactPointerEvent<HTMLDivElement>) => {
 		event.preventDefault();
 		event.stopPropagation();
 		if (!canReorder) return;
@@ -223,96 +219,20 @@ const TaskItem = memo(function TaskItem({
 	};
 
 	const headerActions = (
-		<TaskCardActions isDesktop={isDesktop} variant="header">
-			{!isExpanded && !task.completed ? (
-				<button
-					type="button"
-					aria-label={
-						isActive ? 'Поставить таймер на паузу' : 'Запустить таймер'
-					}
-					onClick={(event) => {
-						event.stopPropagation();
-						impact('medium');
-						onToggleActive(task.id);
-					}}
-					className={cn(
-						'flex items-center justify-center rounded-full transition-[transform,colors] active:scale-90 relative z-20',
-						isDesktop ? 'h-9 w-9' : 'h-8 w-8',
-						isActive
-							? 'bg-[var(--task-color)] text-[var(--bg)] shadow-lg'
-							: 'bg-[var(--surface-2)] text-[var(--muted)] hover:text-[var(--ink)]',
-					)}
-				>
-					{isActive ? (
-						<Pause size={isDesktop ? 16 : 14} fill="currentColor" />
-					) : (
-						<Play
-							size={isDesktop ? 16 : 14}
-							fill="currentColor"
-							className="ml-0.5"
-						/>
-					)}
-				</button>
-			) : null}
-
-			{!isDesktop ? null : (
-				<>
-					<button
-						type="button"
-						aria-label="Изменить задачу"
-						onClick={(event) => {
-							event.stopPropagation();
-							onEdit(task);
-						}}
-						className="h-9 w-9 flex items-center justify-center rounded-xl hover:bg-[var(--surface-2)] text-[var(--muted)] hover:text-[var(--ink)] transition-colors opacity-0 group-hover:opacity-100 duration-200"
-						title="Изменить"
-					>
-						<Pencil size={18} />
-					</button>
-					<button
-						type="button"
-						aria-label="Перенести на завтра"
-						onClick={(event) => {
-							event.stopPropagation();
-							handleMoveTomorrow();
-						}}
-						className="h-9 w-9 flex items-center justify-center rounded-xl hover:bg-[var(--surface-2)] text-[var(--muted)] hover:text-[var(--accent)] transition-colors opacity-0 group-hover:opacity-100 duration-200"
-						title="На завтра"
-					>
-						<ArrowRight size={18} />
-					</button>
-					<button
-						type="button"
-						aria-label="Удалить задачу"
-						onClick={(event) => {
-							event.stopPropagation();
-							onDelete(task.id);
-						}}
-						className="h-9 w-9 flex items-center justify-center rounded-xl hover:bg-[var(--danger)]/10 text-[var(--muted)] hover:text-[var(--danger)] transition-colors opacity-0 group-hover:opacity-100 duration-200"
-						title="Удалить"
-					>
-						<Trash2 size={18} />
-					</button>
-				</>
-			)}
-
-			<button
-				type="button"
-				aria-label="Перетащить"
-				className={cn(
-					'flex items-center justify-center text-[var(--muted)] touch-none [touch-action:none]',
-					isDesktop
-						? 'h-9 w-6 opacity-20 hover:opacity-100'
-						: 'h-8 w-8 opacity-20 group-hover:opacity-50 transition-opacity -mr-1',
-					canReorder
-						? 'cursor-grab active:cursor-grabbing'
-						: 'cursor-not-allowed opacity-10',
-				)}
-				onPointerDown={handleDragStart}
-			>
-				<GripVertical size={isDesktop ? 18 : 20} />
-			</button>
-		</TaskCardActions>
+		<TaskCardHeaderControls
+			canReorder={canReorder}
+			isActive={isActive}
+			isDesktop={isDesktop}
+			showTimerAction={!isExpanded && !task.completed}
+			onDelete={() => onDelete(task.id)}
+			onDragStart={handleDragStart}
+			onEdit={() => onEdit(task)}
+			onMoveTomorrow={handleMoveTomorrow}
+			onToggleActive={() => {
+				impact('medium');
+				onToggleActive(task.id);
+			}}
+		/>
 	);
 
 	const timerButton = (
@@ -538,83 +458,21 @@ const TaskItem = memo(function TaskItem({
 							<>
 								{timerButton}
 
-								<div className="grid grid-cols-2 gap-2 md:gap-3">
-									<button
-										type="button"
-										aria-label="Перенести на завтра"
-										onClick={(event) => {
-											event.stopPropagation();
-											setPendingDate(null);
-											handleMoveTomorrow();
-										}}
-										className="col-span-1 flex flex-col items-center justify-center gap-1.5 h-[64px] md:h-[72px] rounded-[18px] bg-[var(--surface-2)] text-[var(--ink)] active:scale-[0.96] transition-all duration-200 relative overflow-hidden group border border-[var(--border)]/40 hover:border-[var(--border)]"
-									>
-										<div className="w-8 h-8 rounded-xl bg-[var(--accent)]/10 flex items-center justify-center">
-											<Sunrise
-												size={18}
-												className="text-[var(--accent)]"
-											/>
-										</div>
-										<span className="text-[11px] font-bold uppercase tracking-wide">
-											Завтра
-										</span>
-									</button>
-
-									<div className="col-span-1 relative h-[64px] md:h-[72px]">
-										{hasPendingChange ? (
-											<div className="absolute inset-0 flex flex-col gap-0.5">
-												<button
-													type="button"
-													aria-label="Подтвердить перенос"
-													onClick={(event) => {
-														event.stopPropagation();
-														if (pendingDate) {
-															handleMoveToDate(pendingDate);
-														}
-													}}
-													className="flex-1 w-full bg-[var(--ink)] text-[var(--bg)] rounded-t-[18px] flex items-center justify-center gap-1.5 active:opacity-90"
-												>
-													<Check size={14} strokeWidth={3} />
-												</button>
-												<button
-													type="button"
-													aria-label="Отменить перенос"
-													onClick={(event) => {
-														event.stopPropagation();
-														setPendingDate(null);
-													}}
-													className="flex-1 w-full bg-[var(--surface-2)] text-[var(--muted)] rounded-b-[18px] flex items-center justify-center gap-1.5 active:bg-[var(--border)]"
-												>
-													<X size={14} strokeWidth={3} />
-												</button>
-											</div>
-										) : (
-											<>
-												<input
-													type="date"
-													value={effectivePickerValue}
-													onChange={(event) =>
-														setPendingDate(event.target.value)
-													}
-													onClick={(event) =>
-														event.stopPropagation()
-													}
-													className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
-													aria-label="Выбрать дату"
-												/>
-												<div className="absolute inset-0 flex flex-col items-center justify-center gap-1 rounded-[18px] bg-[var(--surface-2)] text-[var(--ink)] pointer-events-none hover:bg-[var(--border)] transition-colors">
-													<Calendar
-														size={20}
-														className="text-[var(--muted)] mb-0.5"
-													/>
-													<span className="text-[12px] font-bold">
-														Дата
-													</span>
-												</div>
-											</>
-										)}
-									</div>
-								</div>
+								<TaskMoveActions
+									effectivePickerValue={effectivePickerValue}
+									hasPendingChange={hasPendingChange}
+									onCancelPendingDate={() => setPendingDate(null)}
+									onChangePendingDate={setPendingDate}
+									onConfirmPendingDate={() => {
+										if (pendingDate) {
+											handleMoveToDate(pendingDate);
+										}
+									}}
+									onMoveTomorrow={() => {
+										setPendingDate(null);
+										handleMoveTomorrow();
+									}}
+								/>
 
 								<ChecklistEditor
 									items={task.checklist}

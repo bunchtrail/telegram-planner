@@ -42,6 +42,8 @@ export default function TaskCard({
 						: { duration: 0.18, ease: 'easeOut' }
 				}
 				className="overflow-hidden"
+				aria-hidden={!isExpanded}
+				inert={!isExpanded}
 				style={{ pointerEvents: isExpanded ? 'auto' : 'none' }}
 			>
 				{details}

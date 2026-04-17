@@ -1,3 +1,4 @@
+import type { ComponentProps } from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Reorder } from 'framer-motion';
@@ -241,8 +242,90 @@ describe('task item shared composition', () => {
 		expect(onEdit).not.toHaveBeenCalled();
 		expect(onToggle).not.toHaveBeenCalled();
 	});
+
+	test('TaskItem hides collapsed details from accessible queries until expanded', async () => {
+		const user = userEvent.setup();
+		const task = createTask();
+
+		renderTaskItem(task);
+
+		expect(
+			screen.queryByRole('textbox', { name: 'Добавить шаг' }),
+		).not.toBeInTheDocument();
+		expect(
+			screen.queryByRole('button', { name: 'Перенести на завтра' }),
+		).not.toBeInTheDocument();
+
+		await user.click(
+			screen.getByRole('button', {
+				name: 'Открыть задачу Подготовить релиз',
+			}),
+		);
+
+		expect(
+			screen.getByRole('textbox', { name: 'Добавить шаг' }),
+		).toBeInTheDocument();
+		expect(
+			screen.getByRole('button', { name: 'Перенести на завтра' }),
+		).toBeInTheDocument();
+
+		await user.click(
+			screen.getByRole('button', {
+				name: 'Открыть задачу Подготовить релиз',
+			}),
+		);
+
+		expect(
+			screen.queryByRole('textbox', { name: 'Добавить шаг' }),
+		).not.toBeInTheDocument();
+		expect(
+			screen.queryByRole('button', { name: 'Перенести на завтра' }),
+		).not.toBeInTheDocument();
+	});
+
+	test('desktop completed task keeps delete action available while drag handle stays out of the accessibility tree', async () => {
+		const user = userEvent.setup();
+		const onDelete = vi.fn();
+		const task = createTask({ completed: true });
+
+		renderTaskItem(task, {
+			isDesktop: true,
+			onDelete,
+		});
+
+		expect(
+			screen.queryByRole('button', { name: 'Перетащить' }),
+		).not.toBeInTheDocument();
+		expect(
+			screen.getByRole('button', {
+				name: 'Удалить задачу',
+			}),
+		);
+		await user.click(screen.getByRole('button', { name: 'Удалить задачу' }));
+
+		expect(onDelete).toHaveBeenCalledWith(task.id);
+	});
 });
 
 function TaskCardHeaderPinProbe() {
 	return <span data-testid="pin-probe">pin</span>;
+}
+
+function renderTaskItem(task: Task, overrides?: Partial<ComponentProps<typeof TaskItem>>) {
+	const props: ComponentProps<typeof TaskItem> = {
+		task,
+		onDelete: vi.fn(),
+		onEdit: vi.fn(),
+		onMove: vi.fn(),
+		onToggle: vi.fn(),
+		onToggleActive: vi.fn(),
+		updateTask: vi.fn(),
+		...overrides,
+	};
+
+	return render(
+		<Reorder.Group axis="y" values={[task.clientId]} onReorder={() => undefined}>
+			<TaskItem {...props} />
+		</Reorder.Group>,
+	);
 }
