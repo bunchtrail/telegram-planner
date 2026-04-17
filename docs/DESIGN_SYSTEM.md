@@ -26,6 +26,25 @@
 - Tailwind используется как “layout engine”, но цвета — через `var(--...)`.
 - Предпочитайте классы вида: `bg-[var(--surface)]`, `text-[var(--muted)]`.
 
+## Слои UI
+
+### `planner/shared/ui/*` — primitives
+
+- Это единая база визуальных контролов и frame helpers.
+- Кнопки, surface wrappers, dialog/sheet контейнеры, заголовки модалок и field labels должны переиспользоваться, а не копироваться по доменным экранам.
+- Если новая сущность нужна не только задачам или привычкам, начинайте с этого слоя.
+
+### `planner/shared/task/*` и `planner/shared/habit/*` — domain composition
+
+- Карточки, формы и секции форм собираются здесь из primitives и доменных утилит.
+- Экран не должен заново описывать одинаковую раскладку title/duration/color/repeat или habit name/icon/color.
+- Новые формы и редакторы расширяем через shared sections, а не через inline JSX в shell-файлах.
+
+### `planner/mobile/*` и `planner/desktop/*` — frame/layout
+
+- Эти файлы отвечают за размещение shared-блоков в конкретной оболочке: bottom tabs, sidebars, sheet width, sticky panels, safe-area padding.
+- Здесь допустима platform-specific геометрия, но не дублирование примитивов и доменных form blocks.
+
 ## Motion и микроинтеракции
 
 - Удаление/переключение — haptic + небольшая motion анимация.
@@ -38,6 +57,7 @@
 ## Telegram особенности
 
 - Safe-area: используйте `max(env(safe-area-inset-<side>), var(--tg-content-safe-<side>, 0px))` для защиты от UI Telegram (контентный safe area).
+- Keyboard/safe-area компенсации держите в shell/frame-слое. Shared controls и domain forms не должны сами знать про Telegram viewport offsets.
 - Haptics:
   - `selectionChanged()` — при выборе даты/шаге слайдера
   - `impactOccurred("light/medium")` — при переключении задач
@@ -54,6 +74,13 @@ Best practice:
   - `hover` (на десктопе), `active`, `focus-visible`, `disabled`.
 - Контраст:
   - текст на `--accent` должен быть `--accent-ink`.
+
+## Формы
+
+- У каждого поля должна быть видимая подпись. Placeholder используется только как дополнительная подсказка, а не как единственный label.
+- Для подписей и отступов используйте shared form primitives (`FieldLabel`) или доменные field-компоненты, а не произвольную разметку в каждом экране.
+- Shell решает, где форма живёт: в `BottomSheet`, `Dialog`, inline card или desktop panel.
+- Shared form отвечает за консистентную структуру секций, локальную валидацию и доступность, но не за platform-specific keyboard hacks.
 
 ## Ошибки и пустые состояния
 
