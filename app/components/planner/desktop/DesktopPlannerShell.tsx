@@ -10,21 +10,31 @@ import {
   Flame,
   ListTodo,
   Plus,
+  Repeat,
   Sparkles,
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import MonthGrid from '../../MonthGrid';
 import DesktopFocusOverlay from './DesktopFocusOverlay';
 import DesktopHabitsTab from './DesktopHabitsTab';
+import DesktopRecurringTasksSheet from './DesktopRecurringTasksSheet';
 import DesktopStatsModal from './DesktopStatsModal';
 import DesktopTaskList from './DesktopTaskList';
 import DesktopTaskSheet from './DesktopTaskSheet';
-import type { PlannerShellProps } from '../shared/types';
+import {
+  createPlannerShellViewModel,
+  PLANNER_TABS,
+  type PlannerShellProps,
+} from '../shared/types';
 
 export default function DesktopPlannerShell({
   planner,
   ui,
 }: PlannerShellProps) {
+  const shell = createPlannerShellViewModel(planner, ui);
+  const header = shell.header;
+  const isToday = isSameDay(header.selectedDate, new Date());
+
   return (
     <div className="flex h-screen w-full overflow-hidden bg-[var(--bg)] font-sans text-[var(--ink)]">
       <aside className="z-10 flex w-80 flex-none flex-col gap-6 border-r border-[var(--border)] bg-[var(--surface)] p-6 shadow-xl">
@@ -41,18 +51,20 @@ export default function DesktopPlannerShell({
           <div className="rounded-[24px] border border-[var(--border)] bg-[var(--surface-2)]/30 p-4">
             <div className="mb-4 flex items-center justify-between px-2">
               <span className="text-lg font-bold capitalize text-[var(--ink)]">
-                {format(planner.selectedDate, 'LLLL yyyy', { locale: ru })}
+                {format(header.selectedDate, 'LLLL yyyy', { locale: ru })}
               </span>
               <div className="flex gap-1">
                 <button
-                  onClick={planner.goToPreviousPeriod}
+                  type="button"
+                  onClick={header.onPrev}
                   className="rounded-lg p-1 transition-colors hover:bg-[var(--surface-2)]"
                   aria-label="Предыдущий месяц"
                 >
                   <ChevronLeft size={20} />
                 </button>
                 <button
-                  onClick={planner.goToNextPeriod}
+                  type="button"
+                  onClick={header.onNext}
                   className="rounded-lg p-1 transition-colors hover:bg-[var(--surface-2)]"
                   aria-label="Следующий месяц"
                 >
@@ -61,16 +73,17 @@ export default function DesktopPlannerShell({
               </div>
             </div>
             <MonthGrid
-              days={planner.monthDays}
-              selectedDate={planner.selectedDate}
-              onSelectDate={planner.setSelectedDate}
-              taskDates={planner.taskDates}
+              days={header.monthDays}
+              selectedDate={header.selectedDate}
+              onSelectDate={header.onSelectDate}
+              taskDates={header.taskDates}
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <button
-              onClick={ui.openStats}
+              type="button"
+              onClick={header.onOpenStats}
               className="group flex flex-col gap-2 rounded-[20px] border border-[var(--border)] bg-[var(--surface)] p-4 text-left shadow-sm transition-colors hover:border-[var(--accent)]"
               aria-label="Статистика"
             >
@@ -93,11 +106,11 @@ export default function DesktopPlannerShell({
               </div>
               <div>
                 <div className="flex items-baseline gap-0.5 text-xl font-bold leading-none tabular-nums">
-                  {planner.hours}
+                  {header.hours}
                   <span className="text-xs font-medium text-[var(--muted)]">
                     ч
                   </span>
-                  {planner.minutes}
+                  {header.minutes}
                   <span className="text-xs font-medium text-[var(--muted)]">
                     м
                   </span>
@@ -113,19 +126,35 @@ export default function DesktopPlannerShell({
         <div className="mt-auto">
           {ui.activeTask && (
             <button
-              onClick={ui.openFocus}
+              type="button"
+              onClick={shell.overlays.openFocus}
               className="mb-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-[var(--accent)] py-4 font-bold text-[var(--accent-ink)] shadow-lg transition-all hover:brightness-110 active:scale-95"
             >
               <Clock className="animate-pulse" /> Текущая задача
             </button>
           )}
-          <button
-            onClick={ui.openCreate}
-            className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-[var(--ink)] font-bold text-[var(--bg)] shadow-xl shadow-[var(--ink)]/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
-          >
-            <Plus size={20} strokeWidth={2.5} />
-            <span>Новая задача</span>
-          </button>
+
+          {shell.activeTab === 'tasks' && (
+            <button
+              type="button"
+              onClick={header.onOpenRecurring}
+              className="mb-3 flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] font-bold text-[var(--ink)] shadow-sm transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]"
+            >
+              <Repeat size={18} />
+              <span>Повторы</span>
+            </button>
+          )}
+
+          {shell.activeTab === 'tasks' && (
+            <button
+              type="button"
+              onClick={ui.openCreate}
+              className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-[var(--ink)] font-bold text-[var(--bg)] shadow-xl shadow-[var(--ink)]/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
+            >
+              <Plus size={20} strokeWidth={2.5} />
+              <span>Новая задача</span>
+            </button>
+          )}
         </div>
       </aside>
 
@@ -134,30 +163,30 @@ export default function DesktopPlannerShell({
           <div>
             <div className="mb-1 flex items-baseline gap-4">
               <h2 className="text-4xl font-bold capitalize tracking-tight font-[var(--font-display)]">
-                {format(planner.selectedDate, 'd MMMM', { locale: ru })}
+                {format(header.selectedDate, 'd MMMM', { locale: ru })}
               </h2>
-              {isSameDay(planner.selectedDate, new Date()) && (
+              {isToday && (
                 <span className="rounded-full bg-[var(--accent)]/10 px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-[var(--accent)]">
                   Сегодня
                 </span>
               )}
             </div>
             <p className="text-lg font-medium capitalize text-[var(--muted)]">
-              {format(planner.selectedDate, 'EEEE', { locale: ru })} •{' '}
+              {format(header.selectedDate, 'EEEE', { locale: ru })} •{' '}
               {planner.currentTasks.length} задач
             </p>
           </div>
 
-          {ui.totalCount > 0 && (
+          {header.totalCount > 0 && (
             <div className="flex h-14 items-center gap-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-6 shadow-sm">
               <div className="text-sm font-bold uppercase tracking-wider text-[var(--muted)]">
                 Прогресс
               </div>
               <div className="h-6 w-[1px] bg-[var(--border)]" />
               <div className="text-2xl font-bold tabular-nums text-[var(--ink)]">
-                {ui.completedCount}
+                {header.completedCount}
                 <span className="text-xl text-[var(--muted)]">
-                  / {ui.totalCount}
+                  / {header.totalCount}
                 </span>
               </div>
             </div>
@@ -166,57 +195,33 @@ export default function DesktopPlannerShell({
 
         <div className="shrink-0 border-b border-[var(--border)] bg-[var(--bg)]/80 px-12 backdrop-blur">
           <div className="flex gap-1">
-            <button
-              onClick={() => ui.setActiveTab('tasks')}
-              className={`flex items-center gap-2 border-b-2 px-5 py-3 text-sm font-bold transition-colors ${
-                ui.activeTab === 'tasks'
-                  ? 'border-[var(--accent)] text-[var(--accent)]'
-                  : 'border-transparent text-[var(--muted)] hover:text-[var(--ink)]'
-              }`}
-            >
-              <ListTodo size={18} /> Задачи
-            </button>
-            <button
-              onClick={() => ui.setActiveTab('habits')}
-              className={`flex items-center gap-2 border-b-2 px-5 py-3 text-sm font-bold transition-colors ${
-                ui.activeTab === 'habits'
-                  ? 'border-[var(--accent)] text-[var(--accent)]'
-                  : 'border-transparent text-[var(--muted)] hover:text-[var(--ink)]'
-              }`}
-            >
-              <Sparkles size={18} /> Привычки
-            </button>
+            {PLANNER_TABS.map((tab) => {
+              const Icon = tab.id === 'tasks' ? ListTodo : Sparkles;
+
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => shell.setActiveTab(tab.id)}
+                  className={`flex items-center gap-2 border-b-2 px-5 py-3 text-sm font-bold transition-colors ${
+                    shell.activeTab === tab.id
+                      ? 'border-[var(--accent)] text-[var(--accent)]'
+                      : 'border-transparent text-[var(--muted)] hover:text-[var(--ink)]'
+                  }`}
+                >
+                  <Icon size={18} /> {tab.label}
+                </button>
+              );
+            })}
           </div>
         </div>
 
         <div className="relative flex-1 overflow-hidden">
           <div className="no-scrollbar absolute inset-0 mx-auto w-full max-w-6xl overflow-y-auto px-12 py-10">
-            {ui.activeTab === 'tasks' ? (
-              <DesktopTaskList
-                dateKey={format(planner.selectedDate, 'yyyy-MM-dd')}
-                tasks={planner.currentTasks}
-                isLoading={planner.isLoading}
-                onToggle={ui.toggleTask}
-                onDelete={ui.deleteTask}
-                onEdit={ui.openEdit}
-                onMove={planner.moveTask}
-                onAdd={ui.openCreate}
-                onReorder={planner.handleReorder}
-                onToggleActive={planner.toggleActiveTask}
-                updateTask={planner.updateTask}
-                className="pl-0 pr-0"
-              />
+            {shell.activeTab === 'tasks' ? (
+              <DesktopTaskList {...shell.taskListProps} className="pl-0 pr-0" />
             ) : (
-              <DesktopHabitsTab
-                habits={planner.habits}
-                isLoading={planner.habitsLoading}
-                isChecked={planner.isHabitChecked}
-                isLogPending={planner.isHabitLogPending}
-                onToggleLog={planner.toggleHabitLog}
-                onAddHabit={planner.addHabit}
-                onDeleteHabit={planner.deleteHabit}
-                selectedDate={planner.selectedDate}
-              />
+              <DesktopHabitsTab {...shell.habitsTabProps} />
             )}
             <div className="h-32" />
           </div>
@@ -224,54 +229,23 @@ export default function DesktopPlannerShell({
       </main>
 
       <AnimatePresence>
-        {ui.sheet.isOpen && (
-          <DesktopTaskSheet
-            key="task-sheet"
-            onClose={ui.closeSheet}
-            mode={ui.sheet.mode}
-            initialTitle={ui.sheet.mode === 'edit' ? ui.sheet.editingTask?.title : ''}
-            initialDuration={ui.sheet.mode === 'edit' ? ui.sheet.editingTask?.duration : 30}
-            initialColor={ui.sheet.mode === 'edit' ? ui.sheet.editingTask?.color : undefined}
-            initialRepeat="none"
-            initialRepeatCount={7}
-            initialStartMinutes={
-              ui.sheet.mode === 'edit' ? ui.sheet.editingTask?.startMinutes : null
-            }
-            initialRemindBeforeMinutes={
-              ui.sheet.mode === 'edit'
-                ? ui.sheet.editingTask?.remindBeforeMinutes
-                : 0
-            }
-            taskDate={
-              ui.sheet.mode === 'edit'
-                ? (ui.sheet.editingTask?.date ?? planner.selectedDate)
-                : planner.selectedDate
-            }
-            onSubmit={ui.submitSheet}
-          />
+        {shell.overlays.showTaskSheet && (
+          <DesktopTaskSheet key="task-sheet" {...shell.overlays.taskSheetProps} />
         )}
 
-        {ui.showStats && (
-          <DesktopStatsModal
-            streak={planner.streak}
-            tasks={planner.tasks}
-            selectedDate={planner.selectedDate}
-            onClose={ui.closeStats}
-            pomodoroStats={planner.pomodoroStats}
-          />
+        {shell.overlays.showStats && (
+          <DesktopStatsModal {...shell.overlays.statsModalProps} />
         )}
 
-        {ui.showFocus && ui.activeTask && (
-          <DesktopFocusOverlay
-            task={ui.activeTask}
-            isActive={planner.activeTaskId === ui.activeTask.id}
-            onToggleTimer={() => planner.toggleActiveTask(ui.activeTask!.id)}
-            onClose={ui.closeFocus}
-            runWithAuthRetry={planner.runWithAuthRetry}
-          />
+        {shell.overlays.showRecurring && (
+          <DesktopRecurringTasksSheet {...shell.overlays.recurringSheetProps} />
         )}
 
-        {ui.undoTask && (
+        {shell.overlays.showFocus && shell.overlays.focusOverlayProps && (
+          <DesktopFocusOverlay {...shell.overlays.focusOverlayProps} />
+        )}
+
+        {shell.overlays.undoTask && (
           <motion.div
             initial={{ opacity: 0, y: 50, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -284,7 +258,7 @@ export default function DesktopPlannerShell({
               <span>Задача удалена</span>
               <button
                 type="button"
-                onClick={ui.undoDelete}
+                onClick={shell.overlays.undoDelete}
                 className="font-bold text-[var(--accent)] hover:underline"
               >
                 Отменить
@@ -293,7 +267,7 @@ export default function DesktopPlannerShell({
           </motion.div>
         )}
 
-        {ui.dayCompleteVisible && (
+        {shell.overlays.dayCompleteVisible && (
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
