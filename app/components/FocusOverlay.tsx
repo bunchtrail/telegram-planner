@@ -6,6 +6,7 @@ import { Minimize2, Volume2, SkipForward, Timer, Clock } from 'lucide-react';
 import type { Task } from '../types/task';
 import { usePomodoro } from '../hooks/usePomodoro';
 import type { SupabaseErrorLike } from '../lib/task-utils';
+import { formatDateOnly } from '../lib/task-utils';
 import {
 	POMODORO_FOCUS_MS,
 	POMODORO_SHORT_BREAK_MS,
@@ -76,7 +77,11 @@ export default function FocusOverlay({
 		reduceMotion || reduceHeavyEffectsOnPlatform;
 	const [tickNow, setTickNow] = useState(() => Date.now());
 
-	const pomodoro = usePomodoro({ taskId: task.id, runWithAuthRetry });
+	const pomodoro = usePomodoro({
+		taskId: task.id,
+		sessionDate: formatDateOnly(task.date),
+		runWithAuthRetry,
+	});
 
 	useEffect(() => {
 		if (mode !== 'stopwatch') return;

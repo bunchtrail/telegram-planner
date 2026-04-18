@@ -1,3 +1,11 @@
+create or replace function public.set_updated_at()
+returns trigger as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$ language plpgsql;
+
 -- Habits table
 create table if not exists public.habits (
   id uuid primary key default gen_random_uuid(),

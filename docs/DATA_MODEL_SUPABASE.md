@@ -2,7 +2,10 @@
 
 ## Таблица `public.tasks`
 
-Источник: `supabase/schema.sql`
+Источник истины: `supabase/migrations/*`
+
+`supabase/schema.sql` — актуальный snapshot схемы для review и ручной сверки, но
+fresh bootstrap должен идти через цепочку миграций.
 
 ### Назначение
 
@@ -68,6 +71,7 @@
 - `id uuid PK`
 - `telegram_id text not null default (auth.jwt()->>'telegram_id')`
 - `task_id uuid null FK -> tasks.id`
+- `session_date date not null` — логический день пользователя для статистики
 - `duration_minutes smallint`
 - `type text in ('focus','short_break','long_break')`
 - `completed_at timestamptz`
@@ -77,7 +81,8 @@
 - `get_weekly_focus_stats(week_end_date date default current_date)` —
   недельная статистика фокус-сессий текущего пользователя.
   Важно: `telegram_id` берётся из JWT (`auth.jwt()->>'telegram_id'`),
-  а не из параметров клиента.
+  а не из параметров клиента. Группировка идёт по `session_date`, а не по UTC-дню
+  из `completed_at`.
 
 ## Таблица `public.task_series`
 
@@ -132,6 +137,10 @@ RLS включен, политики работают через claim:
 
 RLS применяется ко всем таблицам: `tasks`, `task_series`, `task_series_skips`,
 `habits`, `habit_logs`, `pomodoro_sessions`.
+
+Для child-таблиц этого недостаточно само по себе: ownership родительских ссылок
+дополнительно валидируется на уровне БД (`series_id`, `habit_id`, `task_id`)
+через policy checks и trigger validation.
 
 ## Realtime и DELETE события
 

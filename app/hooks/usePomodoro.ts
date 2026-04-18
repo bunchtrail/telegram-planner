@@ -34,6 +34,7 @@ const phaseLabel = (phase: PomodoroPhase): string => {
 
 type UsePomodoroConfig = {
 	taskId?: string;
+	sessionDate?: string;
 	runWithAuthRetry: <
 		T extends { error: SupabaseErrorLike | null | undefined },
 	>(
@@ -49,7 +50,11 @@ const initialState: PomodoroState = {
 	totalPomodoros: 0,
 };
 
-export function usePomodoro({ taskId, runWithAuthRetry }: UsePomodoroConfig) {
+export function usePomodoro({
+	taskId,
+	sessionDate,
+	runWithAuthRetry,
+}: UsePomodoroConfig) {
 	const [state, setState] = useState<PomodoroState>(initialState);
 	const intervalRef = useRef<number | null>(null);
 	const lastTickRef = useRef<number>(0);
@@ -73,12 +78,13 @@ export function usePomodoro({ taskId, runWithAuthRetry }: UsePomodoroConfig) {
 			await runWithAuthRetry(() =>
 				supabase.from('pomodoro_sessions').insert({
 					task_id: taskId ?? null,
+					session_date: sessionDate,
 					duration_minutes: durationMinutes,
 					type,
 				}),
 			);
 		},
-		[taskId, runWithAuthRetry],
+		[sessionDate, taskId, runWithAuthRetry],
 	);
 
 	const advancePhase = useCallback((options?: { logCompleted?: boolean }) => {

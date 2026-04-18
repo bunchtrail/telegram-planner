@@ -1,7 +1,9 @@
 Supabase setup
 
-1) Apply schema
-   - Run the SQL from `supabase/schema.sql` in the Supabase SQL editor.
+1) Bootstrap from migrations
+   - Link the repo to the hosted project: `npx supabase link --project-ref <project-ref>`
+   - Apply the full migration chain: `npx supabase db push`
+   - `supabase/schema.sql` is a snapshot for review/reference, not the bootstrap source of truth.
 
 2) Environment variables
    - `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`
