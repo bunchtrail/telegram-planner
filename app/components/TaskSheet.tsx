@@ -4,7 +4,6 @@ import { useCallback, useRef, useState } from 'react';
 import { cn } from '../lib/cn';
 import { DEFAULT_TASK_COLOR } from '../lib/constants';
 import type { TaskRepeat } from '../types/task';
-import { useKeyboardInset } from '../hooks/useKeyboardInset';
 import BottomSheet from './planner/shared/ui/BottomSheet';
 import ModalHeader from './planner/shared/ui/ModalHeader';
 import TaskForm, {
@@ -61,8 +60,6 @@ export default function TaskSheet({
     initialStartMinutes ?? '',
     initialRemindBeforeMinutes,
   ].join('|');
-
-  useKeyboardInset();
 
   const handleClose = useCallback(() => {
     if (document.activeElement instanceof HTMLElement) {

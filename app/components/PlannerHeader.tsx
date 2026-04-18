@@ -6,6 +6,8 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import MonthGrid from './MonthGrid';
 import WeekStrip from './WeekStrip';
 import { cn } from '../lib/cn';
+import { getMotionCapabilities } from '../lib/motion';
+import { isTelegramIOS } from '../lib/platform';
 import { useHaptic } from '../hooks/useHaptic';
 import type { PlannerHeaderViewModel } from './planner/shared/types';
 
@@ -80,6 +82,11 @@ export default function PlannerHeader({ header }: PlannerHeaderProps) {
 	} = header;
 	const { impact } = useHaptic();
 	const prefersReducedMotion = useReducedMotion();
+	const motionCapabilities = getMotionCapabilities({
+		isTelegramIOS: isTelegramIOS(),
+		isDesktop: false,
+		prefersReducedMotion: Boolean(prefersReducedMotion),
+	});
 	const [direction, setDirection] = useState(0);
 
 	const updateDirectionForDate = (nextDate: Date) => {
@@ -97,8 +104,9 @@ export default function PlannerHeader({ header }: PlannerHeaderProps) {
 	const progressPercentage =
 		totalCount > 0 ? Math.min(100, (completedCount / totalCount) * 100) : 0;
 
-	const slideOffset = prefersReducedMotion ? 0 : 20;
-	const slideDuration = prefersReducedMotion ? 0 : 0.2;
+	const allowSharedLayout = motionCapabilities.allowSharedLayout;
+	const slideOffset = prefersReducedMotion ? 0 : allowSharedLayout ? 20 : 0;
+	const slideDuration = prefersReducedMotion ? 0 : allowSharedLayout ? 0.2 : 0.16;
 	const slideEase: [number, number, number, number] = [0.25, 0.1, 0.25, 1];
 
 	return (
@@ -108,7 +116,11 @@ export default function PlannerHeader({ header }: PlannerHeaderProps) {
 			<div className="relative flex flex-col rounded-b-[32px] overflow-hidden glass-clip">
 				<div
 					aria-hidden
-					className="absolute inset-0 glass pointer-events-none"
+					className="header-glass absolute inset-0 pointer-events-none"
+				/>
+				<div
+					aria-hidden
+					className="absolute inset-x-0 top-0 h-20 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.22),transparent_72%)] pointer-events-none"
 				/>
 
 				<div className="relative z-10 flex flex-col">
@@ -281,17 +293,21 @@ export default function PlannerHeader({ header }: PlannerHeaderProps) {
 												)}
 												aria-pressed={viewMode === mode}
 											>
-												{viewMode === mode && (
-													<motion.div
-														layoutId="view-tab"
-														className="absolute inset-0 bg-[var(--surface)] shadow-[var(--shadow-segment)] rounded-[9px] -z-10"
-														transition={{
-															type: 'spring',
-															bounce: 0.2,
-															duration: 0.4,
-														}}
-													/>
-												)}
+												{viewMode === mode ? (
+													allowSharedLayout ? (
+														<motion.div
+															layoutId="view-tab"
+															className="absolute inset-0 bg-[var(--surface)] shadow-[var(--shadow-segment)] rounded-[9px] -z-10"
+															transition={{
+																type: 'spring',
+																bounce: 0.2,
+																duration: 0.4,
+															}}
+														/>
+													) : (
+														<span className="absolute inset-0 rounded-[9px] bg-[var(--surface)] shadow-[var(--shadow-segment)] -z-10" />
+													)
+												) : null}
 												{mode === 'week'
 													? 'Неделя'
 													: 'Месяц'}
@@ -303,27 +319,69 @@ export default function PlannerHeader({ header }: PlannerHeaderProps) {
 						</div>
 					</div>
 
-					<motion.div
-						layout
-						className="overflow-hidden"
-						transition={{
-							type: 'spring',
-							stiffness: 450,
-							damping: 35,
-						}}
-					>
+					{allowSharedLayout ? (
+						<motion.div
+							layout
+							className="overflow-hidden"
+							transition={{
+								type: 'spring',
+								stiffness: 450,
+								damping: 35,
+							}}
+						>
+							<div className="pl-[max(0.5rem,env(safe-area-inset-left),var(--tg-content-safe-left,0px))] pr-[max(0.5rem,env(safe-area-inset-right),var(--tg-content-safe-right,0px))] pb-3">
+								<AnimatePresence mode="wait" initial={false}>
+									<motion.div
+										key={viewMode}
+										initial={{
+											opacity: 0,
+											y: 8,
+										}}
+										animate={{ opacity: 1, y: 0 }}
+										exit={{ opacity: 0, y: -8 }}
+										transition={{
+											duration: 0.18,
+											ease: 'easeOut',
+										}}
+									>
+										{viewMode === 'week' ? (
+											<WeekStrip
+												weekDays={weekDays}
+												selectedDate={selectedDate}
+												onSelectDate={(date) => {
+													updateDirectionForDate(date);
+													onSelectDate(date);
+												}}
+											/>
+										) : (
+											<MonthGrid
+												days={monthDays}
+												selectedDate={selectedDate}
+												onSelectDate={(date) => {
+													updateDirectionForDate(date);
+													onSelectDate(date);
+												}}
+												taskDates={taskDates}
+											/>
+										)}
+									</motion.div>
+								</AnimatePresence>
+							</div>
+						</motion.div>
+					) : (
+						<div className="overflow-hidden">
 						<div className="pl-[max(0.5rem,env(safe-area-inset-left),var(--tg-content-safe-left,0px))] pr-[max(0.5rem,env(safe-area-inset-right),var(--tg-content-safe-right,0px))] pb-3">
 							<AnimatePresence mode="wait" initial={false}>
 								<motion.div
 									key={viewMode}
 									initial={{
 										opacity: 0,
-										y: 8,
+										y: 0,
 									}}
 									animate={{ opacity: 1, y: 0 }}
-									exit={{ opacity: 0, y: -8 }}
+									exit={{ opacity: 0, y: 0 }}
 									transition={{
-										duration: 0.18,
+										duration: 0.14,
 										ease: 'easeOut',
 									}}
 								>
@@ -350,7 +408,8 @@ export default function PlannerHeader({ header }: PlannerHeaderProps) {
 								</motion.div>
 							</AnimatePresence>
 						</div>
-					</motion.div>
+						</div>
+					)}
 				</div>
 			</div>
 		</header>

@@ -12,11 +12,13 @@ import {
 	Trash2,
 	X,
 } from 'lucide-react';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { Fragment, useCallback, useMemo, useRef, useState } from 'react';
 import { addDays, format, getDay, startOfDay, isSameYear } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { cn } from '../lib/cn';
 import { useHaptic } from '../hooks/useHaptic';
+import { getMotionCapabilities } from '../lib/motion';
+import { isTelegramIOS } from '../lib/platform';
 import type { TaskSeriesRow, TaskSeriesSkipRow } from '../hooks/usePlanner';
 import BottomSheet from './planner/shared/ui/BottomSheet';
 import ModalHeader from './planner/shared/ui/ModalHeader';
@@ -104,6 +106,14 @@ export default function RecurringTasksSheet({
 	const { impact, notification } = useHaptic();
 	const prefersReducedMotion = useReducedMotion();
 	const reduceMotion = Boolean(prefersReducedMotion);
+	const motionCapabilities = getMotionCapabilities({
+		isTelegramIOS: isTelegramIOS(),
+		isDesktop,
+		prefersReducedMotion: reduceMotion,
+	});
+	const useLiteMotion = motionCapabilities.tier !== 'full';
+	const allowSharedLayout = motionCapabilities.allowSharedLayout;
+	const OuterLayoutGroup = allowSharedLayout ? LayoutGroup : Fragment;
 	const confirmDialogRef = useRef<HTMLDivElement>(null);
 
 	useFrameFocusScope(confirmDialogRef, {
@@ -229,9 +239,10 @@ export default function RecurringTasksSheet({
 					)} будет удален из расписания.`;
 
 	return (
-		<LayoutGroup>
+		<OuterLayoutGroup>
 			<BottomSheet
 				ariaLabelledby="recurring-sheet-title"
+				backdropClassName="sheet-backdrop"
 				bodyClassName={cn(
 					'overflow-y-auto overflow-x-hidden no-scrollbar touch-pan-y',
 					isDesktop
@@ -291,11 +302,11 @@ export default function RecurringTasksSheet({
 								initial={{ opacity: 0 }}
 								animate={{ opacity: 1 }}
 								exit={{ opacity: 0 }}
-								transition={{ duration: reduceMotion ? 0 : 0.2 }}
+								transition={{ duration: reduceMotion ? 0 : 0.16 }}
 								className="absolute inset-0 z-30 pointer-events-auto flex items-center justify-center"
 							>
 								<div
-									className="absolute inset-0 bg-black/20"
+									className="sheet-backdrop absolute inset-0"
 									onClick={() => setConfirmAction(null)}
 								/>
 
@@ -306,27 +317,35 @@ export default function RecurringTasksSheet({
 								initial={
 										isDesktop
 											? { opacity: 0, scale: 0.9, y: 0 }
-											: { opacity: 0, y: 20, scale: 0.95 }
+											: useLiteMotion
+												? { opacity: 0, y: 12 }
+												: { opacity: 0, y: 20, scale: 0.95 }
 									}
 									animate={
 										isDesktop
 											? { opacity: 1, scale: 1, y: 0 }
-											: { opacity: 1, y: 0, scale: 1 }
+											: useLiteMotion
+												? { opacity: 1, y: 0 }
+												: { opacity: 1, y: 0, scale: 1 }
 									}
 									exit={
 										isDesktop
 											? { opacity: 0, scale: 0.9, y: 0 }
-											: { opacity: 0, y: 20, scale: 0.95 }
+											: useLiteMotion
+												? { opacity: 0, y: 12 }
+												: { opacity: 0, y: 20, scale: 0.95 }
 									}
 									transition={
 										reduceMotion
 											? { duration: 0 }
+											: useLiteMotion
+												? { duration: 0.18, ease: 'easeOut' }
 											: isDesktop
 												? { type: 'spring', damping: 25, stiffness: 300 }
 												: { type: 'spring', damping: 32, stiffness: 400, mass: 0.8 }
 									}
 									className={cn(
-										'relative mx-4 w-full max-w-sm overflow-hidden rounded-[32px] bg-[var(--surface)] p-6 shadow-2xl ring-1 ring-white/20',
+										'sheet-surface relative mx-4 w-full max-w-sm overflow-hidden rounded-[32px] p-6 ring-1 ring-white/20',
 										!isDesktop && 'mb-8',
 									)}
 									onKeyDown={(event) => {
@@ -383,12 +402,16 @@ export default function RecurringTasksSheet({
 							{recurringTasks.length === 0 ? (
 								<div className="h-full flex flex-col items-center justify-center text-center text-[var(--muted)] py-12">
 									<motion.div
-										initial={{ scale: 0.8, opacity: 0 }}
-										animate={{ scale: 1, opacity: 1 }}
-										transition={{
-											delay: 0.1,
-											type: 'spring',
-										}}
+										initial={useLiteMotion ? { opacity: 0 } : { scale: 0.8, opacity: 0 }}
+										animate={useLiteMotion ? { opacity: 1 } : { scale: 1, opacity: 1 }}
+										transition={
+											useLiteMotion
+												? { duration: 0.16 }
+												: {
+														delay: 0.1,
+														type: 'spring',
+													}
+										}
 										className="relative h-24 w-24 rounded-[32px] bg-gradient-to-br from-[var(--surface-2)] to-[var(--surface)] border border-[var(--border)] flex items-center justify-center mb-6 shadow-[var(--shadow-card)] ring-4 ring-[var(--surface)]"
 									>
 										<div className="absolute inset-0 bg-gradient-to-br from-[var(--accent)] to-transparent opacity-[0.08] rounded-[32px]" />
@@ -397,20 +420,26 @@ export default function RecurringTasksSheet({
 											strokeWidth={1.5}
 											className="text-[var(--accent)] relative z-10"
 										/>
-										<div className="absolute bottom-4 right-4 h-3 w-3 rounded-full bg-[var(--accent)] shadow-[0_0_12px_var(--accent)]" />
+										<div
+											className={cn(
+												'absolute bottom-4 right-4 h-3 w-3 rounded-full bg-[var(--accent)]',
+												!useLiteMotion &&
+													'shadow-[0_0_12px_var(--accent)]',
+											)}
+										/>
 									</motion.div>
 									<motion.h3
-										initial={{ y: 10, opacity: 0 }}
+										initial={{ y: useLiteMotion ? 0 : 10, opacity: 0 }}
 										animate={{ y: 0, opacity: 1 }}
-										transition={{ delay: 0.2 }}
+										transition={useLiteMotion ? { duration: 0.16 } : { delay: 0.2 }}
 										className="text-[20px] font-bold text-[var(--ink)] mb-2"
 									>
 										Нет повторяющихся задач
 									</motion.h3>
 									<motion.p
-										initial={{ y: 10, opacity: 0 }}
+										initial={{ y: useLiteMotion ? 0 : 10, opacity: 0 }}
 										animate={{ y: 0, opacity: 1 }}
-										transition={{ delay: 0.3 }}
+										transition={useLiteMotion ? { duration: 0.16 } : { delay: 0.3 }}
 										className="text-[15px] max-w-[280px] leading-relaxed opacity-70"
 									>
 										Создайте задачу с повтором в окне
@@ -419,7 +448,7 @@ export default function RecurringTasksSheet({
 								</div>
 							) : (
 								<div className="space-y-4 pb-20" role="list">
-									<LayoutGroup>
+									<OuterLayoutGroup>
 										{recurringTasks.map((series) => {
 											const isExpanded =
 												expandedSeriesId === series.id;
@@ -432,7 +461,7 @@ export default function RecurringTasksSheet({
 											return (
 												<motion.article
 													layout={
-														isSettled
+														allowSharedLayout && isSettled
 															? 'position'
 															: undefined
 													}
@@ -445,17 +474,21 @@ export default function RecurringTasksSheet({
 															: 'rounded-[24px] shadow-sm hover:bg-[var(--surface-2)]/50 active:scale-[0.99]',
 													)}
 												>
-													{isExpanded && (
-														<motion.div
-															initial={{
-																opacity: 0,
-															}}
-															animate={{
-																opacity: 1,
-															}}
-															className="absolute inset-0 bg-gradient-to-br from-[var(--accent)]/5 to-transparent pointer-events-none"
-														/>
-													)}
+													{isExpanded ? (
+														useLiteMotion ? (
+															<div className="absolute inset-0 bg-gradient-to-br from-[var(--accent)]/5 to-transparent pointer-events-none" />
+														) : (
+															<motion.div
+																initial={{
+																	opacity: 0,
+																}}
+																animate={{
+																	opacity: 1,
+																}}
+																className="absolute inset-0 bg-gradient-to-br from-[var(--accent)]/5 to-transparent pointer-events-none"
+															/>
+														)
+													) : null}
 
 													<button
 														type="button"
@@ -532,11 +565,15 @@ export default function RecurringTasksSheet({
 																		? 90
 																		: 0,
 																}}
-																transition={{
-																	type: 'spring',
-																	stiffness: 300,
-																	damping: 30,
-																}}
+																transition={
+																	useLiteMotion
+																		? { duration: 0.18, ease: 'easeOut' }
+																		: {
+																				type: 'spring',
+																				stiffness: 300,
+																				damping: 30,
+																			}
+																}
 																className={cn(
 																	'ml-1 mt-1 shrink-0 h-8 w-8 flex items-center justify-center rounded-full transition-colors',
 																	isExpanded
@@ -574,11 +611,13 @@ export default function RecurringTasksSheet({
 																	duration:
 																		reduceMotion
 																			? 0
-																			: 0.3,
-																	type: 'spring',
+																			: useLiteMotion
+																				? 0.22
+																				: 0.3,
+																	type: useLiteMotion ? 'tween' : 'spring',
 																	bounce: 0,
 																	opacity: {
-																		duration: 0.2,
+																		duration: useLiteMotion ? 0.14 : 0.2,
 																	},
 																}}
 																className="relative z-10"
@@ -599,25 +638,34 @@ export default function RecurringTasksSheet({
 																				idx,
 																			) => (
 																				<motion.div
-																					initial={{
-																						x: -8,
-																						opacity: 0,
-																					}}
+																					initial={
+																						useLiteMotion
+																							? { opacity: 0 }
+																							: {
+																									x: -8,
+																									opacity: 0,
+																								}
+																					}
 																					animate={{
 																						x: 0,
 																						opacity: 1,
 																					}}
-																					transition={{
-																						delay:
-																							idx *
-																							0.04,
-																					}}
+																					transition={
+																						useLiteMotion
+																							? { duration: 0.16 }
+																							: {
+																									delay:
+																										idx *
+																										0.04,
+																								}
+																					}
 																					key={date.toISOString()}
 																					className="relative group/item"
 																				>
 																					<div className="absolute -left-[32px] top-1/2 -translate-y-1/2 h-2.5 w-2.5 rounded-full border-2 border-[var(--surface)] bg-[var(--accent)] z-10" />
 																					{idx ===
-																						0 && (
+																						0 &&
+																						!useLiteMotion && (
 																						<div className="absolute -left-[32px] top-1/2 -translate-y-1/2 h-2.5 w-2.5 rounded-full bg-[var(--accent)] opacity-30 animate-[pulse_2s_ease-in-out_infinite]" />
 																					)}
 
@@ -714,15 +762,19 @@ export default function RecurringTasksSheet({
 																	<motion.button
 																		initial={{
 																			opacity: 0,
-																			y: 8,
+																			y: useLiteMotion ? 0 : 8,
 																		}}
 																		animate={{
 																			opacity: 1,
 																			y: 0,
 																		}}
-																		transition={{
-																			delay: 0.15,
-																		}}
+																		transition={
+																			useLiteMotion
+																				? { duration: 0.16 }
+																				: {
+																						delay: 0.15,
+																					}
+																		}
 																		type="button"
 																		onClick={(
 																			e,
@@ -751,12 +803,12 @@ export default function RecurringTasksSheet({
 												</motion.article>
 											);
 										})}
-									</LayoutGroup>
+									</OuterLayoutGroup>
 								</div>
 							)}
 				</div>
 			</BottomSheet>
-		</LayoutGroup>
+		</OuterLayoutGroup>
 	);
 }
 

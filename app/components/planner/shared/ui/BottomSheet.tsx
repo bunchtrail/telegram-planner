@@ -71,7 +71,7 @@ export default function BottomSheet({
       <motion.div
         aria-hidden="true"
         className={cn(
-          'absolute inset-0 bg-black/40 backdrop-blur-md pointer-events-auto',
+          'sheet-backdrop absolute inset-0 pointer-events-auto',
           backdropClassName,
         )}
         data-testid="dialog-backdrop"
@@ -87,7 +87,7 @@ export default function BottomSheet({
         aria-labelledby={ariaLabelledby}
         aria-modal="true"
         className={cn(
-          'pointer-events-auto relative flex w-full flex-col overflow-hidden bg-[var(--surface)] ring-1 ring-inset ring-[var(--border)] shadow-[0_-10px_40px_-10px_rgba(0,0,0,0.1)]',
+          'sheet-surface pointer-events-auto relative flex w-full flex-col overflow-hidden ring-1 ring-inset ring-[var(--border)] shadow-[0_-10px_40px_-10px_rgba(0,0,0,0.1)]',
           isDesktop
             ? 'h-auto max-h-[85vh] rounded-3xl border border-[var(--border)] shadow-2xl'
             : 'mx-auto max-h-[92dvh] rounded-t-[32px]',
@@ -170,7 +170,7 @@ export default function BottomSheet({
         {header || (!isDesktop && showDragHandle) ? (
           <div
             className={cn(
-              'shrink-0 w-full bg-[var(--surface)] select-none',
+              'shrink-0 w-full bg-transparent select-none',
               isDesktop ? 'p-6 pb-0' : 'pt-4 pb-2',
               headerClassName,
             )}

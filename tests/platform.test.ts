@@ -1,6 +1,7 @@
 import { describe, expect, test, vi } from 'vitest';
 import {
   getPlannerPlatform,
+  isTelegramIOS,
   isIOSWithinMobile,
 } from '../app/lib/platform';
 
@@ -48,6 +49,7 @@ describe('platform helpers', () => {
     setTelegramPlatform('ios');
 
     expect(getPlannerPlatform()).toBe('mobile');
+    expect(isTelegramIOS()).toBe(true);
     expect(isIOSWithinMobile()).toBe(true);
   });
 

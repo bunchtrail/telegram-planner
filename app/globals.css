@@ -29,6 +29,7 @@ body {
 	--surface: var(--tg-theme-secondary-bg-color, #ffffff);
 	--surface-2: var(--tg-theme-section-bg-color, #ffffff);
 	--surface-glass: rgba(255, 255, 255, 0.85);
+	--surface-glass-strong: rgba(255, 255, 255, 0.92);
 	--ink: var(--tg-theme-text-color, #000000);
 	--muted: var(--tg-theme-hint-color, #86868b);
 	--border: rgba(0, 0, 0, 0.08);
@@ -42,6 +43,8 @@ body {
 	--shadow-pop:
 		0 0 1px rgba(0, 0, 0, 0.06), 0 16px 40px -8px rgba(0, 0, 0, 0.18);
 	--shadow-glow: 0 8px 32px -8px var(--accent);
+	--sheet-backdrop-bg: rgba(8, 12, 20, 0.44);
+	--sheet-backdrop-blur: 14px;
 }
 
 button,
@@ -133,6 +136,34 @@ body {
 	mask-image: linear-gradient(#fff, #fff);
 }
 
+.header-glass {
+	background:
+		linear-gradient(
+			180deg,
+			color-mix(in srgb, var(--surface-glass-strong) 92%, white 8%) 0%,
+			color-mix(in srgb, var(--surface-glass) 96%, transparent) 100%
+		);
+	backdrop-filter: blur(18px) saturate(150%);
+	-webkit-backdrop-filter: blur(18px) saturate(150%);
+	border-bottom: 0.5px solid rgba(0, 0, 0, 0.05);
+}
+
+.sheet-surface {
+	background:
+		linear-gradient(
+			180deg,
+			color-mix(in srgb, var(--surface) 96%, white 4%) 0%,
+			var(--surface) 100%
+		);
+	box-shadow: var(--shadow-pop);
+}
+
+.sheet-backdrop {
+	background: var(--sheet-backdrop-bg);
+	backdrop-filter: blur(var(--sheet-backdrop-blur)) saturate(130%);
+	-webkit-backdrop-filter: blur(var(--sheet-backdrop-blur)) saturate(130%);
+}
+
 .will-change-transform {
 	will-change: transform;
 	transform: translateZ(0);
@@ -150,9 +181,39 @@ body {
 		background: rgba(255, 255, 255, 0.92);
 	}
 
+	.header-glass {
+		--sheet-backdrop-blur: 0px;
+		-webkit-backdrop-filter: blur(10px) saturate(125%);
+		backdrop-filter: blur(10px) saturate(125%);
+		background:
+			linear-gradient(
+				180deg,
+				color-mix(in srgb, var(--surface) 94%, white 6%) 0%,
+				color-mix(in srgb, var(--surface) 98%, transparent) 100%
+			);
+	}
+
+	.sheet-surface {
+		background:
+			linear-gradient(
+				180deg,
+				color-mix(in srgb, var(--surface) 98%, white 2%) 0%,
+				var(--surface) 100%
+			);
+	}
+
 	@media (prefers-color-scheme: dark) {
 		.glass {
 			background: rgba(30, 30, 30, 0.92);
+		}
+
+		.header-glass {
+			background:
+				linear-gradient(
+					180deg,
+					color-mix(in srgb, var(--surface) 96%, rgba(255, 255, 255, 0.05) 4%) 0%,
+					color-mix(in srgb, var(--surface) 98%, transparent) 100%
+				);
 		}
 	}
 }
@@ -184,9 +245,8 @@ body {
 /* Backdrop overlay: use solid fallback on iOS to avoid blur during transitions */
 @supports (-webkit-touch-callout: none) {
 	.sheet-backdrop {
-		-webkit-backdrop-filter: none !important;
-		backdrop-filter: none !important;
-		background: rgba(0, 0, 0, 0.5) !important;
+		-webkit-backdrop-filter: none;
+		backdrop-filter: none;
+		background: rgba(6, 8, 14, 0.52);
 	}
 }
-

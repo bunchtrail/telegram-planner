@@ -62,5 +62,10 @@ export const getPlannerPlatform = (): PlannerPlatform => {
 
 export const isDesktop = () => getPlannerPlatform() === 'desktop';
 
+export const isTelegramIOS = () => {
+  const platform = getTelegramPlatform();
+  return platform === 'ios' && isIOSDevice();
+};
+
 export const isIOSWithinMobile = () =>
-  getPlannerPlatform() === 'mobile' && isIOSDevice();
+  getPlannerPlatform() === 'mobile' && isTelegramIOS();

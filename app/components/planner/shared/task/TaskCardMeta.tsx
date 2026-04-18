@@ -10,6 +10,7 @@ type TaskCardMetaProps = {
 	isActive: boolean;
 	isDesktop?: boolean;
 	isExpanded: boolean;
+	reduceHeavyEffects?: boolean;
 	reduceMotion?: boolean;
 	task: Task;
 };
@@ -49,11 +50,35 @@ function ActiveWave() {
 	);
 }
 
+function ActivePulse({ reduceMotion }: { reduceMotion: boolean }) {
+	return (
+		<motion.span
+			className="mr-2 inline-block h-2 w-2 rounded-full bg-current"
+			initial={false}
+			animate={
+				reduceMotion
+					? { opacity: 0.85, scale: 1 }
+					: { opacity: [0.55, 1, 0.55], scale: [1, 1.12, 1] }
+			}
+			transition={
+				reduceMotion
+					? { duration: 0 }
+					: {
+							duration: 1.6,
+							repeat: Infinity,
+							ease: 'easeInOut',
+						}
+			}
+		/>
+	);
+}
+
 export default function TaskCardMeta({
 	elapsedMs,
 	isActive,
 	isDesktop = false,
 	isExpanded,
+	reduceHeavyEffects = false,
 	reduceMotion = false,
 	task,
 }: TaskCardMetaProps) {
@@ -82,10 +107,14 @@ export default function TaskCardMeta({
 			</div>
 		) : (
 			<div className="inline-flex items-center text-[var(--task-color)] font-bold tabular-nums animate-in fade-in duration-300">
-				<ActiveWave />
+				{reduceHeavyEffects ? (
+					<ActivePulse reduceMotion={reduceMotion} />
+				) : (
+					<ActiveWave />
+				)}
 				<span
 					className={cn(
-						'ml-1 min-w-[7ch] text-right',
+						`${reduceHeavyEffects ? '' : 'ml-1'} min-w-[7ch] text-right`,
 						isDesktop ? 'text-[15px]' : 'text-[14px]',
 					)}
 				>

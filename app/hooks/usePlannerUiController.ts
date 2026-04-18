@@ -57,6 +57,18 @@ export type PlannerUiController = {
 export function usePlannerUiController(
   planner: PlannerModel,
 ): PlannerUiController {
+  const {
+    tasks,
+    activeTaskId,
+    currentTasks,
+    selectedDate,
+    syncError,
+    addTask,
+    updateTask,
+    deleteTask: deletePlannerTask,
+    restoreTask,
+    toggleTask: togglePlannerTask,
+  } = planner;
   const [activeTab, setActiveTab] = useState<PlannerTab>('tasks');
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [sheetMode, setSheetMode] = useState<PlannerSheetMode>('create');
@@ -72,29 +84,51 @@ export function usePlannerUiController(
   const prevSyncErrorRef = useRef<string | null>(null);
   const { impact, notification } = useHaptic();
   const { fire } = useReward();
+  const sheetModeRef = useRef(sheetMode);
+  const editingTaskRef = useRef(editingTask);
+  const undoTaskRef = useRef(undoTask);
+  const currentTasksRef = useRef(currentTasks);
+  const totalCountRef = useRef(0);
+  const selectedDateKeyRef = useRef('');
 
   const activeTask = useMemo(
-    () => planner.tasks.find((task) => task.id === planner.activeTaskId) ?? null,
-    [planner.activeTaskId, planner.tasks],
+    () => tasks.find((task) => task.id === activeTaskId) ?? null,
+    [activeTaskId, tasks],
   );
 
   const { completedCount, totalCount } = useMemo(
     () => ({
-      completedCount: planner.currentTasks.filter((task) => task.completed).length,
-      totalCount: planner.currentTasks.length,
+      completedCount: currentTasks.filter((task) => task.completed).length,
+      totalCount: currentTasks.length,
     }),
-    [planner.currentTasks],
+    [currentTasks],
   );
 
   const selectedDateKey = useMemo(
-    () => format(planner.selectedDate, 'yyyy-MM-dd'),
-    [planner.selectedDate],
+    () => format(selectedDate, 'yyyy-MM-dd'),
+    [selectedDate],
   );
 
   const dayCompleteVisible =
     dayCompleteKey === selectedDateKey &&
     totalCount > 0 &&
     completedCount === totalCount;
+
+  useEffect(() => {
+    sheetModeRef.current = sheetMode;
+    editingTaskRef.current = editingTask;
+    undoTaskRef.current = undoTask;
+    currentTasksRef.current = currentTasks;
+    totalCountRef.current = totalCount;
+    selectedDateKeyRef.current = selectedDateKey;
+  }, [
+    currentTasks,
+    editingTask,
+    selectedDateKey,
+    sheetMode,
+    totalCount,
+    undoTask,
+  ]);
 
   useEffect(() => {
     if (prevIsSheetOpenRef.current && !isSheetOpen) {
@@ -117,13 +151,15 @@ export function usePlannerUiController(
   }, []);
 
   useEffect(() => {
-    if (planner.syncError && planner.syncError !== prevSyncErrorRef.current) {
+    if (syncError && syncError !== prevSyncErrorRef.current) {
       notification('error');
     }
-    prevSyncErrorRef.current = planner.syncError;
-  }, [notification, planner.syncError]);
+    prevSyncErrorRef.current = syncError;
+  }, [notification, syncError]);
 
   const closeSheet = useCallback(() => {
+    sheetModeRef.current = 'create';
+    editingTaskRef.current = null;
     setIsSheetOpen(false);
     setEditingTask(null);
     setSheetMode('create');
@@ -131,6 +167,8 @@ export function usePlannerUiController(
 
   const openCreate = useCallback(() => {
     impact('light');
+    sheetModeRef.current = 'create';
+    editingTaskRef.current = null;
     setSheetMode('create');
     setEditingTask(null);
     setIsSheetOpen(true);
@@ -139,6 +177,8 @@ export function usePlannerUiController(
   const openEdit = useCallback(
     (task: Task) => {
       impact('light');
+      sheetModeRef.current = 'edit';
+      editingTaskRef.current = task;
       setSheetMode('edit');
       setEditingTask(task);
       setIsSheetOpen(true);
@@ -156,8 +196,8 @@ export function usePlannerUiController(
       startMinutes: number | null,
       remindBeforeMinutes: number,
     ) => {
-      if (sheetMode === 'create') {
-        planner.addTask(
+      if (sheetModeRef.current === 'create') {
+        addTask(
           title,
           duration,
           repeat,
@@ -166,8 +206,8 @@ export function usePlannerUiController(
           startMinutes,
           remindBeforeMinutes,
         );
-      } else if (editingTask) {
-        planner.updateTask(editingTask.id, {
+      } else if (editingTaskRef.current) {
+        updateTask(editingTaskRef.current.id, {
           title,
           duration,
           color,
@@ -178,14 +218,15 @@ export function usePlannerUiController(
 
       closeSheet();
     },
-    [closeSheet, editingTask, planner, sheetMode],
+    [addTask, closeSheet, updateTask],
   );
 
   const deleteTask = useCallback(
     async (id: string) => {
-      const deletedTask = await planner.deleteTask(id);
+      const deletedTask = await deletePlannerTask(id);
       if (!deletedTask) return;
 
+      undoTaskRef.current = deletedTask;
       setUndoTask(deletedTask);
 
       if (undoTimeoutRef.current) {
@@ -193,43 +234,46 @@ export function usePlannerUiController(
       }
 
       undoTimeoutRef.current = window.setTimeout(() => {
+        undoTaskRef.current = null;
         setUndoTask(null);
         undoTimeoutRef.current = null;
       }, 4000);
     },
-    [planner],
+    [deletePlannerTask],
   );
 
   const undoDelete = useCallback(() => {
-    if (!undoTask) return;
+    const task = undoTaskRef.current;
+    if (!task) return;
 
     notification('success');
-    planner.restoreTask(undoTask);
+    restoreTask(task);
+    undoTaskRef.current = null;
     setUndoTask(null);
 
     if (undoTimeoutRef.current) {
       window.clearTimeout(undoTimeoutRef.current);
       undoTimeoutRef.current = null;
     }
-  }, [notification, planner, undoTask]);
+  }, [notification, restoreTask]);
 
   const toggleTask = useCallback(
     (id: string, coords?: { x: number; y: number }) => {
-      const task = planner.currentTasks.find((item) => item.id === id);
+      const task = currentTasksRef.current.find((item) => item.id === id);
       if (!task) return;
 
       const isCompleting = !task.completed;
 
       if (isCompleting) {
-        const othersCompleted = planner.currentTasks.filter(
+        const othersCompleted = currentTasksRef.current.filter(
           (item) => item.id !== id && item.completed,
         ).length;
-        const isLastOne = othersCompleted === totalCount - 1;
+        const isLastOne = othersCompleted === totalCountRef.current - 1;
 
-        if (isLastOne && totalCount > 1) {
+        if (isLastOne && totalCountRef.current > 1) {
           fire(window.innerWidth / 2, window.innerHeight, 'climax');
           notification('success');
-          setDayCompleteKey(selectedDateKey);
+          setDayCompleteKey(selectedDateKeyRef.current);
 
           if (dayCompleteTimeoutRef.current) {
             window.clearTimeout(dayCompleteTimeoutRef.current);
@@ -246,39 +290,78 @@ export function usePlannerUiController(
         }
       }
 
-      planner.toggleTask(id);
+      togglePlannerTask(id);
     },
-    [fire, notification, planner, selectedDateKey, totalCount],
+    [fire, notification, togglePlannerTask],
   );
 
-  return {
-    activeTab,
-    setActiveTab,
-    activeTask,
-    completedCount,
-    totalCount,
-    dayCompleteVisible,
-    sheet: {
+  const openStats = useCallback(() => setShowStats(true), []);
+  const closeStats = useCallback(() => setShowStats(false), []);
+  const openRecurring = useCallback(() => setShowRecurring(true), []);
+  const closeRecurring = useCallback(() => setShowRecurring(false), []);
+  const openFocus = useCallback(() => setShowFocus(true), []);
+  const closeFocus = useCallback(() => setShowFocus(false), []);
+
+  const sheet = useMemo(
+    () => ({
       isOpen: isSheetOpen,
       mode: sheetMode,
       editingTask,
-    },
-    showStats,
-    showRecurring,
-    showFocus,
-    undoTask,
-    openCreate,
-    openEdit,
-    closeSheet,
-    submitSheet,
-    toggleTask,
-    deleteTask,
-    undoDelete,
-    openStats: () => setShowStats(true),
-    closeStats: () => setShowStats(false),
-    openRecurring: () => setShowRecurring(true),
-    closeRecurring: () => setShowRecurring(false),
-    openFocus: () => setShowFocus(true),
-    closeFocus: () => setShowFocus(false),
-  };
+    }),
+    [editingTask, isSheetOpen, sheetMode],
+  );
+
+  return useMemo(
+    () => ({
+      activeTab,
+      setActiveTab,
+      activeTask,
+      completedCount,
+      totalCount,
+      dayCompleteVisible,
+      sheet,
+      showStats,
+      showRecurring,
+      showFocus,
+      undoTask,
+      openCreate,
+      openEdit,
+      closeSheet,
+      submitSheet,
+      toggleTask,
+      deleteTask,
+      undoDelete,
+      openStats,
+      closeStats,
+      openRecurring,
+      closeRecurring,
+      openFocus,
+      closeFocus,
+    }),
+    [
+      activeTab,
+      activeTask,
+      closeFocus,
+      closeRecurring,
+      closeSheet,
+      closeStats,
+      completedCount,
+      dayCompleteVisible,
+      deleteTask,
+      openCreate,
+      openEdit,
+      openFocus,
+      openRecurring,
+      openStats,
+      sheet,
+      showFocus,
+      showRecurring,
+      showStats,
+      submitSheet,
+      toggleTask,
+      totalCount,
+      undoDelete,
+      undoTask,
+    ],
+  );
 }

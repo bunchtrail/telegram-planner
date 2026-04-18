@@ -1,7 +1,6 @@
 import { useEffect, useRef } from 'react';
 import {
 	AnimatePresence,
-	LayoutGroup,
 	Reorder,
 	useReducedMotion,
 } from 'framer-motion';
@@ -196,9 +195,6 @@ export default function TaskList({
 		groupKey: string,
 	) => {
 		if (groupTasks.length === 0) return null;
-		const taskById = new Map(
-			groupTasks.map((task) => [task.clientId, task]),
-		);
 		const renderTaskItem = (task: Task) => (
 			<TaskItem
 				key={task.clientId}
@@ -215,6 +211,30 @@ export default function TaskList({
 				reduceHeavyEffectsOnPlatform={reduceHeavyEffectsOnPlatform}
 			/>
 		);
+		const items = listMotionEnabled ? (
+			<AnimatePresence initial={false}>
+				{groupTasks.map(renderTaskItem)}
+			</AnimatePresence>
+		) : (
+			groupTasks.map(renderTaskItem)
+		);
+
+		if (!canReorder) {
+			return (
+				<ul
+					key={`${dateKey}-${groupKey}`}
+					role="list"
+					className={isDesktop ? 'space-y-4' : 'relative'}
+				>
+					{items}
+				</ul>
+			);
+		}
+
+		const taskById = new Map(
+			groupTasks.map((task) => [task.clientId, task]),
+		);
+
 		return (
 			<Reorder.Group
 				key={`${dateKey}-${groupKey}`}
@@ -233,25 +253,17 @@ export default function TaskList({
 				role="list"
 				className={isDesktop ? 'space-y-4' : 'relative'}
 			>
-				{!listMotionEnabled ? (
-					groupTasks.map(renderTaskItem)
-				) : (
-					<AnimatePresence initial={false} mode="popLayout">
-						{groupTasks.map(renderTaskItem)}
-					</AnimatePresence>
-				)}
+				{items}
 			</Reorder.Group>
 		);
 	};
 
 	return (
 		<div ref={scrollContainerRef} className={containerClassName}>
-			<LayoutGroup>
-				{renderGroup(activeTasks, false, 'active')}
-				{renderGroup(pinnedTasks, true, 'pinned')}
-				{renderGroup(normalTasks, true, 'normal')}
-				{renderGroup(completedTasks, false, 'completed')}
-			</LayoutGroup>
+			{renderGroup(activeTasks, false, 'active')}
+			{renderGroup(pinnedTasks, true, 'pinned')}
+			{renderGroup(normalTasks, true, 'normal')}
+			{renderGroup(completedTasks, false, 'completed')}
 			<div className="h-4" />
 		</div>
 	);

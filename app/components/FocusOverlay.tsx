@@ -240,9 +240,20 @@ export default function FocusOverlay({
 				{isPomodoro && (
 					<motion.div
 						key={pomodoro.phase}
-						initial={{ opacity: 0, y: -8 }}
+						initial={{
+							opacity: 0,
+							y: reduceHeavyEffects ? 0 : -8,
+						}}
 						animate={{ opacity: 1, y: 0 }}
-						exit={{ opacity: 0, y: 8 }}
+						exit={{
+							opacity: 0,
+							y: reduceHeavyEffects ? 0 : 8,
+						}}
+						transition={
+							reduceHeavyEffects
+								? { duration: 0.14, ease: 'easeOut' }
+								: undefined
+						}
 						className="mb-6"
 					>
 						<span
@@ -274,6 +285,20 @@ export default function FocusOverlay({
 						}}
 						className="absolute inset-0 rounded-full blur-2xl"
 						style={{ backgroundColor: ringColor }}
+					/>
+				)}
+
+				{timerRunning && reduceHeavyEffects && (
+					<motion.div
+						className="absolute inset-[18px] rounded-full border border-current/10"
+						style={{ color: ringColor }}
+						initial={false}
+						animate={{ opacity: [0.18, 0.32, 0.18] }}
+						transition={{
+							duration: 1.8,
+							repeat: Infinity,
+							ease: 'easeInOut',
+						}}
 					/>
 				)}
 
@@ -311,9 +336,9 @@ export default function FocusOverlay({
 								key={i}
 								className="w-3 h-3 rounded-full transition-all duration-300"
 								style={{
-									backgroundColor:
-										i <
-										pomodoro.round -
+								backgroundColor:
+									i <
+									pomodoro.round -
 											(pomodoro.phase === 'focus'
 												? 1
 												: 0) +
@@ -321,9 +346,10 @@ export default function FocusOverlay({
 											? 'var(--accent)'
 											: i === pomodoro.round - 1 &&
 												  pomodoro.phase === 'focus'
-												? `color-mix(in srgb, var(--accent) 40%, transparent)`
-												: 'var(--surface-2)',
+										? `color-mix(in srgb, var(--accent) 40%, transparent)`
+										: 'var(--surface-2)',
 									transform:
+										!reduceHeavyEffects &&
 										i === pomodoro.round - 1 &&
 										pomodoro.phase === 'focus' &&
 										pomodoro.isRunning

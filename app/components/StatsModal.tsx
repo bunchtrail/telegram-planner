@@ -8,6 +8,8 @@ import { ru } from 'date-fns/locale';
 import type { Task } from '../types/task';
 import type { PomodoroWeeklyStats } from '../hooks/usePomodoroStats';
 import { cn } from '../lib/cn';
+import { getMotionCapabilities } from '../lib/motion';
+import { isTelegramIOS } from '../lib/platform';
 import Dialog from './planner/shared/ui/Dialog';
 import ModalHeader from './planner/shared/ui/ModalHeader';
 
@@ -28,6 +30,12 @@ export default function StatsModal({
 }: StatsModalProps) {
 	const prefersReducedMotion = useReducedMotion();
 	const reduceMotion = Boolean(prefersReducedMotion);
+	const motionCapabilities = getMotionCapabilities({
+		isTelegramIOS: isTelegramIOS(),
+		isDesktop: false,
+		prefersReducedMotion: reduceMotion,
+	});
+	const useLiteMotion = motionCapabilities.tier !== 'full';
 
 	const stats = useMemo(() => {
 		// Период: 7 дней, заканчивая selectedDate включительно
@@ -171,7 +179,9 @@ export default function StatsModal({
 						<div className="col-span-2 relative overflow-hidden rounded-[24px] bg-[var(--surface)] shadow-[var(--shadow-card)] border border-[var(--border)] p-5 min-h-[110px] flex flex-col justify-center group">
 							{/* Glow & Gradient Overlay */}
 							<div className="absolute inset-0 bg-gradient-to-br from-[var(--accent)] to-transparent opacity-5 pointer-events-none" />
-							<div className="absolute top-0 right-0 p-10 bg-[var(--accent)] blur-[60px] opacity-10 pointer-events-none" />
+							{!useLiteMotion ? (
+								<div className="absolute top-0 right-0 p-10 bg-[var(--accent)] blur-[60px] opacity-10 pointer-events-none" />
+							) : null}
 
 							<div className="relative z-10 flex items-baseline justify-between">
 								<div className="flex flex-col">
@@ -215,15 +225,22 @@ export default function StatsModal({
 									</span>
 								</div>
 								<div className="h-1.5 w-full bg-[var(--border)] rounded-full overflow-hidden relative">
-									<motion.div
-										initial={{ width: 0 }}
-										animate={{ width: `${planProgress}%` }}
-										transition={{
-											duration: 0.6,
-											delay: 0.1,
-										}}
-										className="absolute inset-y-0 left-0 bg-[var(--accent)] rounded-full"
-									/>
+									{useLiteMotion ? (
+										<div
+											className="absolute inset-y-0 left-0 rounded-full bg-[var(--accent)] transition-[width] duration-300 ease-out"
+											style={{ width: `${planProgress}%` }}
+										/>
+									) : (
+										<motion.div
+											initial={{ width: 0 }}
+											animate={{ width: `${planProgress}%` }}
+											transition={{
+												duration: 0.6,
+												delay: 0.1,
+											}}
+											className="absolute inset-y-0 left-0 bg-[var(--accent)] rounded-full"
+										/>
+									)}
 								</div>
 							</div>
 						</div>
@@ -293,22 +310,34 @@ export default function StatsModal({
 											key={i}
 											className="flex-1 flex items-end justify-center"
 										>
-											<motion.div
-												initial={{ height: 0 }}
-												animate={{ height: `${h}%` }}
-												transition={{
-													type: 'spring',
-													stiffness: 180,
-													damping: 20,
-													delay: i * 0.04,
-												}}
-												className={cn(
-													'w-full rounded-full min-h-[4px]',
-													day.pomodoros > 0
-														? 'bg-[var(--accent)]'
-														: 'bg-[var(--border)]',
-												)}
-											/>
+											{useLiteMotion ? (
+												<div
+													className={cn(
+														'w-full rounded-full min-h-[4px] transition-[height] duration-300 ease-out',
+														day.pomodoros > 0
+															? 'bg-[var(--accent)]'
+															: 'bg-[var(--border)]',
+													)}
+													style={{ height: `${h}%` }}
+												/>
+											) : (
+												<motion.div
+													initial={{ height: 0 }}
+													animate={{ height: `${h}%` }}
+													transition={{
+														type: 'spring',
+														stiffness: 180,
+														damping: 20,
+														delay: i * 0.04,
+													}}
+													className={cn(
+														'w-full rounded-full min-h-[4px]',
+														day.pomodoros > 0
+															? 'bg-[var(--accent)]'
+															: 'bg-[var(--border)]',
+													)}
+												/>
+											)}
 										</div>
 									);
 								})}
@@ -340,26 +369,39 @@ export default function StatsModal({
 											{/* Трек столбика */}
 											<div className="absolute inset-x-1 top-0 bottom-0 bg-[var(--surface-2)] rounded-full opacity-60" />
 
-											<motion.div
-												initial={{ height: 0 }}
-												animate={{ height: barHeight }}
-												transition={{
-													type: 'spring',
-													stiffness: 180,
-													damping: 20,
-													delay: reduceMotion
-														? 0
-														: index * 0.05,
-												}}
-												className={cn(
-													'w-full mx-1 relative rounded-full min-h-[4px] transition-all duration-300',
-													isHighlighted
-														? 'bg-[var(--accent)] shadow-[0_0_12px_-3px_var(--accent)]'
-														: 'bg-[var(--border)] group-hover:bg-[var(--muted)]',
-													day.rate === 0 &&
-														'bg-transparent',
-												)}
-											/>
+											{useLiteMotion ? (
+												<div
+													className={cn(
+														'w-full mx-1 relative rounded-full min-h-[4px] transition-[height,background-color] duration-300 ease-out',
+														isHighlighted
+															? 'bg-[var(--accent)]'
+															: 'bg-[var(--border)]',
+														day.rate === 0 && 'bg-transparent',
+													)}
+													style={{ height: barHeight }}
+												/>
+											) : (
+												<motion.div
+													initial={{ height: 0 }}
+													animate={{ height: barHeight }}
+													transition={{
+														type: 'spring',
+														stiffness: 180,
+														damping: 20,
+														delay: reduceMotion
+															? 0
+															: index * 0.05,
+													}}
+													className={cn(
+														'w-full mx-1 relative rounded-full min-h-[4px] transition-all duration-300',
+														isHighlighted
+															? 'bg-[var(--accent)] shadow-[0_0_12px_-3px_var(--accent)]'
+															: 'bg-[var(--border)] group-hover:bg-[var(--muted)]',
+														day.rate === 0 &&
+															'bg-transparent',
+													)}
+												/>
+											)}
 										</div>
 
 										<span

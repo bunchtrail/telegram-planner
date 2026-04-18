@@ -47,7 +47,7 @@ export default function Dialog({
       <motion.div
         aria-hidden="true"
         className={cn(
-          'absolute inset-0 bg-black/40 backdrop-blur-sm',
+          'sheet-backdrop absolute inset-0',
           backdropClassName,
         )}
         data-testid="dialog-backdrop"
@@ -64,7 +64,7 @@ export default function Dialog({
         aria-labelledby={ariaLabelledby}
         aria-modal="true"
         className={cn(
-          'relative flex max-h-[90vh] w-full flex-col overflow-hidden rounded-[32px] bg-[var(--surface)] shadow-2xl ring-1 ring-[var(--border)]',
+          'sheet-surface relative flex max-h-[90vh] w-full flex-col overflow-hidden rounded-[32px] ring-1 ring-[var(--border)]',
           contentClassName,
         )}
         initial={{ scale: reduceMotion ? 1 : 0.95, opacity: 0, y: 10 }}

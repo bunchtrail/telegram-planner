@@ -256,7 +256,9 @@ const TaskItem = memo(function TaskItem({
 				isActive
 					? {
 							background: task.color,
-							boxShadow: `0 6px 20px -4px ${task.color}40`,
+							boxShadow: reduceHeavyEffects
+								? `0 4px 12px -8px ${task.color}50`
+								: `0 6px 20px -4px ${task.color}40`,
 						}
 					: {
 							background: `color-mix(in srgb, ${task.color} 10%, var(--surface-2))`,
@@ -361,7 +363,29 @@ const TaskItem = memo(function TaskItem({
 	const overlay =
 		isActive && !isExpanded ? (
 			<>
-				{!reduceHeavyEffects ? (
+				{reduceHeavyEffects ? (
+					<motion.div
+						className={cn(
+							'absolute inset-0 bg-[var(--task-color)] -z-10',
+							isDesktop ? 'rounded-[20px]' : 'rounded-[28px]',
+						)}
+						initial={false}
+						animate={
+							reduceMotion
+								? { opacity: 0.08 }
+								: { opacity: [0.05, 0.1, 0.05] }
+						}
+						transition={
+							reduceMotion
+								? { duration: 0 }
+								: {
+										duration: 2.4,
+										repeat: Infinity,
+										ease: 'easeInOut',
+									}
+						}
+					/>
+				) : (
 					<motion.div
 						animate={{
 							opacity: [0.3, 0.5, 0.3],
@@ -377,7 +401,7 @@ const TaskItem = memo(function TaskItem({
 							isDesktop ? 'rounded-[20px]' : 'rounded-[28px]',
 						)}
 					/>
-				) : null}
+				)}
 
 				{!reduceHeavyEffects ? <ActiveBorder color={task.color} /> : null}
 
@@ -401,158 +425,182 @@ const TaskItem = memo(function TaskItem({
 			</>
 		) : null;
 
+	const cardContent = (
+		<TaskCard
+			detailsHeight={detailsHeight}
+			isExpanded={isExpanded}
+			overlay={overlay}
+			reduceMotion={reduceMotion}
+			surfaceStyle={surfaceStyle}
+			details={
+				<div
+					ref={detailsRef}
+					className={cn(
+						'px-4 pb-4 pt-0 pl-[3.5rem] md:pl-[4.5rem] md:pr-6 space-y-3 md:space-y-4',
+						isDesktop && 'pt-2',
+					)}
+				>
+					{!task.completed ? (
+						<>
+							{timerButton}
+
+							<TaskMoveActions
+								effectivePickerValue={effectivePickerValue}
+								hasPendingChange={hasPendingChange}
+								onCancelPendingDate={() => setPendingDate(null)}
+								onChangePendingDate={setPendingDate}
+								onConfirmPendingDate={() => {
+									if (pendingDate) {
+										handleMoveToDate(pendingDate);
+									}
+								}}
+								onMoveTomorrow={() => {
+									setPendingDate(null);
+									handleMoveTomorrow();
+								}}
+							/>
+
+							<ChecklistEditor
+								items={task.checklist}
+								onAddItem={handleAddChecklistItem}
+								onDeleteItem={handleDeleteChecklistItem}
+								onToggleItem={handleToggleChecklistItem}
+								reduceMotion={reduceMotion}
+								taskColor={task.color}
+								taskId={task.id}
+							/>
+
+							{!isDesktop ? mobileFooterActions : deleteAction}
+						</>
+					) : (
+						deleteAction
+					)}
+				</div>
+			}
+		>
+			<TaskCardHeader
+				actions={headerActions}
+				checkbox={
+					<button
+						type="button"
+						aria-label="Отметить задачу выполненной"
+						onPointerDown={(event) => event.stopPropagation()}
+						onClick={handleToggleComplete}
+						aria-pressed={task.completed}
+						className={cn(
+							'relative flex shrink-0 items-center justify-center rounded-full border-[1.5px] transition-colors duration-300 mt-1',
+							isDesktop ? 'h-7 w-7' : 'h-6 w-6',
+						)}
+						style={{
+							borderColor: task.color,
+							backgroundColor: task.completed
+								? task.color
+								: 'transparent',
+							opacity: task.completed ? 1 : 0.85,
+						}}
+					>
+						<svg
+							viewBox="0 0 24 24"
+							className="absolute inset-0 h-full w-full p-0.5 text-[var(--surface)]"
+						>
+							<path
+								d="M20 6L9 17l-5-5"
+								fill="none"
+								stroke="currentColor"
+								strokeWidth="3.5"
+								strokeLinecap="round"
+								strokeLinejoin="round"
+								style={{
+									opacity: task.completed ? 1 : 0,
+									strokeDasharray: 100,
+									strokeDashoffset: task.completed ? 0 : 100,
+									transition:
+										'stroke-dashoffset 0.2s ease, opacity 0.2s ease',
+								}}
+							/>
+						</svg>
+					</button>
+				}
+				completed={task.completed}
+				isDesktop={isDesktop}
+				isExpanded={isExpanded}
+				meta={
+					<TaskCardMeta
+						elapsedMs={elapsedMs}
+						isActive={isActive}
+						isDesktop={isDesktop}
+						isExpanded={isExpanded}
+						reduceHeavyEffects={reduceHeavyEffects}
+						reduceMotion={reduceMotion}
+						task={task}
+					/>
+				}
+				onToggleExpand={toggleExpand}
+				title={task.title}
+				titleSuffix={task.isPinned ? <TaskCardPin isDesktop={isDesktop} /> : null}
+			/>
+		</TaskCard>
+	);
+
+	const itemClassName = cn(
+		'group relative overflow-hidden bg-[var(--surface)] touch-pan-y',
+		isDesktop
+			? 'rounded-[20px] mb-3 hover:shadow-md border border-transparent hover:border-[var(--border)]'
+			: 'rounded-[28px] mb-4 shadow-[var(--shadow-card)]',
+		isActive
+			? 'z-20'
+			: isExpanded
+				? 'shadow-[var(--shadow-pop)] z-10'
+				: '',
+	);
+
+	const itemStyle = {
+		transformOrigin: 'center',
+		'--task-color': task.color,
+		willChange: listMotionEnabled && canReorder ? 'transform' : 'auto',
+	} as CustomCSSProperties;
+
+	const itemAnimation = {
+		opacity: task.completed ? 0.8 : 1,
+		y: 0,
+	};
+
+	const itemExit = listMotionEnabled ? { opacity: 0, y: 10 } : undefined;
+	const itemTransition = listMotionEnabled
+		? { type: 'tween' as const, duration: 0.18, ease: 'easeOut' as const }
+		: { duration: 0 };
+
+	if (!canReorder) {
+		return (
+			<motion.li
+				initial={listMotionEnabled ? { opacity: 0, y: 10 } : false}
+				animate={itemAnimation}
+				exit={itemExit}
+				transition={itemTransition}
+				className={itemClassName}
+				style={itemStyle}
+			>
+				{cardContent}
+			</motion.li>
+		);
+	}
+
 	return (
 		<Reorder.Item
 			value={task.clientId}
 			id={task.clientId}
-			layoutId={listMotionEnabled ? task.clientId : undefined}
 			dragListener={false}
 			dragControls={dragControls}
 			layout={listMotionEnabled ? 'position' : undefined}
-			initial={false}
-			animate={{
-				opacity: task.completed ? 0.8 : 1,
-				y: 0,
-			}}
-			exit={listMotionEnabled ? { opacity: 0, scale: 0.95 } : undefined}
-			transition={
-				listMotionEnabled
-					? { type: 'tween', duration: 0.18, ease: 'easeOut' }
-					: { duration: 0 }
-			}
-			className={cn(
-				'group relative overflow-hidden bg-[var(--surface)] touch-pan-y',
-				isDesktop
-					? 'rounded-[20px] mb-3 hover:shadow-md border border-transparent hover:border-[var(--border)]'
-					: 'rounded-[28px] mb-4 shadow-[var(--shadow-card)]',
-				isActive
-					? 'z-20'
-					: isExpanded
-						? 'shadow-[var(--shadow-pop)] z-10'
-						: '',
-			)}
-			style={
-				{
-					transformOrigin: 'center',
-					'--task-color': task.color,
-					willChange: listMotionEnabled ? 'transform' : 'auto',
-				} as CustomCSSProperties
-			}
+			initial={listMotionEnabled ? { opacity: 0, y: 10 } : false}
+			animate={itemAnimation}
+			exit={itemExit}
+			transition={itemTransition}
+			className={itemClassName}
+			style={itemStyle}
 			as="li"
 		>
-			<TaskCard
-				detailsHeight={detailsHeight}
-				isExpanded={isExpanded}
-				overlay={overlay}
-				reduceMotion={reduceMotion}
-				surfaceStyle={surfaceStyle}
-				details={
-					<div
-						ref={detailsRef}
-						className={cn(
-							'px-4 pb-4 pt-0 pl-[3.5rem] md:pl-[4.5rem] md:pr-6 space-y-3 md:space-y-4',
-							isDesktop && 'pt-2',
-						)}
-					>
-						{!task.completed ? (
-							<>
-								{timerButton}
-
-								<TaskMoveActions
-									effectivePickerValue={effectivePickerValue}
-									hasPendingChange={hasPendingChange}
-									onCancelPendingDate={() => setPendingDate(null)}
-									onChangePendingDate={setPendingDate}
-									onConfirmPendingDate={() => {
-										if (pendingDate) {
-											handleMoveToDate(pendingDate);
-										}
-									}}
-									onMoveTomorrow={() => {
-										setPendingDate(null);
-										handleMoveTomorrow();
-									}}
-								/>
-
-								<ChecklistEditor
-									items={task.checklist}
-									onAddItem={handleAddChecklistItem}
-									onDeleteItem={handleDeleteChecklistItem}
-									onToggleItem={handleToggleChecklistItem}
-									reduceMotion={reduceMotion}
-									taskColor={task.color}
-									taskId={task.id}
-								/>
-
-								{!isDesktop ? mobileFooterActions : deleteAction}
-							</>
-						) : (
-							deleteAction
-						)}
-					</div>
-				}
-			>
-				<TaskCardHeader
-					actions={headerActions}
-					checkbox={
-						<button
-							type="button"
-							aria-label="Отметить задачу выполненной"
-							onPointerDown={(event) => event.stopPropagation()}
-							onClick={handleToggleComplete}
-							aria-pressed={task.completed}
-							className={cn(
-								'relative flex shrink-0 items-center justify-center rounded-full border-[1.5px] transition-colors duration-300 mt-1',
-								isDesktop ? 'h-7 w-7' : 'h-6 w-6',
-							)}
-							style={{
-								borderColor: task.color,
-								backgroundColor: task.completed
-									? task.color
-									: 'transparent',
-								opacity: task.completed ? 1 : 0.85,
-							}}
-						>
-							<svg
-								viewBox="0 0 24 24"
-								className="absolute inset-0 h-full w-full p-0.5 text-[var(--surface)]"
-							>
-								<path
-									d="M20 6L9 17l-5-5"
-									fill="none"
-									stroke="currentColor"
-									strokeWidth="3.5"
-									strokeLinecap="round"
-									strokeLinejoin="round"
-									style={{
-										opacity: task.completed ? 1 : 0,
-										strokeDasharray: 100,
-										strokeDashoffset: task.completed ? 0 : 100,
-										transition:
-											'stroke-dashoffset 0.2s ease, opacity 0.2s ease',
-									}}
-								/>
-							</svg>
-						</button>
-					}
-					completed={task.completed}
-					isDesktop={isDesktop}
-					isExpanded={isExpanded}
-					meta={
-						<TaskCardMeta
-							elapsedMs={elapsedMs}
-							isActive={isActive}
-							isDesktop={isDesktop}
-							isExpanded={isExpanded}
-							reduceMotion={reduceMotion}
-							task={task}
-						/>
-					}
-					onToggleExpand={toggleExpand}
-					title={task.title}
-					titleSuffix={task.isPinned ? <TaskCardPin isDesktop={isDesktop} /> : null}
-				/>
-			</TaskCard>
+			{cardContent}
 		</Reorder.Item>
 	);
 });

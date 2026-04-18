@@ -1,5 +1,6 @@
 import { useCallback } from "react";
 import confetti from "canvas-confetti";
+import { isTelegramIOS } from "../lib/platform";
 
 type RewardType = "light" | "medium" | "climax";
 
@@ -32,6 +33,7 @@ export function useReward() {
     if (typeof window === "undefined" || prefersReducedMotion()) return;
 
     const colors = getThemeColors();
+    const isIOSRewardMode = isTelegramIOS();
     const width = window.innerWidth || 1;
     const height = window.innerHeight || 1;
     const origin = {
@@ -42,15 +44,15 @@ export function useReward() {
     switch (type) {
       case "light":
         confetti({
-          particleCount: 20,
-          spread: 40,
+          particleCount: isIOSRewardMode ? 14 : 20,
+          spread: isIOSRewardMode ? 32 : 40,
           origin,
           colors: colors.slice(0, 3),
           disableForReducedMotion: true,
-          scalar: 0.8,
+          scalar: isIOSRewardMode ? 0.72 : 0.8,
           gravity: 1.2,
-          ticks: 100,
-          startVelocity: 20,
+          ticks: isIOSRewardMode ? 80 : 100,
+          startVelocity: isIOSRewardMode ? 16 : 20,
           zIndex: 9999,
           shapes: ["circle"],
         });
@@ -58,17 +60,33 @@ export function useReward() {
 
       case "medium":
         confetti({
-          particleCount: 40,
-          spread: 60,
+          particleCount: isIOSRewardMode ? 26 : 40,
+          spread: isIOSRewardMode ? 44 : 60,
           origin,
           colors,
           disableForReducedMotion: true,
           zIndex: 9999,
-          startVelocity: 25,
+          startVelocity: isIOSRewardMode ? 18 : 25,
         });
         break;
 
       case "climax": {
+        if (isIOSRewardMode) {
+          confetti({
+            particleCount: 28,
+            spread: 56,
+            origin,
+            colors,
+            disableForReducedMotion: true,
+            scalar: 0.9,
+            gravity: 1.05,
+            ticks: 120,
+            startVelocity: 22,
+            zIndex: 9999,
+          });
+          break;
+        }
+
         const duration = 2000;
         const end = Date.now() + duration;
         const frame = () => {

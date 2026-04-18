@@ -68,6 +68,12 @@
 - Эффекты вроде glow/wave держите в абсолютных слоях, чтобы не менять layout карточки.
 - Избегайте `height: auto` анимаций; для раскрывающихся секций используйте измерение высоты.
 
+## Telegram Motion Budget
+
+- Для Telegram iOS анимации проектируем по принципу `transform/opacity first`: без shared-layout transitions через длинные списки и без тяжёлых движущихся blur-слоёв.
+- Backdrop blur допустим только как статичный визуальный слой; анимируемые overlays/sheets на iOS должны иметь solid или semi-solid fallback.
+- Бесконечные декоративные эффекты ограничиваем одним focal-элементом вне активной scroll-зоны; во время скролла списка постоянные эффекты должны быть выключены.
+
 ## Клавиатура и viewport (Telegram/iOS)
 
 - Используем нативный ресайз контента: `interactiveWidget: 'resizes-content'` в `app/layout.tsx`.
