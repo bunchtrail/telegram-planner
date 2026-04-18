@@ -30,7 +30,7 @@ export default function HabitWeekGrid({
   const todayKey = format(new Date(), 'yyyy-MM-dd');
 
   return (
-    <div className={cn('grid grid-cols-7', layout === 'desktop' ? 'gap-2.5' : 'gap-1')}>
+    <div className={cn('grid grid-cols-7', layout === 'desktop' ? 'gap-2' : 'gap-1')}>
       {days.map((day) => {
         const dateKey = format(day, 'yyyy-MM-dd');
         const localizedDayLabel = `${habitName}, ${format(day, 'EEEE, d MMMM', {
@@ -41,11 +41,17 @@ export default function HabitWeekGrid({
         const isToday = dateKey === todayKey;
 
         if (layout === 'desktop') {
+          const statusLabel = checked
+            ? 'Выполнено'
+            : isToday
+              ? 'Сегодня'
+              : 'Не отмечено';
+
           return (
             <motion.button
               key={dateKey}
               type="button"
-              whileTap={{ scale: 0.97 }}
+              whileTap={{ scale: 0.98 }}
               disabled={pending}
               onClick={() => {
                 if (!pending) {
@@ -53,21 +59,14 @@ export default function HabitWeekGrid({
                 }
               }}
               className={cn(
-                'flex min-h-[104px] flex-col justify-between rounded-[24px] border px-3 py-3 text-left transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-60',
+                'flex min-h-[84px] flex-col justify-between rounded-[20px] border px-3 py-3 text-left transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-60',
                 checked
-                  ? 'border-transparent text-white shadow-[var(--shadow-pop)]'
+                  ? 'border-transparent text-white shadow-[var(--shadow-card)]'
                   : isToday
-                    ? 'border-[var(--accent)]/35 bg-[var(--accent)]/10 text-[var(--ink)] hover:border-[var(--accent)]/60'
-                    : 'border-[var(--border)] bg-[var(--surface-2)]/75 text-[var(--ink)] hover:border-[var(--ink)]/12 hover:bg-[var(--surface)]',
+                    ? 'border-[var(--accent)]/45 bg-[var(--accent)]/10 text-[var(--ink)]'
+                    : 'border-[var(--border)] bg-[var(--surface-2)] text-[var(--ink)]',
               )}
-              style={
-                checked
-                  ? {
-                      backgroundColor: color,
-                      boxShadow: `0 22px 40px -30px ${color}`,
-                    }
-                  : undefined
-              }
+              style={checked ? { backgroundColor: color } : undefined}
               aria-label={localizedDayLabel}
               aria-busy={pending}
               aria-current={isToday ? 'date' : undefined}
@@ -76,9 +75,9 @@ export default function HabitWeekGrid({
                 <div className="min-w-0">
                   <div
                     className={cn(
-                      'text-[11px] font-semibold uppercase tracking-[0.18em]',
+                      'text-[10px] font-semibold uppercase tracking-[0.14em]',
                       checked
-                        ? 'text-white/70'
+                        ? 'text-white/75'
                         : isToday
                           ? 'text-[var(--accent)]'
                           : 'text-[var(--muted)]',
@@ -88,7 +87,7 @@ export default function HabitWeekGrid({
                   </div>
                   <div
                     className={cn(
-                      'mt-2 text-2xl font-bold leading-none tabular-nums',
+                      'mt-1 text-xl font-bold leading-none tabular-nums',
                       checked ? 'text-white' : 'text-[var(--ink)]',
                     )}
                   >
@@ -96,45 +95,24 @@ export default function HabitWeekGrid({
                   </div>
                 </div>
 
-                <div
-                  className={cn(
-                    'flex h-9 w-9 items-center justify-center rounded-2xl border transition-colors duration-200',
-                    checked
-                      ? 'border-white/25 bg-white/12 text-white'
-                      : isToday
-                        ? 'border-[var(--accent)]/20 bg-[var(--surface)]/70 text-[var(--accent)]'
-                        : 'border-[var(--border)] bg-[var(--surface)] text-[var(--muted)]',
-                  )}
-                >
-                  {checked ? (
-                    <motion.div
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      transition={{
-                        type: 'spring',
-                        stiffness: 500,
-                        damping: 25,
-                      }}
-                    >
-                      <Check size={16} strokeWidth={3} className="text-white" />
-                    </motion.div>
-                  ) : (
-                    <span className="h-2.5 w-2.5 rounded-full bg-current/70" aria-hidden />
-                  )}
-                </div>
+                {checked ? (
+                  <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/12 text-white">
+                    <Check size={14} strokeWidth={3} />
+                  </span>
+                ) : null}
               </div>
 
               <div
                 className={cn(
-                  'text-[11px] font-semibold tracking-[0.12em] uppercase',
+                  'text-[11px] font-medium',
                   checked
-                    ? 'text-white/70'
+                    ? 'text-white/82'
                     : isToday
                       ? 'text-[var(--accent)]'
-                      : 'text-[var(--muted)]',
+                      : 'text-[var(--ink)]',
                 )}
               >
-                {checked ? 'Отмечено' : isToday ? 'Сегодня' : 'Свободно'}
+                {statusLabel}
               </div>
             </motion.button>
           );
@@ -181,11 +159,7 @@ export default function HabitWeekGrid({
                     damping: 25,
                   }}
                 >
-                  <Check
-                    size={14}
-                    strokeWidth={3}
-                    className="text-white"
-                  />
+                  <Check size={14} strokeWidth={3} className="text-white" />
                 </motion.div>
               ) : null}
             </motion.button>

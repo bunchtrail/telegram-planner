@@ -1,8 +1,10 @@
 'use client';
 
-import { motion } from 'framer-motion';
+import { useEffect, useId, useRef, useState } from 'react';
 import { format } from 'date-fns';
-import { Trash2 } from 'lucide-react';
+import { ru } from 'date-fns/locale';
+import { Ellipsis, Trash2 } from 'lucide-react';
+import Button from '@/app/components/planner/shared/ui/Button';
 import SurfaceCard from '@/app/components/planner/shared/ui/SurfaceCard';
 import { cn } from '@/app/lib/cn';
 import type { Habit } from '@/app/types/habit';
@@ -12,6 +14,7 @@ export type HabitCardProps = {
   habit: Habit;
   isChecked: (habitId: string, date: string) => boolean;
   isDesktop?: boolean;
+  desktopFocusDate?: Date;
   isDeleting?: boolean;
   isLogPending?: (habitId: string, date: string) => boolean;
   onDelete: (habitId: string) => void;
@@ -38,52 +41,90 @@ export default function HabitCard({
   habit,
   isChecked,
   isDesktop = false,
+  desktopFocusDate,
   isDeleting = false,
   isLogPending,
   onDelete,
   onToggleLog,
   weekDays,
 }: HabitCardProps) {
+  const [actionsOpen, setActionsOpen] = useState(false);
+  const actionsRef = useRef<HTMLDivElement | null>(null);
+  const menuId = useId();
   const checkedCount = weekDays.filter((day) =>
     isChecked(habit.id, format(day, 'yyyy-MM-dd')),
   ).length;
-  const progress =
-    weekDays.length > 0
-      ? Math.round((checkedCount / weekDays.length) * 100)
-      : 0;
-  const todayKey = format(new Date(), 'yyyy-MM-dd');
-  const isTodayChecked = isChecked(habit.id, todayKey);
+
+  useEffect(() => {
+    if (!actionsOpen) {
+      return;
+    }
+
+    const handlePointerDown = (event: PointerEvent) => {
+      if (
+        actionsRef.current &&
+        !actionsRef.current.contains(event.target as Node)
+      ) {
+        setActionsOpen(false);
+      }
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setActionsOpen(false);
+      }
+    };
+
+    document.addEventListener('pointerdown', handlePointerDown);
+    document.addEventListener('keydown', handleEscape);
+
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [actionsOpen]);
 
   if (isDesktop) {
-    const statusText =
-      checkedCount === weekDays.length
-        ? 'Неделя собрана полностью'
-        : isTodayChecked
-          ? 'Сегодняшняя отметка уже на месте'
-          : checkedCount === 0
-            ? 'Хороший момент, чтобы начать эту неделю'
-            : `Осталось ${weekDays.length - checkedCount} отметки до полной недели`;
+    const focusDate = desktopFocusDate ?? new Date();
+    const todayKey = format(new Date(), 'yyyy-MM-dd');
+    const focusDateKey = format(focusDate, 'yyyy-MM-dd');
+    const focusDateShortLabel = format(focusDate, 'd MMM', { locale: ru });
+    const isFocusToday = focusDateKey === todayKey;
+    const isFocusCompleted = isChecked(habit.id, focusDateKey);
+    const focusPending = isLogPending?.(habit.id, focusDateKey) ?? false;
+    const primaryActionLabel = isFocusCompleted
+      ? 'Снять отметку'
+      : isFocusToday
+        ? 'Отметить сегодня'
+        : `Отметить ${focusDateShortLabel}`;
+    const focusStateLabel = isFocusCompleted
+      ? isFocusToday
+        ? 'Выполнено сегодня'
+        : `Выполнено ${focusDateShortLabel}`
+      : isFocusToday
+        ? 'Не отмечено на сегодня'
+        : `Не отмечено ${focusDateShortLabel}`;
 
     return (
-      <SurfaceCard className="relative overflow-hidden border-transparent p-0">
+      <SurfaceCard className="relative overflow-visible border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-card)]">
         <div
-          className="pointer-events-none absolute inset-0 opacity-90"
-          style={{
-            background: `radial-gradient(circle at top left, ${withAlpha(habit.color, '1f')} 0%, transparent 38%), linear-gradient(135deg, ${withAlpha(habit.color, '0d')} 0%, transparent 55%)`,
-          }}
-        />
-        <div
-          className="pointer-events-none absolute inset-y-0 left-0 w-1.5"
+          className="pointer-events-none absolute inset-y-0 left-0 w-1.5 rounded-l-[24px]"
           style={{ backgroundColor: habit.color }}
         />
+        <div
+          className="pointer-events-none absolute inset-0 rounded-[24px] opacity-70"
+          style={{
+            background: `linear-gradient(135deg, ${withAlpha(habit.color, '12')} 0%, transparent 42%)`,
+          }}
+        />
 
-        <div className="relative grid gap-6 p-6 xl:grid-cols-[minmax(300px,360px)_1fr] xl:items-center">
+        <div className="relative grid gap-4 xl:grid-cols-[minmax(340px,380px)_1fr] xl:items-center">
           <div className="min-w-0">
-            <div className="flex items-start gap-4">
+            <div className="flex items-start gap-3">
               <div
-                className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[20px] border border-white/50 text-[28px] shadow-[var(--shadow-card)]"
+                className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[18px] text-[24px]"
                 style={{
-                  backgroundColor: withAlpha(habit.color, '20'),
+                  backgroundColor: withAlpha(habit.color, '18'),
                 }}
                 aria-hidden
               >
@@ -96,50 +137,89 @@ export default function HabitCard({
                     {habit.name}
                   </h3>
                   <span
-                    className="inline-flex h-8 items-center rounded-full px-3 text-xs font-bold tabular-nums"
+                    className="inline-flex min-h-7 items-center rounded-full px-3 text-xs font-semibold"
                     style={{
-                      backgroundColor: withAlpha(habit.color, '18'),
+                      backgroundColor: withAlpha(habit.color, '15'),
                       color: habit.color,
                     }}
                   >
-                    {checkedCount}/{weekDays.length}
+                    {checkedCount}/{weekDays.length} за неделю
                   </span>
                 </div>
 
-                <p className="mt-2 max-w-[24rem] text-sm leading-6 text-[var(--muted)]">
-                  {statusText}
+                <p className="mt-2 text-sm font-medium text-[var(--ink)]">
+                  {focusStateLabel}
                 </p>
               </div>
 
-              <button
-                type="button"
-                className={cn(
-                  'flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface)]',
-                  isDeleting
-                    ? 'border-[var(--danger)]/30 bg-[var(--danger)]/10 text-[var(--danger)]'
-                    : 'border-[var(--border)] bg-[var(--surface)] text-[var(--muted)] hover:border-[var(--danger)]/25 hover:text-[var(--danger)]',
-                )}
-                onClick={() => onDelete(habit.id)}
-                aria-label={isDeleting ? 'Подтвердить удаление привычки' : 'Удалить привычку'}
-              >
-                <Trash2 size={18} />
-              </button>
+              <div ref={actionsRef} className="relative shrink-0">
+                <button
+                  type="button"
+                  aria-label={`Действия для привычки ${habit.name}`}
+                  aria-haspopup="menu"
+                  aria-expanded={actionsOpen}
+                  aria-controls={actionsOpen ? menuId : undefined}
+                  className="flex h-10 w-10 items-center justify-center rounded-2xl border border-[var(--border)] bg-[var(--surface)] text-[var(--muted)] transition-colors hover:text-[var(--ink)]"
+                  onClick={() => setActionsOpen((current) => !current)}
+                >
+                  <Ellipsis size={18} />
+                </button>
+
+                {actionsOpen ? (
+                  <div
+                    id={menuId}
+                    role="menu"
+                    className="absolute right-0 top-[calc(100%+0.5rem)] z-20 min-w-[14rem] rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-2 shadow-[var(--shadow-pop)]"
+                  >
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className={cn(
+                        'flex w-full items-center gap-2 rounded-[14px] px-3 py-2 text-left text-sm font-medium transition-colors',
+                        isDeleting
+                          ? 'bg-[var(--danger)]/10 text-[var(--danger)]'
+                          : 'text-[var(--ink)] hover:bg-[var(--surface-2)]',
+                      )}
+                      onClick={() => {
+                        onDelete(habit.id);
+                        if (isDeleting) {
+                          setActionsOpen(false);
+                        }
+                      }}
+                    >
+                      <Trash2 size={16} />
+                      <span>
+                        {isDeleting
+                          ? 'Подтвердить удаление привычки'
+                          : 'Удалить привычку'}
+                      </span>
+                    </button>
+                  </div>
+                ) : null}
+              </div>
             </div>
 
-            <div className="mt-6">
-              <div className="mb-2 flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
-                <span>Прогресс недели</span>
-                <span>{progress}%</span>
-              </div>
-              <div className="h-2.5 overflow-hidden rounded-full bg-[var(--surface-2)]">
-                <motion.div
-                  className="h-full rounded-full"
-                  initial={false}
-                  animate={{ width: `${progress}%` }}
-                  transition={{ type: 'spring', stiffness: 180, damping: 22 }}
-                  style={{ backgroundColor: habit.color }}
-                />
-              </div>
+            <div className="mt-4 flex flex-wrap items-center gap-3">
+              <Button
+                type="button"
+                variant={isFocusCompleted ? 'secondary' : 'accent'}
+                size="sm"
+                className="min-w-[11.5rem]"
+                disabled={focusPending}
+                onClick={() => {
+                  if (!focusPending) {
+                    onToggleLog(habit.id, focusDateKey);
+                  }
+                }}
+              >
+                {primaryActionLabel}
+              </Button>
+
+              <span className="text-sm font-medium text-[var(--muted)]">
+                {isFocusCompleted
+                  ? 'Можно снять отметку, если нажали случайно.'
+                  : 'Главное действие вынесено отдельно, чтобы не искать нужный день в сетке.'}
+              </span>
             </div>
           </div>
 

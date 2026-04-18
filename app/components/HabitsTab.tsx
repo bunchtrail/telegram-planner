@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Sparkles } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { CheckCircle2, Plus } from 'lucide-react';
 import { addDays, format, startOfWeek } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { cn } from '../lib/cn';
@@ -23,6 +23,21 @@ type HabitsTabProps = {
   onDeleteHabit: (habitId: string) => void;
   selectedDate: Date;
   isDesktop?: boolean;
+};
+
+const getHabitLabel = (count: number) => {
+  const mod10 = count % 10;
+  const mod100 = count % 100;
+
+  if (mod10 === 1 && mod100 !== 11) {
+    return 'привычка';
+  }
+
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) {
+    return 'привычки';
+  }
+
+  return 'привычек';
 };
 
 export default function HabitsTab({
@@ -47,6 +62,9 @@ export default function HabitsTab({
     return Array.from({ length: 7 }, (_, i) => addDays(start, i));
   }, [selectedDate]);
   const todayKey = format(new Date(), 'yyyy-MM-dd');
+  const selectedDateKey = format(selectedDate, 'yyyy-MM-dd');
+  const selectedDateLabel = format(selectedDate, 'd MMMM', { locale: ru });
+  const isSelectedDateToday = selectedDateKey === todayKey;
 
   const desktopStats = useMemo(() => {
     const perHabitChecks = habits.map((habit) =>
@@ -56,23 +74,61 @@ export default function HabitsTab({
     );
 
     const totalChecks = perHabitChecks.reduce((sum, count) => sum + count, 0);
-    const totalSlots = habits.length * weekDays.length;
-    const todayCompleted = habits.filter((habit) =>
-      isChecked(habit.id, todayKey),
-    ).length;
-    const fullWeeks = perHabitChecks.filter(
-      (count) => count === weekDays.length,
-    ).length;
 
     return {
       totalChecks,
-      totalSlots,
-      todayCompleted,
-      fullWeeks,
-      consistency:
-        totalSlots > 0 ? Math.round((totalChecks / totalSlots) * 100) : 0,
     };
-  }, [habits, isChecked, todayKey, weekDays]);
+  }, [habits, isChecked, weekDays]);
+
+  const habitsBySelectedDay = useMemo(
+    () =>
+      habits.map((habit) => ({
+        habit,
+        isCompletedOnSelectedDay: isChecked(habit.id, selectedDateKey),
+      })),
+    [habits, isChecked, selectedDateKey],
+  );
+
+  const remainingHabits = useMemo(
+    () =>
+      habitsBySelectedDay
+        .filter((entry) => !entry.isCompletedOnSelectedDay)
+        .map((entry) => entry.habit),
+    [habitsBySelectedDay],
+  );
+
+  const completedHabits = useMemo(
+    () =>
+      habitsBySelectedDay
+        .filter((entry) => entry.isCompletedOnSelectedDay)
+        .map((entry) => entry.habit),
+    [habitsBySelectedDay],
+  );
+
+  const summaryHeading =
+    habits.length === 0
+      ? 'Пока нет привычек'
+      : remainingHabits.length === 0
+        ? isSelectedDateToday
+          ? 'На сегодня всё выполнено'
+          : `На ${selectedDateLabel} всё выполнено`
+        : isSelectedDateToday
+          ? `Осталось сегодня ${remainingHabits.length} ${getHabitLabel(remainingHabits.length)}`
+          : `Осталось на ${selectedDateLabel} ${remainingHabits.length} ${getHabitLabel(remainingHabits.length)}`;
+
+  const summarySubheading =
+    habits.length === 0
+      ? 'Добавьте первую привычку, чтобы каждый день было проще держать ритм.'
+      : isSelectedDateToday
+        ? `Уже выполнено ${completedHabits.length} из ${habits.length}`
+        : `Отмечено ${completedHabits.length} из ${habits.length} на ${selectedDateLabel}`;
+
+  const remainingSectionTitle = isSelectedDateToday
+    ? 'Осталось сегодня'
+    : `Не отмечено на ${selectedDateLabel}`;
+  const completedSectionTitle = isSelectedDateToday
+    ? 'Уже выполнено'
+    : `Выполнено ${selectedDateLabel}`;
 
   useEffect(() => {
     return () => {
@@ -139,32 +195,27 @@ export default function HabitsTab({
     return (
       <div className={scrollClasses}>
         <div className="flex flex-col gap-6">
-          <section className="relative overflow-hidden rounded-[32px] border border-[var(--border)] bg-[var(--surface)] p-6 shadow-[var(--shadow-card)]">
-            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(0,122,255,0.14),transparent_38%),linear-gradient(135deg,rgba(0,122,255,0.08),transparent_58%)]" />
-
-            <div className="relative flex flex-wrap items-start justify-between gap-5">
-              <div className="max-w-2xl">
-                <div className="inline-flex items-center gap-2 rounded-full border border-[var(--accent)]/15 bg-[var(--accent)]/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
-                  <Sparkles size={14} />
-                  Привычки недели
+          <section className="rounded-[28px] border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 text-[13px] font-semibold uppercase tracking-[0.16em] text-[var(--accent)]">
+                  <CheckCircle2 size={16} />
+                  Фокус дня
                 </div>
 
-                <h3 className="mt-4 text-3xl font-bold tracking-tight text-[var(--ink)] font-[var(--font-display)]">
-                  Ритм на неделю
-                </h3>
+                <h2 className="mt-3 text-3xl font-bold tracking-tight text-[var(--ink)] font-[var(--font-display)]">
+                  {summaryHeading}
+                </h2>
 
-                <p className="mt-3 max-w-xl text-sm leading-6 text-[var(--muted)]">
-                  {format(weekDays[0], 'd MMMM', { locale: ru })} -{' '}
-                  {format(weekDays[6], 'd MMMM', { locale: ru })}. Держим
-                  привычки в компактном рабочем виде: без пустого воздуха и с
-                  быстрым фокусом на сегодняшнем дне.
+                <p className="mt-2 text-base font-medium text-[var(--ink)]">
+                  {summarySubheading}
                 </p>
               </div>
 
               {!showAddForm ? (
                 <Button
-                  variant="accent"
-                  className="min-w-[12rem] self-start"
+                  variant="secondary"
+                  className="self-start"
                   onClick={() => {
                     setDeletingId(null);
                     setShowAddForm(true);
@@ -176,43 +227,14 @@ export default function HabitsTab({
               ) : null}
             </div>
 
-            <div className="relative mt-6 grid gap-3 md:grid-cols-3">
-              <div className="rounded-[24px] border border-[var(--border)] bg-[var(--surface)]/80 p-4 backdrop-blur-sm">
-                <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--muted)]">
-                  Отметки за неделю
-                </div>
-                <div className="mt-2 text-3xl font-bold tabular-nums text-[var(--ink)]">
-                  {desktopStats.totalChecks}
-                  <span className="ml-1 text-lg text-[var(--muted)]">
-                    / {desktopStats.totalSlots}
-                  </span>
-                </div>
+            <div className="mt-5 flex flex-wrap gap-3 text-sm text-[var(--ink)]">
+              <div className="rounded-full border border-[var(--border)] bg-[var(--surface-2)] px-4 py-2">
+                За неделю: <span className="font-semibold">{desktopStats.totalChecks}</span>{' '}
+                отметок
               </div>
-
-              <div className="rounded-[24px] border border-[var(--border)] bg-[var(--surface)]/80 p-4 backdrop-blur-sm">
-                <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--muted)]">
-                  Сегодня закрыто
-                </div>
-                <div className="mt-2 text-3xl font-bold tabular-nums text-[var(--ink)]">
-                  {desktopStats.todayCompleted}
-                  <span className="ml-1 text-lg text-[var(--muted)]">
-                    / {habits.length}
-                  </span>
-                </div>
-              </div>
-
-              <div className="rounded-[24px] border border-[var(--border)] bg-[var(--surface)]/80 p-4 backdrop-blur-sm">
-                <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--muted)]">
-                  Консистентность
-                </div>
-                <div className="mt-2 flex items-baseline gap-2">
-                  <span className="text-3xl font-bold tabular-nums text-[var(--ink)]">
-                    {desktopStats.consistency}%
-                  </span>
-                  <span className="text-sm font-medium text-[var(--muted)]">
-                    {desktopStats.fullWeeks} идеальных привычек
-                  </span>
-                </div>
+              <div className="rounded-full border border-[var(--border)] bg-[var(--surface-2)] px-4 py-2">
+                Дата фокуса:{' '}
+                <span className="font-semibold capitalize">{selectedDateLabel}</span>
               </div>
             </div>
           </section>
@@ -221,9 +243,9 @@ export default function HabitsTab({
             {showAddForm ? (
               <motion.div
                 key="desktop-habit-form"
-                initial={{ opacity: 0, y: -16 }}
+                initial={{ opacity: 0, y: -12 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -12 }}
+                exit={{ opacity: 0, y: -10 }}
               >
                 <HabitForm
                   className="rounded-[28px]"
@@ -236,40 +258,103 @@ export default function HabitsTab({
 
           {habits.length > 0 ? (
             <div className="flex flex-col gap-4">
-              <AnimatePresence mode="popLayout">
-                {habits.map((habit) => (
-                  <motion.div
-                    key={habit.id}
-                    layout
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 10 }}
-                  >
-                    <HabitCard
-                      habit={habit}
-                      isChecked={isChecked}
-                      isDesktop
-                      isDeleting={deletingId === habit.id}
-                      isLogPending={isLogPending}
-                      onDelete={handleDelete}
-                      onToggleLog={onToggleLog}
-                      weekDays={weekDays}
-                    />
-                  </motion.div>
-                ))}
-              </AnimatePresence>
+              {remainingHabits.length > 0 ? (
+                <section
+                  aria-labelledby="desktop-habits-remaining-heading"
+                  className="flex flex-col gap-3"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <h2
+                      id="desktop-habits-remaining-heading"
+                      className="text-lg font-bold text-[var(--ink)]"
+                    >
+                      {remainingSectionTitle}
+                    </h2>
+                    <span className="text-sm font-medium text-[var(--muted)]">
+                      {remainingHabits.length}
+                    </span>
+                  </div>
+
+                  <AnimatePresence mode="popLayout">
+                    {remainingHabits.map((habit) => (
+                      <motion.div
+                        key={habit.id}
+                        layout
+                        initial={{ opacity: 0, y: 14 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 10 }}
+                      >
+                        <HabitCard
+                          habit={habit}
+                          isChecked={isChecked}
+                          isDesktop
+                          desktopFocusDate={selectedDate}
+                          isDeleting={deletingId === habit.id}
+                          isLogPending={isLogPending}
+                          onDelete={handleDelete}
+                          onToggleLog={onToggleLog}
+                          weekDays={weekDays}
+                        />
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+                </section>
+              ) : null}
+
+              {completedHabits.length > 0 ? (
+                <section
+                  aria-labelledby="desktop-habits-completed-heading"
+                  className="flex flex-col gap-3"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <h2
+                      id="desktop-habits-completed-heading"
+                      className="text-lg font-bold text-[var(--ink)]"
+                    >
+                      {completedSectionTitle}
+                    </h2>
+                    <span className="text-sm font-medium text-[var(--muted)]">
+                      {completedHabits.length}
+                    </span>
+                  </div>
+
+                  <AnimatePresence mode="popLayout">
+                    {completedHabits.map((habit) => (
+                      <motion.div
+                        key={habit.id}
+                        layout
+                        initial={{ opacity: 0, y: 14 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 10 }}
+                      >
+                        <HabitCard
+                          habit={habit}
+                          isChecked={isChecked}
+                          isDesktop
+                          desktopFocusDate={selectedDate}
+                          isDeleting={deletingId === habit.id}
+                          isLogPending={isLogPending}
+                          onDelete={handleDelete}
+                          onToggleLog={onToggleLog}
+                          weekDays={weekDays}
+                        />
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+                </section>
+              ) : null}
             </div>
           ) : !showAddForm ? (
-            <div className="rounded-[32px] border border-dashed border-[var(--border)] bg-[var(--surface)]/80 px-8 py-16 text-center shadow-[var(--shadow-soft)]">
+            <div className="rounded-[28px] border border-dashed border-[var(--border)] bg-[var(--surface)] px-8 py-14 text-center shadow-[var(--shadow-soft)]">
               <div className="mx-auto flex h-[4.5rem] w-[4.5rem] items-center justify-center rounded-[28px] bg-[var(--accent)]/10 text-4xl">
                 🌱
               </div>
               <h3 className="mt-5 text-2xl font-bold text-[var(--ink)] font-[var(--font-display)]">
                 Здесь появятся ваши привычки
               </h3>
-              <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-[var(--muted)]">
-                Соберите свой недельный ритм: добавьте чтение, спорт, воду или
-                любую рутину, которую хотите держать перед глазами на десктопе.
+              <p className="mx-auto mt-3 max-w-md text-base leading-7 text-[var(--ink)]">
+                Добавьте первую привычку и отмечайте её прямо с сегодняшнего
+                экрана.
               </p>
               <Button
                 variant="accent"
