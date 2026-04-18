@@ -1,7 +1,6 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Check } from 'lucide-react';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { cn } from '@/app/lib/cn';
@@ -76,12 +75,6 @@ export default function HabitWeekGrid({
               aria-busy={pending}
               aria-current={isToday ? 'date' : undefined}
             >
-              {checked ? (
-                <span className="absolute right-2 top-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-white/14 text-white">
-                  <Check size={13} strokeWidth={3} />
-                </span>
-              ) : null}
-
               <div className="min-w-0">
                 <div
                   className={cn(
