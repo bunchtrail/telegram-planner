@@ -108,4 +108,24 @@ describe('desktop habits UI', () => {
       screen.getByRole('button', { name: /Будет доступно 19/i }),
     ).toBeDisabled();
   });
+
+  it('keeps the mobile checked indicator rendered', () => {
+    const { container } = render(
+      <HabitWeekGrid
+        color={baseHabit.color}
+        days={[today]}
+        habitId={baseHabit.id}
+        habitName={baseHabit.name}
+        isChecked={() => true}
+        layout="mobile"
+        onToggle={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole('button')).toHaveAttribute(
+      'aria-label',
+      expect.stringContaining('выполнено'),
+    );
+    expect(container.querySelector('svg')).not.toBeNull();
+  });
 });
