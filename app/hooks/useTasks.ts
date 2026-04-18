@@ -51,6 +51,97 @@ const isDateInMonth = (
 	return `${y}-${m}` === monthKey;
 };
 
+const getRestingTaskGroup = (
+	task: Pick<Task, 'completed' | 'isPinned'>,
+): 'completed' | 'pinned' | 'normal' => {
+	if (task.completed) return 'completed';
+	return task.isPinned ? 'pinned' : 'normal';
+};
+
+const getManualGroupTailPosition = (
+	tasks: Task[],
+	dateKey: string,
+	group: 'pinned' | 'normal',
+	excludeTaskId?: string,
+) =>
+	tasks
+		.filter(
+			(task) =>
+				formatDateOnly(task.date) === dateKey &&
+				task.id !== excludeTaskId &&
+				getRestingTaskGroup(task) === group,
+		)
+		.reduce((max, task) => Math.max(max, task.position ?? 0), -1) + 1;
+
+const applyPendingTaskUpdates = (
+	task: Task,
+	updates: Record<string, unknown>,
+): Task => {
+	let nextTask = task;
+
+	if (typeof updates.title === 'string') {
+		nextTask = { ...nextTask, title: updates.title };
+	}
+	if (typeof updates.duration === 'number') {
+		nextTask = { ...nextTask, duration: updates.duration };
+	}
+	if (typeof updates.date === 'string') {
+		nextTask = { ...nextTask, date: parseDateOnly(updates.date) };
+	}
+	if (typeof updates.completed === 'boolean') {
+		nextTask = { ...nextTask, completed: updates.completed };
+	}
+	if (typeof updates.position === 'number') {
+		nextTask = { ...nextTask, position: updates.position };
+	}
+	if ('series_id' in updates) {
+		nextTask = {
+			...nextTask,
+			seriesId:
+				typeof updates.series_id === 'string' ? updates.series_id : null,
+		};
+	}
+	if ('color' in updates) {
+		nextTask = {
+			...nextTask,
+			color: normalizeHex(
+				typeof updates.color === 'string' ? updates.color : null,
+			) ?? nextTask.color,
+		};
+	}
+	if (typeof updates.is_pinned === 'boolean') {
+		nextTask = { ...nextTask, isPinned: updates.is_pinned };
+	}
+	if ('checklist' in updates) {
+		nextTask = {
+			...nextTask,
+			checklist: parseChecklist(updates.checklist),
+		};
+	}
+	if ('start_minutes' in updates) {
+		nextTask = {
+			...nextTask,
+			startMinutes: parseSmallInt(
+				updates.start_minutes as number | string | null | undefined,
+			),
+		};
+	}
+	if ('remind_before_minutes' in updates) {
+		nextTask = {
+			...nextTask,
+			remindBeforeMinutes: parseRemindBefore(
+				updates.remind_before_minutes as
+					| number
+					| string
+					| null
+					| undefined,
+			),
+		};
+	}
+
+	return nextTask;
+};
+
 export function useTasks(config: UseTasksConfig) {
 	const {
 		userId,
@@ -460,9 +551,14 @@ export function useTasks(config: UseTasksConfig) {
 
 							if (pendingMatchId) {
 								pendingInsertRef.current.delete(pendingMatchId);
+								const pendingUpdates =
+									pendingMutationRef.current.get(pendingMatchId);
 								return prev.map((task) =>
 									task.id === pendingMatchId
-										? mapTaskRow(row, task.clientId)
+										? applyPendingTaskUpdates(
+												mapTaskRow(row, task.clientId),
+												pendingUpdates ?? {},
+											)
 										: task,
 								);
 							}
@@ -1099,6 +1195,22 @@ export function useTasks(config: UseTasksConfig) {
 					updates.remindBeforeMinutes,
 				);
 			if (updates.date !== undefined) appliedUpdates.date = updates.date;
+			if (
+				updates.isPinned !== undefined &&
+				updates.isPinned !== existingTask.isPinned &&
+				(updates.completed ?? existingTask.completed) === false
+			) {
+				const targetDateKey = formatDateOnly(
+					appliedUpdates.date ?? existingTask.date,
+				);
+				const targetGroup = updates.isPinned ? 'pinned' : 'normal';
+				appliedUpdates.position = getManualGroupTailPosition(
+					snapshot,
+					targetDateKey,
+					targetGroup,
+					id,
+				);
+			}
 
 			if (Object.keys(appliedUpdates).length === 0) return;
 
@@ -1117,6 +1229,8 @@ export function useTasks(config: UseTasksConfig) {
 				dbUpdates.color = appliedUpdates.color;
 			if (appliedUpdates.isPinned !== undefined)
 				dbUpdates.is_pinned = appliedUpdates.isPinned;
+			if (appliedUpdates.position !== undefined)
+				dbUpdates.position = appliedUpdates.position;
 			if (appliedUpdates.checklist !== undefined)
 				dbUpdates.checklist = appliedUpdates.checklist;
 			if (appliedUpdates.startMinutes !== undefined)
@@ -1171,6 +1285,8 @@ export function useTasks(config: UseTasksConfig) {
 							rollback.color = existingTask.color;
 						if (appliedUpdates.isPinned !== undefined)
 							rollback.isPinned = existingTask.isPinned;
+						if (appliedUpdates.position !== undefined)
+							rollback.position = existingTask.position;
 						if (appliedUpdates.checklist !== undefined)
 							rollback.checklist = existingTask.checklist;
 						if (appliedUpdates.startMinutes !== undefined)
@@ -1424,7 +1540,17 @@ export function useTasks(config: UseTasksConfig) {
 				});
 			});
 
-			if (!userId || positionsById.size === 0) return;
+			if (positionsById.size === 0) return;
+
+			nextOrder
+				.filter((task) => !isUuid(task.id))
+				.forEach((task) => {
+					queuePendingMutation(task.id, {
+						position: positionsById.get(task.id) ?? task.position ?? 0,
+					});
+				});
+
+			if (!userId) return;
 
 			const updates = nextOrder
 				.filter((task) => isUuid(task.id))
@@ -1440,7 +1566,13 @@ export function useTasks(config: UseTasksConfig) {
 			});
 			scheduleReorderPersist();
 		},
-		[userId, selectedDate, setTasksCache, scheduleReorderPersist],
+		[
+			userId,
+			selectedDate,
+			setTasksCache,
+			queuePendingMutation,
+			scheduleReorderPersist,
+		],
 	);
 
 	const refetchTasks = useCallback(() => {
