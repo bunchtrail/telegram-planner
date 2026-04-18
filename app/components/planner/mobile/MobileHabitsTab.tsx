@@ -2,9 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState, type ComponentProps } from 'react';
 import { addDays, format, startOfWeek } from 'date-fns';
-import { ru } from 'date-fns/locale';
 import { AnimatePresence, motion } from 'framer-motion';
-import { CheckCircle2, Plus } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import HabitForm, {
   type HabitFormSubmitValue,
 } from '@/app/components/planner/shared/habit/HabitForm';
@@ -57,20 +56,20 @@ export default function MobileHabitsTab({
   onToggleLog,
   onAddHabit,
   onDeleteHabit,
-  selectedDate,
 }: MobileHabitsTabProps) {
   const [showAddForm, setShowAddForm] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const deleteResetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { impact, notification, selection } = useHaptic();
+  const todayKey = format(new Date(), 'yyyy-MM-dd');
 
   const weekDays = useMemo(() => {
-    const start = startOfWeek(selectedDate, { weekStartsOn: 1 });
+    const [year, month, day] = todayKey.split('-').map(Number);
+    const start = startOfWeek(new Date(year, month - 1, day), {
+      weekStartsOn: 1,
+    });
     return Array.from({ length: 7 }, (_, index) => addDays(start, index));
-  }, [selectedDate]);
-  const todayKey = format(new Date(), 'yyyy-MM-dd');
-  const selectedDateKey = format(selectedDate, 'yyyy-MM-dd');
-  const selectedDateLabel = format(selectedDate, 'd MMMM', { locale: ru });
+  }, [todayKey]);
 
   const totalChecks = useMemo(
     () =>
@@ -87,8 +86,8 @@ export default function MobileHabitsTab({
 
   const orderedHabits = useMemo(() => {
     return [...habits].sort((left, right) => {
-      const leftCompleted = isChecked(left.id, selectedDateKey) ? 1 : 0;
-      const rightCompleted = isChecked(right.id, selectedDateKey) ? 1 : 0;
+      const leftCompleted = isChecked(left.id, todayKey) ? 1 : 0;
+      const rightCompleted = isChecked(right.id, todayKey) ? 1 : 0;
 
       return (
         leftCompleted - rightCompleted ||
@@ -96,12 +95,11 @@ export default function MobileHabitsTab({
         left.id.localeCompare(right.id)
       );
     });
-  }, [habits, isChecked, selectedDateKey]);
+  }, [habits, isChecked, todayKey]);
 
   const completedTodayCount = useMemo(
-    () =>
-      habits.filter((habit) => isChecked(habit.id, selectedDateKey)).length,
-    [habits, isChecked, selectedDateKey],
+    () => habits.filter((habit) => isChecked(habit.id, todayKey)).length,
+    [habits, isChecked, todayKey],
   );
 
   useEffect(() => {
@@ -185,46 +183,39 @@ export default function MobileHabitsTab({
     <>
       <div className={scrollClasses}>
         <div className="flex flex-col gap-3">
-          <SurfaceCard className="border-[var(--border)] bg-[var(--surface)] px-4 py-4">
-            <div className="flex items-start gap-3">
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.16em] text-[var(--accent)]">
-                  <CheckCircle2 size={14} />
-                  Привычки
-                </div>
-
-                <h2 className="mt-2 text-[22px] font-bold tracking-tight text-[var(--ink)] font-[var(--font-display)]">
-                  {habits.length === 0
-                    ? 'Начните с первой привычки'
-                    : `${habits.length} ${getHabitLabel(habits.length)}`}
-                </h2>
-
-                <p className="mt-1 text-[13px] leading-5 text-[var(--muted)]">
-                  {completedTodayCount} из {habits.length} отмечено на {selectedDateLabel}
-                </p>
-              </div>
-
-              <Button
-                size="sm"
-                variant="secondary"
-                className="shrink-0"
-                onClick={() => setShowAddForm(true)}
-              >
-                <Plus size={16} strokeWidth={2.5} />
-                <span>Добавить</span>
-              </Button>
+          <div className="flex items-start justify-between gap-3 px-1">
+            <div className="min-w-0 flex-1">
+              <h2 className="text-[24px] font-bold tracking-tight text-[var(--ink)] font-[var(--font-display)]">
+                Привычки
+              </h2>
+              <p className="mt-1 text-[13px] leading-5 text-[var(--muted)]">
+                {habits.length === 0
+                  ? 'Добавьте первую привычку, чтобы собрать ежедневный ритм.'
+                  : `${habits.length} ${getHabitLabel(habits.length)} на сегодня`}
+              </p>
             </div>
 
-            <div className="mt-4 flex flex-wrap gap-2 text-[12px]">
-              <div className="rounded-full bg-[var(--surface-2)] px-3 py-1.5 text-[var(--ink)]">
-                За неделю: <span className="font-semibold">{totalChecks}</span>{' '}
-                {getCheckLabel(totalChecks)}
+            <Button
+              size="sm"
+              variant="secondary"
+              className="shrink-0"
+              onClick={() => setShowAddForm(true)}
+            >
+              <Plus size={16} strokeWidth={2.5} />
+              <span>Добавить</span>
+            </Button>
+          </div>
+
+          {habits.length > 0 ? (
+            <div className="flex flex-wrap gap-2 px-1 text-[12px]">
+              <div className="rounded-full bg-[var(--accent)]/10 px-3 py-1.5 font-semibold text-[var(--accent)]">
+                {completedTodayCount} из {habits.length} выполнено
               </div>
-              <div className="rounded-full bg-[var(--surface-2)] px-3 py-1.5 text-[var(--muted)]">
-                {selectedDateKey === todayKey ? 'Сегодня' : selectedDateLabel}
+              <div className="rounded-full bg-[var(--surface-2)] px-3 py-1.5 font-medium text-[var(--muted)]">
+                {totalChecks} {getCheckLabel(totalChecks)} за неделю
               </div>
             </div>
-          </SurfaceCard>
+          ) : null}
 
           {orderedHabits.length > 0 ? (
             <ul className="flex list-none flex-col gap-3 p-0 m-0">

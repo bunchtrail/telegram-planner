@@ -51,22 +51,42 @@ describe('MobileHabitsTab', () => {
     vi.setSystemTime(today);
   });
 
-  it('renders a single mobile list ordered by incomplete habits first', () => {
+  it('anchors the mobile habits screen to today instead of selectedDate', () => {
+    const focusHabits: Habit[] = [
+      {
+        id: 'habit-done',
+        name: 'Чтение',
+        icon: '📚',
+        color: '#2563eb',
+        sortOrder: 0,
+        archived: false,
+      },
+      {
+        id: 'habit-open',
+        name: 'Вода',
+        icon: '💧',
+        color: '#14b8a6',
+        sortOrder: 1,
+        archived: false,
+      },
+    ];
+
     render(
       <MobileHabitsTab
-        habits={habits}
+        habits={focusHabits}
         isLoading={false}
         isChecked={(habitId, date) =>
-          habitId === 'habit-done' && date === '2026-04-18'
+          (habitId === 'habit-done' && date === '2026-04-18') ||
+          (habitId === 'habit-open' && date === '2026-04-17')
         }
         onAddHabit={vi.fn()}
         onDeleteHabit={vi.fn()}
         onToggleLog={vi.fn()}
-        selectedDate={today}
+        selectedDate={new Date('2026-04-16T12:00:00.000Z')}
       />,
     );
 
-    expect(screen.queryByText('Фокус дня')).not.toBeInTheDocument();
+    expect(screen.getByText('1 из 2 выполнено')).toBeInTheDocument();
 
     const items = screen.getAllByRole('listitem');
     expect(within(items[0]).getByText('Вода')).toBeInTheDocument();
