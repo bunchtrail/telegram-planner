@@ -90,10 +90,13 @@ export default function HabitCard({
     const focusDateKey = format(focusDate, 'yyyy-MM-dd');
     const focusDateShortLabel = format(focusDate, 'd MMM', { locale: ru });
     const isFocusToday = focusDateKey === todayKey;
+    const isFocusFuture = focusDateKey > todayKey;
     const isFocusCompleted = isChecked(habit.id, focusDateKey);
     const focusPending = isLogPending?.(habit.id, focusDateKey) ?? false;
     const primaryActionLabel = isFocusCompleted
       ? 'Снять отметку'
+      : isFocusFuture
+        ? `Будет доступно ${focusDateShortLabel}`
       : isFocusToday
         ? 'Отметить сегодня'
         : `Отметить ${focusDateShortLabel}`;
@@ -118,7 +121,7 @@ export default function HabitCard({
           }}
         />
 
-        <div className="relative grid gap-4 xl:grid-cols-[minmax(340px,380px)_1fr] xl:items-center">
+        <div className="relative grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(392px,460px)] xl:items-center">
           <div className="min-w-0">
             <div className="flex items-start gap-3">
               <div
@@ -147,9 +150,11 @@ export default function HabitCard({
                   </span>
                 </div>
 
-                <p className="mt-2 text-sm font-medium text-[var(--ink)]">
-                  {focusStateLabel}
-                </p>
+                {isFocusCompleted ? (
+                  <p className="mt-2 text-sm font-medium text-[var(--ink)]">
+                    {focusStateLabel}
+                  </p>
+                ) : null}
               </div>
 
               <div ref={actionsRef} className="relative shrink-0">
@@ -202,24 +207,18 @@ export default function HabitCard({
             <div className="mt-4 flex flex-wrap items-center gap-3">
               <Button
                 type="button"
-                variant={isFocusCompleted ? 'secondary' : 'accent'}
+                variant={isFocusCompleted || isFocusFuture ? 'secondary' : 'accent'}
                 size="sm"
                 className="min-w-[11.5rem]"
-                disabled={focusPending}
+                disabled={focusPending || isFocusFuture}
                 onClick={() => {
-                  if (!focusPending) {
+                  if (!focusPending && !isFocusFuture) {
                     onToggleLog(habit.id, focusDateKey);
                   }
                 }}
               >
                 {primaryActionLabel}
               </Button>
-
-              <span className="text-sm font-medium text-[var(--muted)]">
-                {isFocusCompleted
-                  ? 'Можно снять отметку, если нажали случайно.'
-                  : 'Главное действие вынесено отдельно, чтобы не искать нужный день в сетке.'}
-              </span>
             </div>
           </div>
 

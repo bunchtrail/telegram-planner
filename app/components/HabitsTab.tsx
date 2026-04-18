@@ -40,6 +40,24 @@ const getHabitLabel = (count: number) => {
   return 'привычек';
 };
 
+const getCheckLabel = (count: number) => {
+  const mod10 = count % 10;
+  const mod100 = count % 100;
+
+  if (mod10 === 1 && mod100 !== 11) {
+    return 'отметка';
+  }
+
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) {
+    return 'отметки';
+  }
+
+  return 'отметок';
+};
+
+const getRemainingVerb = (count: number) =>
+  count === 1 ? 'осталась' : 'осталось';
+
 export default function HabitsTab({
   habits,
   isLoading,
@@ -113,8 +131,8 @@ export default function HabitsTab({
           ? 'На сегодня всё выполнено'
           : `На ${selectedDateLabel} всё выполнено`
         : isSelectedDateToday
-          ? `Осталось сегодня ${remainingHabits.length} ${getHabitLabel(remainingHabits.length)}`
-          : `Осталось на ${selectedDateLabel} ${remainingHabits.length} ${getHabitLabel(remainingHabits.length)}`;
+          ? `На сегодня ${getRemainingVerb(remainingHabits.length)} ${remainingHabits.length} ${getHabitLabel(remainingHabits.length)}`
+          : `На ${selectedDateLabel} ${getRemainingVerb(remainingHabits.length)} ${remainingHabits.length} ${getHabitLabel(remainingHabits.length)}`;
 
   const summarySubheading =
     habits.length === 0
@@ -230,7 +248,7 @@ export default function HabitsTab({
             <div className="mt-5 flex flex-wrap gap-3 text-sm text-[var(--ink)]">
               <div className="rounded-full border border-[var(--border)] bg-[var(--surface-2)] px-4 py-2">
                 За неделю: <span className="font-semibold">{desktopStats.totalChecks}</span>{' '}
-                отметок
+                {getCheckLabel(desktopStats.totalChecks)}
               </div>
               <div className="rounded-full border border-[var(--border)] bg-[var(--surface-2)] px-4 py-2">
                 Дата фокуса:{' '}
@@ -270,7 +288,7 @@ export default function HabitsTab({
                     >
                       {remainingSectionTitle}
                     </h2>
-                    <span className="text-sm font-medium text-[var(--muted)]">
+                    <span className="text-sm font-semibold tabular-nums text-[var(--ink)]">
                       {remainingHabits.length}
                     </span>
                   </div>
@@ -313,7 +331,7 @@ export default function HabitsTab({
                     >
                       {completedSectionTitle}
                     </h2>
-                    <span className="text-sm font-medium text-[var(--muted)]">
+                    <span className="text-sm font-semibold tabular-nums text-[var(--ink)]">
                       {completedHabits.length}
                     </span>
                   </div>

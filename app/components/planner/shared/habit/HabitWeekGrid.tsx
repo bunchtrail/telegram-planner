@@ -33,16 +33,27 @@ export default function HabitWeekGrid({
     <div className={cn('grid grid-cols-7', layout === 'desktop' ? 'gap-2' : 'gap-1')}>
       {days.map((day) => {
         const dateKey = format(day, 'yyyy-MM-dd');
-        const localizedDayLabel = `${habitName}, ${format(day, 'EEEE, d MMMM', {
-          locale: ru,
-        })}`;
         const checked = isChecked(habitId, dateKey);
+        const isFuture = dateKey > todayKey;
         const pending = isPending?.(habitId, dateKey) ?? false;
         const isToday = dateKey === todayKey;
+        const isDisabled = pending || isFuture;
+        const ariaStatusLabel = checked
+          ? 'выполнено'
+          : isFuture
+            ? 'будущий день'
+            : isToday
+              ? 'сегодня'
+              : 'без отметки';
+        const localizedDayLabel = `${habitName}, ${format(day, 'EEEE, d MMMM', {
+          locale: ru,
+        })}, ${ariaStatusLabel}`;
 
         if (layout === 'desktop') {
           const statusLabel = checked
             ? 'Выполнено'
+            : isFuture
+              ? 'Будет позже'
             : isToday
               ? 'Сегодня'
               : 'Не отмечено';
@@ -52,19 +63,21 @@ export default function HabitWeekGrid({
               key={dateKey}
               type="button"
               whileTap={{ scale: 0.98 }}
-              disabled={pending}
+              disabled={isDisabled}
               onClick={() => {
-                if (!pending) {
+                if (!isDisabled) {
                   onToggle(habitId, dateKey);
                 }
               }}
               className={cn(
-                'flex min-h-[84px] flex-col justify-between rounded-[20px] border px-3 py-3 text-left transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-60',
+                'flex min-h-[84px] flex-col justify-between rounded-[20px] border px-3 py-3 text-left transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface)] disabled:cursor-not-allowed',
                 checked
                   ? 'border-transparent text-white shadow-[var(--shadow-card)]'
+                  : isFuture
+                    ? 'border-dashed border-[var(--border)] bg-transparent text-[var(--muted)] opacity-70'
                   : isToday
-                    ? 'border-[var(--accent)]/45 bg-[var(--accent)]/10 text-[var(--ink)]'
-                    : 'border-[var(--border)] bg-[var(--surface-2)] text-[var(--ink)]',
+                    ? 'border-[var(--accent)]/45 bg-[var(--accent)]/10 text-[var(--ink)] hover:border-[var(--accent)] hover:bg-[var(--accent)]/12'
+                    : 'border-[var(--border)] bg-[var(--surface-2)] text-[var(--ink)] hover:border-[var(--ink)]/12 hover:bg-[var(--surface)]',
               )}
               style={checked ? { backgroundColor: color } : undefined}
               aria-label={localizedDayLabel}
@@ -107,6 +120,8 @@ export default function HabitWeekGrid({
                   'text-[11px] font-medium',
                   checked
                     ? 'text-white/82'
+                    : isFuture
+                      ? 'text-[var(--muted)]'
                     : isToday
                       ? 'text-[var(--accent)]'
                       : 'text-[var(--ink)]',
@@ -131,19 +146,21 @@ export default function HabitWeekGrid({
             <motion.button
               type="button"
               whileTap={{ scale: 0.85 }}
-              disabled={pending}
+              disabled={isDisabled}
               onClick={() => {
-                if (!pending) {
+                if (!isDisabled) {
                   onToggle(habitId, dateKey);
                 }
               }}
               className={cn(
-                'flex aspect-square w-full items-center justify-center rounded-xl border-2 transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-60',
+                'flex aspect-square w-full items-center justify-center rounded-xl border-2 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface)] disabled:cursor-not-allowed',
                 checked
                   ? 'border-transparent shadow-sm'
+                  : isFuture
+                    ? 'border-dashed border-[var(--border)] bg-transparent opacity-55'
                   : isToday
                     ? 'border-[var(--accent)]/60 bg-[var(--accent)]/5'
-                    : 'border-[var(--border)] bg-transparent',
+                    : 'border-[var(--border)] bg-transparent hover:border-[var(--ink)]/12 hover:bg-[var(--surface)]/55',
               )}
               style={checked ? { backgroundColor: color } : undefined}
               aria-label={localizedDayLabel}
