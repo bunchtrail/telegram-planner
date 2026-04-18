@@ -17,6 +17,7 @@ import {
   type PlannerHeaderViewModel,
   type PlannerShellProps,
 } from '../shared/types';
+import { cn } from '@/app/lib/cn';
 
 export default function MobilePlannerShell({
   planner,
@@ -117,14 +118,23 @@ export default function MobilePlannerShell({
     : null;
 
   const showFocusShortcut = Boolean(planner.activeTaskId && !ui.showFocus);
+  const showPlannerHeader = ui.activeTab === 'tasks';
 
   return (
     <div className="fixed inset-0 flex flex-col overflow-hidden bg-[var(--bg)] font-sans text-[var(--ink)]">
-      <div className="relative z-10 flex-none">
-        <PlannerHeader header={header} />
-      </div>
+      {showPlannerHeader ? (
+        <div className="relative z-10 flex-none">
+          <PlannerHeader header={header} />
+        </div>
+      ) : null}
 
-      <main className="relative h-full w-full flex-1 overflow-hidden">
+      <main
+        className={cn(
+          'relative h-full w-full flex-1 overflow-hidden',
+          !showPlannerHeader &&
+            'pt-[calc(max(env(safe-area-inset-top),var(--tg-content-safe-top,0px))+var(--tma-tg-controls-top,0px)+0.75rem)]',
+        )}
+      >
         {ui.activeTab === 'tasks' ? (
           <MobileTaskList {...taskListProps} />
         ) : (

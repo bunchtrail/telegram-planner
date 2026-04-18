@@ -22,6 +22,7 @@
 
 Для mobile/iOS экран привычек переходит в режим `Focus List`.
 
+- Глобальный `PlannerHeader` из `MobilePlannerShell` не показывается на tab `habits`.
 - Экран якорится на текущем дне и текущей неделе, а не на `selectedDate` из общего planner state.
 - Верхний блок сокращается до компактной шапки: `Привычки` + кнопка `Добавить`.
 - Под шапкой остаётся только компактная строка прогресса в виде pills.
@@ -63,6 +64,7 @@
   - недельного диапазона,
   - daily summary,
   - порядка привычек.
+- `MobilePlannerShell` оставляет `PlannerHeader` только для tab `tasks`; на tab `habits` shell даёт только safe-area/top-controls inset без календарной панели.
 - Проп `selectedDate` сохраняется ради совместимости интерфейса, но не управляет mobile habits UI.
 - `HabitWeekGrid` не меняется по контракту: будущие дни по-прежнему disabled, today подсвечен, completed/pending состояния сохраняются.
 - Bottom sheet добавления привычки и двухшаговое удаление из меню не меняются.
