@@ -5,6 +5,7 @@ import { Check } from 'lucide-react';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { cn } from '@/app/lib/cn';
+import { getHabitDayVisualState } from './habitDayState';
 
 export type HabitWeekGridProps = {
   color: string;
@@ -34,17 +35,27 @@ export default function HabitWeekGrid({
       {days.map((day) => {
         const dateKey = format(day, 'yyyy-MM-dd');
         const checked = isChecked(habitId, dateKey);
-        const isFuture = dateKey > todayKey;
         const pending = isPending?.(habitId, dateKey) ?? false;
-        const isToday = dateKey === todayKey;
-        const isDisabled = pending || isFuture;
-        const ariaStatusLabel = checked
+        const state = getHabitDayVisualState({
+          dateKey,
+          isChecked: checked,
+          isPending: pending,
+          todayKey,
+        });
+        const isFuture = state === 'future';
+        const isToday = state === 'today';
+        const isDone = state === 'done';
+        const isPendingState = state === 'pending';
+        const isDisabled = isPendingState || isFuture;
+        const ariaStatusLabel = isDone
           ? 'выполнено'
           : isFuture
             ? 'будущий день'
             : isToday
               ? 'сегодня'
-              : 'без отметки';
+              : isPendingState
+                ? 'синхронизация'
+                : 'без отметки';
         const localizedDayLabel = `${habitName}, ${format(day, 'EEEE, d MMMM', {
           locale: ru,
         })}, ${ariaStatusLabel}`;
@@ -63,15 +74,17 @@ export default function HabitWeekGrid({
               }}
               className={cn(
                 'relative flex min-h-[68px] flex-col items-center justify-center rounded-[18px] border px-2.5 py-2 text-center transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface)] disabled:cursor-not-allowed',
-                checked
+                isDone
                   ? 'border-transparent text-white shadow-[var(--shadow-card)]'
                   : isFuture
                     ? 'border-dashed border-[var(--border)] bg-transparent text-[var(--muted)] opacity-70'
+                  : isPendingState
+                    ? 'border-[var(--accent)]/35 bg-[var(--accent)]/8 text-[var(--ink)] opacity-60'
                   : isToday
                     ? 'border-[var(--accent)]/45 bg-[var(--accent)]/10 text-[var(--ink)] hover:border-[var(--accent)] hover:bg-[var(--accent)]/12'
                     : 'border-[var(--border)] bg-[var(--surface-2)] text-[var(--ink)] hover:border-[var(--ink)]/12 hover:bg-[var(--surface)]',
               )}
-              style={checked ? { backgroundColor: color } : undefined}
+              style={isDone ? { backgroundColor: color } : undefined}
               aria-label={localizedDayLabel}
               aria-busy={pending}
               aria-current={isToday ? 'date' : undefined}
@@ -80,7 +93,7 @@ export default function HabitWeekGrid({
                 <div
                   className={cn(
                     'text-[10px] font-semibold uppercase tracking-[0.14em]',
-                    checked
+                    isDone
                       ? 'text-white/75'
                       : isToday
                         ? 'text-[var(--accent)]'
@@ -92,7 +105,7 @@ export default function HabitWeekGrid({
                 <div
                   className={cn(
                     'mt-1 text-[2rem] font-bold leading-none tabular-nums',
-                    checked
+                    isDone
                       ? 'text-white'
                       : isFuture
                         ? 'text-[var(--muted)]'
@@ -127,19 +140,21 @@ export default function HabitWeekGrid({
               }}
               className={cn(
                 'flex aspect-square w-full items-center justify-center rounded-xl border-2 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface)] disabled:cursor-not-allowed',
-                checked
+                isDone
                   ? 'border-transparent shadow-sm'
                   : isFuture
                     ? 'border-dashed border-[var(--border)] bg-transparent opacity-55'
+                  : isPendingState
+                    ? 'border-[var(--accent)]/35 bg-[var(--accent)]/8 opacity-60'
                   : isToday
                     ? 'border-[var(--accent)]/60 bg-[var(--accent)]/5'
                     : 'border-[var(--border)] bg-transparent hover:border-[var(--ink)]/12 hover:bg-[var(--surface)]/55',
               )}
-              style={checked ? { backgroundColor: color } : undefined}
+              style={isDone ? { backgroundColor: color } : undefined}
               aria-label={localizedDayLabel}
               aria-busy={pending}
             >
-              {checked ? (
+              {isDone ? (
                 <motion.div
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
