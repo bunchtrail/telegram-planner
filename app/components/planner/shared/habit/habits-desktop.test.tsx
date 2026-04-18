@@ -72,7 +72,7 @@ describe('desktop habits UI', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('renders future days as inactive instead of missed', () => {
+  it('renders future days as inactive without visible status copy', () => {
     render(
       <HabitWeekGrid
         color={baseHabit.color}
@@ -86,7 +86,8 @@ describe('desktop habits UI', () => {
     );
 
     expect(screen.getByRole('button')).toBeDisabled();
-    expect(screen.getByText('Будет позже')).toBeInTheDocument();
+    expect(screen.getByRole('button')).toHaveClass('min-h-[68px]');
+    expect(screen.queryByText('Будет позже')).not.toBeInTheDocument();
     expect(screen.queryByText('Не отмечено')).not.toBeInTheDocument();
   });
 

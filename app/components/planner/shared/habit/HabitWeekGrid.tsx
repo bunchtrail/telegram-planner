@@ -50,14 +50,6 @@ export default function HabitWeekGrid({
         })}, ${ariaStatusLabel}`;
 
         if (layout === 'desktop') {
-          const statusLabel = checked
-            ? 'Выполнено'
-            : isFuture
-              ? 'Будет позже'
-            : isToday
-              ? 'Сегодня'
-              : 'Не отмечено';
-
           return (
             <motion.button
               key={dateKey}
@@ -70,7 +62,7 @@ export default function HabitWeekGrid({
                 }
               }}
               className={cn(
-                'flex min-h-[84px] flex-col justify-between rounded-[20px] border px-3 py-3 text-left transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface)] disabled:cursor-not-allowed',
+                'relative flex min-h-[68px] flex-col items-center justify-center rounded-[18px] border px-2.5 py-2 text-center transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface)] disabled:cursor-not-allowed',
                 checked
                   ? 'border-transparent text-white shadow-[var(--shadow-card)]'
                   : isFuture
@@ -84,50 +76,37 @@ export default function HabitWeekGrid({
               aria-busy={pending}
               aria-current={isToday ? 'date' : undefined}
             >
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <div
-                    className={cn(
-                      'text-[10px] font-semibold uppercase tracking-[0.14em]',
-                      checked
-                        ? 'text-white/75'
-                        : isToday
-                          ? 'text-[var(--accent)]'
-                          : 'text-[var(--muted)]',
-                    )}
-                  >
-                    {format(day, 'EEEEEE', { locale: ru })}
-                  </div>
-                  <div
-                    className={cn(
-                      'mt-1 text-xl font-bold leading-none tabular-nums',
-                      checked ? 'text-white' : 'text-[var(--ink)]',
-                    )}
-                  >
-                    {format(day, 'd')}
-                  </div>
+              {checked ? (
+                <span className="absolute right-2 top-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-white/14 text-white">
+                  <Check size={13} strokeWidth={3} />
+                </span>
+              ) : null}
+
+              <div className="min-w-0">
+                <div
+                  className={cn(
+                    'text-[10px] font-semibold uppercase tracking-[0.14em]',
+                    checked
+                      ? 'text-white/75'
+                      : isToday
+                        ? 'text-[var(--accent)]'
+                        : 'text-[var(--muted)]',
+                  )}
+                >
+                  {format(day, 'EEEEEE', { locale: ru })}
                 </div>
-
-                {checked ? (
-                  <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/12 text-white">
-                    <Check size={14} strokeWidth={3} />
-                  </span>
-                ) : null}
-              </div>
-
-              <div
-                className={cn(
-                  'text-[11px] font-medium',
-                  checked
-                    ? 'text-white/82'
-                    : isFuture
-                      ? 'text-[var(--muted)]'
-                    : isToday
-                      ? 'text-[var(--accent)]'
-                      : 'text-[var(--ink)]',
-                )}
-              >
-                {statusLabel}
+                <div
+                  className={cn(
+                    'mt-1 text-[2rem] font-bold leading-none tabular-nums',
+                    checked
+                      ? 'text-white'
+                      : isFuture
+                        ? 'text-[var(--muted)]'
+                        : 'text-[var(--ink)]',
+                  )}
+                >
+                  {format(day, 'd')}
+                </div>
               </div>
             </motion.button>
           );

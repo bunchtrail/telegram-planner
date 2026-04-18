@@ -111,10 +111,6 @@ export default function HabitCard({
     return (
       <SurfaceCard className="relative overflow-visible border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-card)]">
         <div
-          className="pointer-events-none absolute inset-y-0 left-0 w-1.5 rounded-l-[24px]"
-          style={{ backgroundColor: habit.color }}
-        />
-        <div
           className="pointer-events-none absolute inset-0 rounded-[24px] opacity-70"
           style={{
             background: `linear-gradient(135deg, ${withAlpha(habit.color, '12')} 0%, transparent 42%)`,
