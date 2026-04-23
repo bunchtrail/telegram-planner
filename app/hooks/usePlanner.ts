@@ -490,7 +490,7 @@ export function usePlanner() {
 				normalizeHex(params.section_bg_color) ?? surfaceColor;
 			const textColor = normalizeHex(params.text_color) ?? '#000000';
 			const mutedColor = normalizeHex(params.hint_color) ?? '#8e8e93';
-			const accentColor = normalizeHex(params.button_color) ?? '#ff9f0a';
+			const accentColor = normalizeHex(params.button_color) ?? '#007aff';
 			const accentInk =
 				normalizeHex(params.button_text_color) ?? '#ffffff';
 			const dangerColor =

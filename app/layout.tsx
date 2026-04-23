@@ -50,7 +50,7 @@ export default function RootLayout({
 	children: React.ReactNode;
 }>) {
 	return (
-		<html lang={appLang}>
+		<html lang={appLang} suppressHydrationWarning>
 			<head>
 				<Script src={telegramScriptSrc} strategy="beforeInteractive" />
 			</head>
@@ -62,4 +62,3 @@ export default function RootLayout({
 		</html>
 	);
 }
-

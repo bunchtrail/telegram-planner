@@ -31,7 +31,7 @@ export default function HabitWeekGrid({
   const todayKey = format(new Date(), 'yyyy-MM-dd');
 
   return (
-    <div className={cn('grid grid-cols-7', layout === 'desktop' ? 'gap-2' : 'gap-1')}>
+    <div className={cn('grid grid-cols-7', layout === 'desktop' ? 'gap-3' : 'gap-1')}>
       {days.map((day) => {
         const dateKey = format(day, 'yyyy-MM-dd');
         const checked = isChecked(habitId, dateKey);
@@ -73,16 +73,16 @@ export default function HabitWeekGrid({
                 }
               }}
               className={cn(
-                'relative flex min-h-[68px] flex-col items-center justify-center rounded-[18px] border px-2.5 py-2 text-center transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface)] disabled:cursor-not-allowed',
+                'relative flex h-[86px] min-h-[68px] min-w-0 flex-col items-center justify-center rounded-[16px] border px-2.5 py-2 text-center transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface)] disabled:cursor-not-allowed',
                 isDone
                   ? 'border-transparent text-white shadow-[var(--shadow-card)]'
                   : isFuture
-                    ? 'border-dashed border-[var(--border)] bg-transparent text-[var(--muted)] opacity-70'
+                    ? 'border-[var(--border)] bg-[var(--surface-2)]/35 text-[var(--muted)] opacity-70'
                   : isPendingState
                     ? 'border-[var(--accent)]/35 bg-[var(--accent)]/8 text-[var(--ink)] opacity-60'
                   : isToday
-                    ? 'border-[var(--accent)]/45 bg-[var(--accent)]/10 text-[var(--ink)] hover:border-[var(--accent)] hover:bg-[var(--accent)]/12'
-                    : 'border-[var(--border)] bg-[var(--surface-2)] text-[var(--ink)] hover:border-[var(--ink)]/12 hover:bg-[var(--surface)]',
+                    ? 'border-[var(--accent)]/55 bg-[var(--accent)]/8 text-[var(--ink)] hover:border-[var(--accent)] hover:bg-[var(--accent)]/10'
+                    : 'border-[var(--border)] bg-[var(--surface)] text-[var(--ink)] hover:border-[var(--ink)]/12 hover:bg-[var(--surface-2)]/60',
               )}
               style={isDone ? { backgroundColor: color } : undefined}
               aria-label={localizedDayLabel}
@@ -104,7 +104,7 @@ export default function HabitWeekGrid({
                 </div>
                 <div
                   className={cn(
-                    'mt-1 text-[2rem] font-bold leading-none tabular-nums',
+                    'mt-1 text-[30px] font-bold leading-none tabular-nums',
                     isDone
                       ? 'text-white'
                       : isFuture
@@ -115,6 +115,20 @@ export default function HabitWeekGrid({
                   {format(day, 'd')}
                 </div>
               </div>
+              {isDone ? (
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{
+                    type: 'spring',
+                    stiffness: 500,
+                    damping: 26,
+                  }}
+                  className="absolute bottom-2"
+                >
+                  <Check size={15} strokeWidth={3} className="text-white" />
+                </motion.div>
+              ) : null}
             </motion.button>
           );
         }

@@ -7,6 +7,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock,
+  X,
   Flame,
   ListTodo,
   Plus,
@@ -26,6 +27,28 @@ import {
   type PlannerHeaderViewModel,
   type PlannerShellProps,
 } from '../shared/types';
+import { cn } from '@/app/lib/cn';
+
+const getTaskLabel = (count: number) => {
+  const mod10 = count % 10;
+  const mod100 = count % 100;
+
+  if (mod10 === 1 && mod100 !== 11) return 'задача';
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) {
+    return 'задачи';
+  }
+
+  return 'задач';
+};
+
+const closeTelegramApp = () => {
+  if (typeof window === 'undefined') return;
+
+  const telegram = (
+    window as Window & { Telegram?: { WebApp?: { close?: () => void } } }
+  ).Telegram;
+  telegram?.WebApp?.close?.();
+};
 
 export default function DesktopPlannerShell({
   planner,
@@ -125,6 +148,8 @@ export default function DesktopPlannerShell({
     : null;
 
   const isToday = isSameDay(header.selectedDate, new Date());
+  const progressPercent =
+    header.totalCount > 0 ? header.completedCount / header.totalCount : 0;
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-[var(--bg)] font-sans text-[var(--ink)]">
@@ -219,7 +244,7 @@ export default function DesktopPlannerShell({
             <button
               type="button"
               onClick={ui.openFocus}
-              className="mb-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-[var(--accent)] py-4 font-bold text-[var(--accent-ink)] shadow-lg transition-all hover:brightness-110 active:scale-95"
+              className="mb-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-[var(--accent)] py-4 font-bold text-[var(--accent-ink)] shadow-lg transition-[filter,transform] hover:brightness-110 active:scale-95"
             >
               <Clock className="animate-pulse" /> Текущая задача
             </button>
@@ -240,7 +265,7 @@ export default function DesktopPlannerShell({
             <button
               type="button"
               onClick={ui.openCreate}
-              className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-[var(--ink)] font-bold text-[var(--bg)] shadow-xl shadow-[var(--ink)]/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
+              className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-[var(--ink)] font-bold text-[var(--bg)] shadow-xl shadow-[var(--ink)]/20 transition-transform hover:scale-[1.02] active:scale-[0.98]"
             >
               <Plus size={20} strokeWidth={2.5} />
               <span>Новая задача</span>
@@ -250,41 +275,63 @@ export default function DesktopPlannerShell({
       </aside>
 
       <main className="relative flex min-w-0 flex-1 flex-col bg-[var(--surface-2)]/30">
-        <header className="sticky top-0 z-20 flex h-24 shrink-0 items-center justify-between border-b border-[var(--border)] bg-[var(--bg)]/80 px-12 backdrop-blur">
+        <header className="sticky top-0 z-20 flex h-[102px] shrink-0 items-center justify-between border-b border-[var(--border)] bg-[var(--surface)] px-12">
           <div>
             <div className="mb-1 flex items-baseline gap-4">
-              <h2 className="text-4xl font-bold capitalize tracking-tight font-[var(--font-display)]">
+              <h2 className="text-[36px] font-bold capitalize leading-none tracking-tight font-[var(--font-display)]">
                 {format(header.selectedDate, 'd MMMM', { locale: ru })}
               </h2>
               {isToday && (
-                <span className="rounded-full bg-[var(--accent)]/10 px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-[var(--accent)]">
+                <span className="rounded-full bg-[var(--accent)]/10 px-3 py-1.5 text-sm font-bold lowercase tracking-wide text-[var(--accent)]">
                   Сегодня
                 </span>
               )}
             </div>
-            <p className="text-lg font-medium capitalize text-[var(--muted)]">
+            <p className="text-[17px] font-medium capitalize text-[var(--muted)]">
               {format(header.selectedDate, 'EEEE', { locale: ru })} •{' '}
-              {planner.currentTasks.length} задач
+              {planner.currentTasks.length} {getTaskLabel(planner.currentTasks.length)}
             </p>
           </div>
 
-          {header.totalCount > 0 && (
-            <div className="flex h-14 items-center gap-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-6 shadow-sm">
-              <div className="text-sm font-bold uppercase tracking-wider text-[var(--muted)]">
-                Прогресс
+          <div className="flex items-center gap-4">
+            {header.totalCount > 0 && (
+              <div className="flex h-[76px] min-w-[200px] items-center gap-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-5 shadow-sm">
+                <div
+                  className="grid h-11 w-11 place-items-center rounded-full"
+                  style={{
+                    background: `conic-gradient(var(--accent) ${Math.round(
+                      progressPercent * 360,
+                    )}deg, color-mix(in srgb, var(--accent) 12%, transparent) 0deg)`,
+                  }}
+                  aria-hidden
+                >
+                  <div className="h-7 w-7 rounded-full bg-[var(--surface)]" />
+                </div>
+                <div>
+                  <div className="text-[11px] font-bold uppercase tracking-[0.22em] text-[var(--muted)]">
+                    Прогресс
+                  </div>
+                  <div className="mt-1 text-[20px] font-bold tabular-nums text-[var(--ink)]">
+                    {header.completedCount}
+                    <span className="px-1.5 text-[var(--muted)]">/</span>
+                    {header.totalCount}
+                  </div>
+                </div>
               </div>
-              <div className="h-6 w-[1px] bg-[var(--border)]" />
-              <div className="text-2xl font-bold tabular-nums text-[var(--ink)]">
-                {header.completedCount}
-                <span className="text-xl text-[var(--muted)]">
-                  / {header.totalCount}
-                </span>
-              </div>
-            </div>
-          )}
+            )}
+
+            <button
+              type="button"
+              onClick={closeTelegramApp}
+              className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--muted)]/65 text-[var(--surface)] transition-colors hover:bg-[var(--muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface)]"
+              aria-label="Закрыть приложение"
+            >
+              <X size={24} strokeWidth={2.4} />
+            </button>
+          </div>
         </header>
 
-        <div className="shrink-0 border-b border-[var(--border)] bg-[var(--bg)]/80 px-12 backdrop-blur">
+        <div className="shrink-0 border-b border-[var(--border)] bg-[var(--surface)] px-12">
           <div className="flex gap-1">
             {PLANNER_TABS.map((tab) => {
               const Icon = tab.id === 'tasks' ? ListTodo : Sparkles;
@@ -294,11 +341,12 @@ export default function DesktopPlannerShell({
                   key={tab.id}
                   type="button"
                   onClick={() => ui.setActiveTab(tab.id)}
-                  className={`flex items-center gap-2 border-b-2 px-5 py-3 text-sm font-bold transition-colors ${
+                  className={cn(
+                    'flex h-[58px] items-center gap-2 border-b-2 px-5 text-[15px] font-bold transition-colors',
                     ui.activeTab === tab.id
                       ? 'border-[var(--accent)] text-[var(--accent)]'
-                      : 'border-transparent text-[var(--muted)] hover:text-[var(--ink)]'
-                  }`}
+                      : 'border-transparent text-[var(--muted)] hover:text-[var(--ink)]',
+                  )}
                 >
                   <Icon size={18} /> {tab.label}
                 </button>
@@ -308,7 +356,7 @@ export default function DesktopPlannerShell({
         </div>
 
         <div className="relative flex-1 overflow-hidden">
-          <div className="no-scrollbar absolute inset-0 mx-auto w-full max-w-6xl overflow-y-auto px-12 py-10">
+          <div className="no-scrollbar absolute inset-0 mx-auto w-full max-w-[1248px] overflow-y-auto px-10 py-6">
             {ui.activeTab === 'tasks' ? (
               <DesktopTaskList {...taskListProps} />
             ) : (

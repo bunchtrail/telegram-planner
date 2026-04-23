@@ -37,7 +37,7 @@ export default function HabitColorPicker({
             type="button"
             onClick={() => onChange(option)}
             className={cn(
-              'relative flex h-9 w-9 items-center justify-center rounded-full transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface)]',
+              'relative flex h-9 w-9 items-center justify-center rounded-full transition-[box-shadow,transform] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface)]',
               isSelected ? 'scale-110' : 'hover:scale-105 active:scale-95',
             )}
             style={{

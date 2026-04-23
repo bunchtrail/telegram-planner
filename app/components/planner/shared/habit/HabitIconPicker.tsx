@@ -47,7 +47,7 @@ export default function HabitIconPicker({
             type="button"
             onClick={() => onChange(icon)}
             className={cn(
-              'flex h-10 w-10 items-center justify-center rounded-xl text-xl transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface)]',
+              'flex h-10 w-10 items-center justify-center rounded-xl text-xl transition-[background-color,box-shadow,transform] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface)]',
               isSelected
                 ? 'scale-110 bg-[var(--accent)]/15 ring-2 ring-[var(--accent)]'
                 : 'bg-[var(--surface-2)] hover:bg-[var(--surface-2)]/80 active:scale-95',

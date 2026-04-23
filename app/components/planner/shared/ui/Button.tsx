@@ -55,7 +55,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         type={type}
         className={cn(
-          'inline-flex w-fit touch-manipulation items-center justify-center gap-2 font-semibold shadow-[var(--shadow-card)] transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg)] disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none',
+          'inline-flex w-fit touch-manipulation items-center justify-center gap-2 font-semibold shadow-[var(--shadow-card)] transition-[background-color,border-color,color,filter,opacity,transform,box-shadow] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg)] disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none',
           sizeClasses[size],
           variantClasses[variant],
           className,

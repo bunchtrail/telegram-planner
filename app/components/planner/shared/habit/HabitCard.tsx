@@ -109,19 +109,19 @@ export default function HabitCard({
         : `Не отмечено ${focusDateShortLabel}`;
 
     return (
-      <SurfaceCard className="relative overflow-visible border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-card)]">
+      <SurfaceCard className="relative overflow-visible rounded-[20px] border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm">
         <div
-          className="pointer-events-none absolute inset-0 rounded-[24px] opacity-70"
+          className="pointer-events-none absolute inset-0 rounded-[20px] opacity-60"
           style={{
-            background: `linear-gradient(135deg, ${withAlpha(habit.color, '12')} 0%, transparent 42%)`,
+            background: `linear-gradient(135deg, ${withAlpha(habit.color, '0d')} 0%, transparent 38%)`,
           }}
         />
 
-        <div className="relative grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(392px,460px)] xl:items-center">
+        <div className="relative grid gap-4 xl:grid-cols-[minmax(320px,1fr)_44px_minmax(476px,540px)] xl:items-center">
           <div className="min-w-0">
-            <div className="flex items-start gap-3">
+            <div className="flex items-center gap-5">
               <div
-                className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[18px] text-[24px]"
+                className="flex h-20 w-20 shrink-0 items-center justify-center rounded-[18px] text-[38px]"
                 style={{
                   backgroundColor: withAlpha(habit.color, '18'),
                 }}
@@ -132,11 +132,11 @@ export default function HabitCard({
 
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <h3 className="min-w-0 text-xl font-bold leading-tight text-[var(--ink)]">
+                  <h3 className="min-w-0 text-[22px] font-bold leading-tight text-[var(--ink)]">
                     {habit.name}
                   </h3>
                   <span
-                    className="inline-flex min-h-7 items-center rounded-full px-3 text-xs font-semibold"
+                    className="inline-flex min-h-7 items-center rounded-full px-3 text-[13px] font-semibold"
                     style={{
                       backgroundColor: withAlpha(habit.color, '15'),
                       color: habit.color,
@@ -151,71 +151,73 @@ export default function HabitCard({
                     {focusStateLabel}
                   </p>
                 ) : null}
-              </div>
 
-              <div ref={actionsRef} className="relative shrink-0">
+                <div className="mt-3 flex flex-wrap items-center gap-3">
+                  <Button
+                    type="button"
+                    variant={
+                      isFocusCompleted || isFocusFuture ? 'secondary' : 'accent'
+                    }
+                    size="sm"
+                    className="h-10 min-w-[11.5rem] rounded-[10px] shadow-[var(--shadow-soft)]"
+                    disabled={focusPending || isFocusFuture}
+                    onClick={() => {
+                      if (!focusPending && !isFocusFuture) {
+                        onToggleLog(habit.id, focusDateKey);
+                      }
+                    }}
+                  >
+                    {primaryActionLabel}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div ref={actionsRef} className="relative shrink-0 justify-self-start xl:justify-self-center">
+            <button
+              type="button"
+              aria-label={`Действия для привычки ${habit.name}`}
+              aria-haspopup="menu"
+              aria-expanded={actionsOpen}
+              aria-controls={actionsOpen ? menuId : undefined}
+              className="flex h-11 w-11 items-center justify-center rounded-[16px] border border-[var(--border)] bg-[var(--surface)] text-[var(--muted)] transition-colors hover:text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface)]"
+              onClick={() => setActionsOpen((current) => !current)}
+            >
+              <Ellipsis size={20} />
+            </button>
+
+            {actionsOpen ? (
+              <div
+                id={menuId}
+                role="menu"
+                className="absolute right-0 top-[calc(100%+0.5rem)] z-20 min-w-[14rem] rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-2 shadow-[var(--shadow-pop)]"
+              >
                 <button
                   type="button"
-                  aria-label={`Действия для привычки ${habit.name}`}
-                  aria-haspopup="menu"
-                  aria-expanded={actionsOpen}
-                  aria-controls={actionsOpen ? menuId : undefined}
-                  className="flex h-10 w-10 items-center justify-center rounded-2xl border border-[var(--border)] bg-[var(--surface)] text-[var(--muted)] transition-colors hover:text-[var(--ink)]"
-                  onClick={() => setActionsOpen((current) => !current)}
+                  role="menuitem"
+                  className={cn(
+                    'flex w-full items-center gap-2 rounded-[14px] px-3 py-2 text-left text-sm font-medium transition-colors',
+                    isDeleting
+                      ? 'bg-[var(--danger)]/10 text-[var(--danger)]'
+                      : 'text-[var(--ink)] hover:bg-[var(--surface-2)]',
+                  )}
+                  onClick={() => {
+                    onDelete(habit.id);
+                    if (isDeleting) {
+                      setActionsOpen(false);
+                    }
+                  }}
                 >
-                  <Ellipsis size={18} />
+                  <Trash2 size={16} />
+                  <span>
+                    {isDeleting
+                      ? 'Подтвердить удаление привычки'
+                      : 'Удалить привычку'}
+                  </span>
                 </button>
-
-                {actionsOpen ? (
-                  <div
-                    id={menuId}
-                    role="menu"
-                    className="absolute right-0 top-[calc(100%+0.5rem)] z-20 min-w-[14rem] rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-2 shadow-[var(--shadow-pop)]"
-                  >
-                    <button
-                      type="button"
-                      role="menuitem"
-                      className={cn(
-                        'flex w-full items-center gap-2 rounded-[14px] px-3 py-2 text-left text-sm font-medium transition-colors',
-                        isDeleting
-                          ? 'bg-[var(--danger)]/10 text-[var(--danger)]'
-                          : 'text-[var(--ink)] hover:bg-[var(--surface-2)]',
-                      )}
-                      onClick={() => {
-                        onDelete(habit.id);
-                        if (isDeleting) {
-                          setActionsOpen(false);
-                        }
-                      }}
-                    >
-                      <Trash2 size={16} />
-                      <span>
-                        {isDeleting
-                          ? 'Подтвердить удаление привычки'
-                          : 'Удалить привычку'}
-                      </span>
-                    </button>
-                  </div>
-                ) : null}
               </div>
-            </div>
-
-            <div className="mt-4 flex flex-wrap items-center gap-3">
-              <Button
-                type="button"
-                variant={isFocusCompleted || isFocusFuture ? 'secondary' : 'accent'}
-                size="sm"
-                className="min-w-[11.5rem]"
-                disabled={focusPending || isFocusFuture}
-                onClick={() => {
-                  if (!focusPending && !isFocusFuture) {
-                    onToggleLog(habit.id, focusDateKey);
-                  }
-                }}
-              >
-                {primaryActionLabel}
-              </Button>
-            </div>
+            ) : null}
           </div>
 
           <HabitWeekGrid

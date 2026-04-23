@@ -76,7 +76,7 @@ describe('desktop habits tab', () => {
     });
 
     expect(
-      screen.getByRole('heading', { name: 'Осталось сегодня 2 привычки' }),
+      screen.getByRole('heading', { name: 'На сегодня осталось 2 привычки' }),
     ).toBeInTheDocument();
     expect(screen.getByText('Уже выполнено 1 из 3')).toBeInTheDocument();
 
@@ -106,8 +106,16 @@ describe('desktop habits tab', () => {
     ).toBeInTheDocument();
 
     expect(screen.queryByText('Свободно')).not.toBeInTheDocument();
-    expect(screen.getAllByText('Не отмечено').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('Выполнено').length).toBeGreaterThan(0);
+    expect(screen.queryByText('Не отмечено')).not.toBeInTheDocument();
+    expect(screen.getByText('Выполнено сегодня')).toBeInTheDocument();
+    expect(
+      screen.getAllByRole('button', { name: /без отметки/i }).length,
+    ).toBeGreaterThan(0);
+    expect(
+      screen.getByRole('button', {
+        name: /Вода, суббота, 18 апреля, выполнено/i,
+      }),
+    ).toBeInTheDocument();
   });
 
   test('moves a habit between today groups when the selected day becomes checked', () => {
