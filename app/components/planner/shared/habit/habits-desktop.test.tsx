@@ -91,6 +91,26 @@ describe('desktop habits UI', () => {
     expect(screen.queryByText('Не отмечено')).not.toBeInTheDocument();
   });
 
+  it('renders desktop completed days without a check icon', () => {
+    const { container } = render(
+      <HabitWeekGrid
+        color={baseHabit.color}
+        days={[today]}
+        habitId={baseHabit.id}
+        habitName={baseHabit.name}
+        isChecked={() => true}
+        layout="desktop"
+        onToggle={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole('button')).toHaveAttribute(
+      'aria-label',
+      expect.stringContaining('выполнено'),
+    );
+    expect(container.querySelector('svg')).toBeNull();
+  });
+
   it('disables the focus action for a future date', () => {
     render(
       <HabitCard

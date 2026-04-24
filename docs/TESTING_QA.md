@@ -5,7 +5,6 @@
 ## Рекомендуемый стек
 
 - Unit/Component: Vitest + React Testing Library
-- E2E: Playwright
 - Линт: ESLint (уже есть)
 - (Опционально) Type-level tests: `tsd` для публичных типов/утилит
 

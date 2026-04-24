@@ -282,7 +282,7 @@ export default function DesktopPlannerShell({
                 {format(header.selectedDate, 'd MMMM', { locale: ru })}
               </h2>
               {isToday && (
-                <span className="rounded-full bg-[var(--accent)]/10 px-3 py-1.5 text-sm font-bold lowercase tracking-wide text-[var(--accent)]">
+                <span className="rounded-full bg-[var(--accent)]/10 px-3 py-1.5 text-sm font-bold uppercase tracking-wide text-[var(--accent)]">
                   Сегодня
                 </span>
               )}
@@ -356,7 +356,14 @@ export default function DesktopPlannerShell({
         </div>
 
         <div className="relative flex-1 overflow-hidden">
-          <div className="no-scrollbar absolute inset-0 mx-auto w-full max-w-[1248px] overflow-y-auto px-10 py-6">
+          <div
+            className={cn(
+              'no-scrollbar absolute inset-0 mx-auto w-full overflow-y-auto',
+              ui.activeTab === 'habits'
+                ? 'max-w-[1220px] px-6 py-[22px] 2xl:px-0'
+                : 'max-w-[1248px] px-10 py-6',
+            )}
+          >
             {ui.activeTab === 'tasks' ? (
               <DesktopTaskList {...taskListProps} />
             ) : (

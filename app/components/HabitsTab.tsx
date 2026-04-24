@@ -179,6 +179,36 @@ export default function HabitsTab({
     }
   };
 
+  const renderDesktopHabitList = (items: Habit[]) => (
+    <div className="overflow-visible rounded-[20px] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-card)]">
+      <AnimatePresence mode="popLayout">
+        {items.map((habit, index) => (
+          <motion.div
+            key={habit.id}
+            layout
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            className={cn(index > 0 && 'border-t border-[var(--border)]')}
+          >
+            <HabitCard
+              habit={habit}
+              isChecked={isChecked}
+              isDesktop
+              isDesktopListItem
+              desktopFocusDate={selectedDate}
+              isDeleting={deletingId === habit.id}
+              isLogPending={isLogPending}
+              onDelete={handleDelete}
+              onToggleLog={onToggleLog}
+              weekDays={weekDays}
+            />
+          </motion.div>
+        ))}
+      </AnimatePresence>
+    </div>
+  );
+
   const scrollClasses = cn(
     'h-full w-full overflow-y-auto pt-2 touch-pan-y overscroll-contain no-scrollbar',
     isDesktop
@@ -212,8 +242,8 @@ export default function HabitsTab({
   if (isDesktop) {
     return (
       <div className={scrollClasses}>
-        <div className="flex flex-col gap-6">
-          <section className="rounded-[20px] border border-[var(--border)] bg-[var(--surface)] px-8 py-6 shadow-sm">
+        <div className="flex flex-col gap-3">
+          <section className="rounded-[20px] border border-[var(--border)] bg-[var(--surface)] px-8 py-[22px] shadow-[var(--shadow-card)]">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-3 text-[13px] font-bold uppercase tracking-[0.24em] text-[var(--accent)]">
@@ -223,11 +253,11 @@ export default function HabitsTab({
                   Фокус дня
                 </div>
 
-                <h2 className="mt-5 text-[28px] font-bold leading-tight tracking-tight text-[var(--ink)] font-[var(--font-display)]">
+                <h2 className="mt-4 text-[28px] font-bold leading-tight tracking-tight text-[var(--ink)] font-[var(--font-display)]">
                   {summaryHeading}
                 </h2>
 
-                <p className="mt-2 text-[17px] font-medium text-[var(--muted)]">
+                <p className="mt-1.5 text-[17px] font-medium text-[var(--muted)]">
                   {summarySubheading}
                 </p>
               </div>
@@ -247,12 +277,12 @@ export default function HabitsTab({
               ) : null}
             </div>
 
-            <div className="mt-6 flex flex-wrap gap-3 text-[15px] text-[var(--ink)]">
-              <div className="rounded-full border border-[var(--border)] bg-[var(--surface)] px-5 py-2.5 shadow-sm">
+            <div className="mt-5 flex flex-wrap gap-3 text-[15px] text-[var(--ink)]">
+              <div className="rounded-full border border-[var(--border)] bg-[var(--surface)] px-5 py-2 shadow-sm">
                 За неделю: <span className="font-semibold">{desktopStats.totalChecks}</span>{' '}
                 {getCheckLabel(desktopStats.totalChecks)}
               </div>
-              <div className="rounded-full border border-[var(--border)] bg-[var(--surface)] px-5 py-2.5 shadow-sm">
+              <div className="rounded-full border border-[var(--border)] bg-[var(--surface)] px-5 py-2 shadow-sm">
                 Дата фокуса:{' '}
                 <span className="font-semibold capitalize">{selectedDateLabel}</span>
               </div>
@@ -281,7 +311,7 @@ export default function HabitsTab({
               {remainingHabits.length > 0 ? (
                 <section
                   aria-labelledby="desktop-habits-remaining-heading"
-                  className="flex flex-col gap-3"
+                  className="flex flex-col gap-2.5"
                 >
                   <div className="flex items-center gap-3 px-3">
                     <Clock
@@ -300,36 +330,14 @@ export default function HabitsTab({
                     </span>
                   </div>
 
-                  <AnimatePresence mode="popLayout">
-                    {remainingHabits.map((habit) => (
-                      <motion.div
-                        key={habit.id}
-                        layout
-                        initial={{ opacity: 0, y: 14 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 10 }}
-                      >
-                        <HabitCard
-                          habit={habit}
-                          isChecked={isChecked}
-                          isDesktop
-                          desktopFocusDate={selectedDate}
-                          isDeleting={deletingId === habit.id}
-                          isLogPending={isLogPending}
-                          onDelete={handleDelete}
-                          onToggleLog={onToggleLog}
-                          weekDays={weekDays}
-                        />
-                      </motion.div>
-                    ))}
-                  </AnimatePresence>
+                  {renderDesktopHabitList(remainingHabits)}
                 </section>
               ) : null}
 
               {completedHabits.length > 0 ? (
                 <section
                   aria-labelledby="desktop-habits-completed-heading"
-                  className="flex flex-col gap-3"
+                  className="flex flex-col gap-2.5"
                 >
                   <div className="flex items-center gap-3 px-3">
                     <CheckCircle2
@@ -348,29 +356,7 @@ export default function HabitsTab({
                     </span>
                   </div>
 
-                  <AnimatePresence mode="popLayout">
-                    {completedHabits.map((habit) => (
-                      <motion.div
-                        key={habit.id}
-                        layout
-                        initial={{ opacity: 0, y: 14 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 10 }}
-                      >
-                        <HabitCard
-                          habit={habit}
-                          isChecked={isChecked}
-                          isDesktop
-                          desktopFocusDate={selectedDate}
-                          isDeleting={deletingId === habit.id}
-                          isLogPending={isLogPending}
-                          onDelete={handleDelete}
-                          onToggleLog={onToggleLog}
-                          weekDays={weekDays}
-                        />
-                      </motion.div>
-                    ))}
-                  </AnimatePresence>
+                  {renderDesktopHabitList(completedHabits)}
                 </section>
               ) : null}
             </div>

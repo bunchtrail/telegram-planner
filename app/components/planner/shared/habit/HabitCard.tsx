@@ -14,6 +14,7 @@ export type HabitCardProps = {
   habit: Habit;
   isChecked: (habitId: string, date: string) => boolean;
   isDesktop?: boolean;
+  isDesktopListItem?: boolean;
   desktopFocusDate?: Date;
   isDeleting?: boolean;
   isLogPending?: (habitId: string, date: string) => boolean;
@@ -41,6 +42,7 @@ export default function HabitCard({
   habit,
   isChecked,
   isDesktop = false,
+  isDesktopListItem = false,
   desktopFocusDate,
   isDeleting = false,
   isLogPending,
@@ -108,129 +110,137 @@ export default function HabitCard({
         ? 'Не отмечено на сегодня'
         : `Не отмечено ${focusDateShortLabel}`;
 
-    return (
-      <SurfaceCard className="relative overflow-visible rounded-[20px] border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm">
-        <div
-          className="pointer-events-none absolute inset-0 rounded-[20px] opacity-60"
-          style={{
-            background: `linear-gradient(135deg, ${withAlpha(habit.color, '0d')} 0%, transparent 38%)`,
-          }}
-        />
-
-        <div className="relative grid gap-4 xl:grid-cols-[minmax(320px,1fr)_44px_minmax(476px,540px)] xl:items-center">
-          <div className="min-w-0">
-            <div className="flex items-center gap-5">
-              <div
-                className="flex h-20 w-20 shrink-0 items-center justify-center rounded-[18px] text-[38px]"
-                style={{
-                  backgroundColor: withAlpha(habit.color, '18'),
-                }}
-                aria-hidden
-              >
-                {habit.icon}
-              </div>
-
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h3 className="min-w-0 text-[22px] font-bold leading-tight text-[var(--ink)]">
-                    {habit.name}
-                  </h3>
-                  <span
-                    className="inline-flex min-h-7 items-center rounded-full px-3 text-[13px] font-semibold"
-                    style={{
-                      backgroundColor: withAlpha(habit.color, '15'),
-                      color: habit.color,
-                    }}
-                  >
-                    {checkedCount}/{weekDays.length} за неделю
-                  </span>
-                </div>
-
-                {isFocusCompleted ? (
-                  <p className="mt-2 text-sm font-medium text-[var(--ink)]">
-                    {focusStateLabel}
-                  </p>
-                ) : null}
-
-                <div className="mt-3 flex flex-wrap items-center gap-3">
-                  <Button
-                    type="button"
-                    variant={
-                      isFocusCompleted || isFocusFuture ? 'secondary' : 'accent'
-                    }
-                    size="sm"
-                    className="h-10 min-w-[11.5rem] rounded-[10px] shadow-[var(--shadow-soft)]"
-                    disabled={focusPending || isFocusFuture}
-                    onClick={() => {
-                      if (!focusPending && !isFocusFuture) {
-                        onToggleLog(habit.id, focusDateKey);
-                      }
-                    }}
-                  >
-                    {primaryActionLabel}
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div ref={actionsRef} className="relative shrink-0 justify-self-start xl:justify-self-center">
-            <button
-              type="button"
-              aria-label={`Действия для привычки ${habit.name}`}
-              aria-haspopup="menu"
-              aria-expanded={actionsOpen}
-              aria-controls={actionsOpen ? menuId : undefined}
-              className="flex h-11 w-11 items-center justify-center rounded-[16px] border border-[var(--border)] bg-[var(--surface)] text-[var(--muted)] transition-colors hover:text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface)]"
-              onClick={() => setActionsOpen((current) => !current)}
+    const desktopContent = (
+      <div className="grid gap-4 xl:grid-cols-[minmax(320px,1fr)_44px_minmax(476px,540px)] xl:items-center">
+        <div className="min-w-0">
+          <div className="flex items-center gap-5">
+            <div
+              className="flex h-20 w-20 shrink-0 items-center justify-center rounded-[18px] text-[38px]"
+              style={{
+                backgroundColor: withAlpha(habit.color, '18'),
+              }}
+              aria-hidden
             >
-              <Ellipsis size={20} />
-            </button>
+              {habit.icon}
+            </div>
 
-            {actionsOpen ? (
-              <div
-                id={menuId}
-                role="menu"
-                className="absolute right-0 top-[calc(100%+0.5rem)] z-20 min-w-[14rem] rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-2 shadow-[var(--shadow-pop)]"
-              >
-                <button
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <h3 className="min-w-0 text-[22px] font-bold leading-tight text-[var(--ink)]">
+                  {habit.name}
+                </h3>
+                <span
+                  className="inline-flex min-h-7 items-center rounded-full px-3 text-[13px] font-semibold"
+                  style={{
+                    backgroundColor: withAlpha(habit.color, '15'),
+                    color: habit.color,
+                  }}
+                >
+                  {checkedCount}/{weekDays.length} за неделю
+                </span>
+              </div>
+
+              {isFocusCompleted ? (
+                <p className="mt-2 text-sm font-medium text-[var(--ink)]">
+                  {focusStateLabel}
+                </p>
+              ) : null}
+
+              <div className="mt-3 flex flex-wrap items-center gap-3">
+                <Button
                   type="button"
-                  role="menuitem"
-                  className={cn(
-                    'flex w-full items-center gap-2 rounded-[14px] px-3 py-2 text-left text-sm font-medium transition-colors',
-                    isDeleting
-                      ? 'bg-[var(--danger)]/10 text-[var(--danger)]'
-                      : 'text-[var(--ink)] hover:bg-[var(--surface-2)]',
-                  )}
+                  variant={
+                    isFocusCompleted || isFocusFuture ? 'secondary' : 'accent'
+                  }
+                  size="sm"
+                  className="h-10 min-w-[11.5rem] rounded-[10px] shadow-[var(--shadow-soft)]"
+                  disabled={focusPending || isFocusFuture}
                   onClick={() => {
-                    onDelete(habit.id);
-                    if (isDeleting) {
-                      setActionsOpen(false);
+                    if (!focusPending && !isFocusFuture) {
+                      onToggleLog(habit.id, focusDateKey);
                     }
                   }}
                 >
-                  <Trash2 size={16} />
-                  <span>
-                    {isDeleting
-                      ? 'Подтвердить удаление привычки'
-                      : 'Удалить привычку'}
-                  </span>
-                </button>
+                  {primaryActionLabel}
+                </Button>
               </div>
-            ) : null}
+            </div>
           </div>
-
-          <HabitWeekGrid
-            color={habit.color}
-            days={weekDays}
-            habitId={habit.id}
-            habitName={habit.name}
-            isChecked={isChecked}
-            layout="desktop"
-            isPending={isLogPending}
-            onToggle={onToggleLog}
-          />
         </div>
+
+        <div
+          ref={actionsRef}
+          className="relative shrink-0 justify-self-start xl:justify-self-center"
+        >
+          <button
+            type="button"
+            aria-label={`Действия для привычки ${habit.name}`}
+            aria-haspopup="menu"
+            aria-expanded={actionsOpen}
+            aria-controls={actionsOpen ? menuId : undefined}
+            className="flex h-11 w-11 items-center justify-center rounded-[16px] border border-[var(--border)] bg-[var(--surface)] text-[var(--muted)] transition-colors hover:text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface)]"
+            onClick={() => setActionsOpen((current) => !current)}
+          >
+            <Ellipsis size={20} />
+          </button>
+
+          {actionsOpen ? (
+            <div
+              id={menuId}
+              role="menu"
+              className="absolute right-0 top-[calc(100%+0.5rem)] z-20 min-w-[14rem] rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-2 shadow-[var(--shadow-pop)]"
+            >
+              <button
+                type="button"
+                role="menuitem"
+                className={cn(
+                  'flex w-full items-center gap-2 rounded-[14px] px-3 py-2 text-left text-sm font-medium transition-colors',
+                  isDeleting
+                    ? 'bg-[var(--danger)]/10 text-[var(--danger)]'
+                    : 'text-[var(--ink)] hover:bg-[var(--surface-2)]',
+                )}
+                onClick={() => {
+                  onDelete(habit.id);
+                  if (isDeleting) {
+                    setActionsOpen(false);
+                  }
+                }}
+              >
+                <Trash2 size={16} />
+                <span>
+                  {isDeleting
+                    ? 'Подтвердить удаление привычки'
+                    : 'Удалить привычку'}
+                </span>
+              </button>
+            </div>
+          ) : null}
+        </div>
+
+        <HabitWeekGrid
+          color={habit.color}
+          days={weekDays}
+          habitId={habit.id}
+          habitName={habit.name}
+          isChecked={isChecked}
+          layout="desktop"
+          isPending={isLogPending}
+          onToggle={onToggleLog}
+        />
+      </div>
+    );
+
+    if (isDesktopListItem) {
+      return (
+        <div className="relative overflow-visible bg-transparent p-5">
+          {desktopContent}
+        </div>
+      );
+    }
+
+    return (
+      <SurfaceCard className="relative overflow-visible rounded-[20px] border-[var(--border)] bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]">
+        {desktopContent}
       </SurfaceCard>
     );
   }

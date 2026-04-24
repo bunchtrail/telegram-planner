@@ -115,20 +115,6 @@ export default function HabitWeekGrid({
                   {format(day, 'd')}
                 </div>
               </div>
-              {isDone ? (
-                <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{
-                    type: 'spring',
-                    stiffness: 500,
-                    damping: 26,
-                  }}
-                  className="absolute bottom-2"
-                >
-                  <Check size={15} strokeWidth={3} className="text-white" />
-                </motion.div>
-              ) : null}
             </motion.button>
           );
         }
