@@ -1,21 +1,27 @@
 'use client';
 
+import { useState } from 'react';
 import { format, isSameDay } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import {
   CalendarDays,
+  Check,
   ChevronLeft,
   ChevronRight,
   Clock,
-  X,
+  ExternalLink,
   Flame,
+  Keyboard,
   ListTodo,
   Plus,
+  RefreshCw,
   Repeat,
+  Settings,
   Sparkles,
+  Target,
+  X,
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
-import MonthGrid from '../../MonthGrid';
 import DesktopFocusOverlay from './DesktopFocusOverlay';
 import DesktopHabitsTab from './DesktopHabitsTab';
 import DesktopRecurringTasksSheet from './DesktopRecurringTasksSheet';
@@ -41,6 +47,18 @@ const getTaskLabel = (count: number) => {
   return 'задач';
 };
 
+const getHabitLabel = (count: number) => {
+  const mod10 = count % 10;
+  const mod100 = count % 100;
+
+  if (mod10 === 1 && mod100 !== 11) return 'привычка';
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) {
+    return 'привычки';
+  }
+
+  return 'привычек';
+};
+
 const closeTelegramApp = () => {
   if (typeof window === 'undefined') return;
 
@@ -50,12 +68,97 @@ const closeTelegramApp = () => {
   telegram?.WebApp?.close?.();
 };
 
+type DesktopDateStripProps = {
+  activeTab: PlannerShellProps['ui']['activeTab'];
+  header: PlannerHeaderViewModel;
+  habits: PlannerShellProps['planner']['habits'];
+  isHabitChecked: PlannerShellProps['planner']['isHabitChecked'];
+};
+
+function DesktopDateStrip({
+  activeTab,
+  header,
+  habits,
+  isHabitChecked,
+}: DesktopDateStripProps) {
+  return (
+    <section className="shrink-0 border-b border-[var(--border)] bg-[var(--surface)] px-5 py-4">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <h2 className="text-[17px] font-semibold capitalize text-[var(--ink)]">
+          {format(header.selectedDate, 'LLLL yyyy', { locale: ru })}
+        </h2>
+
+        <button
+          type="button"
+          onClick={closeTelegramApp}
+          className="grid h-9 w-9 place-items-center rounded-lg text-[var(--ink)] transition-colors hover:bg-[var(--surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+          aria-label="Закрыть приложение"
+        >
+          <X size={20} />
+        </button>
+      </div>
+
+      <div className="grid grid-cols-7 overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface)] shadow-sm">
+        {header.weekDays.map((day) => {
+          const dateKey = format(day, 'yyyy-MM-dd');
+          const isSelected = isSameDay(day, header.selectedDate);
+          const markers =
+            activeTab === 'habits'
+              ? habits
+                  .filter((habit) => isHabitChecked(habit.id, dateKey))
+                  .slice(0, 4)
+                  .map((habit) => habit.color)
+              : header.taskDates.has(dateKey)
+                ? ['var(--accent)']
+                : [];
+
+          return (
+            <button
+              key={dateKey}
+              type="button"
+              onClick={() => header.onSelectDate(day)}
+              aria-current={isSelected ? 'date' : undefined}
+              aria-pressed={isSelected}
+              aria-label={format(day, 'EEEE, d MMMM', { locale: ru })}
+              className={cn(
+                'flex h-[76px] min-w-0 flex-col items-center justify-center border-r border-[var(--border)] text-[15px] transition-colors last:border-r-0 hover:bg-[var(--surface-2)] focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]',
+                isSelected
+                  ? 'bg-[var(--accent)]/5 text-[var(--accent)] ring-1 ring-inset ring-[var(--accent)]/55'
+                  : 'text-[var(--ink)]',
+              )}
+            >
+              <span className="font-medium capitalize">
+                {format(day, 'EEE d', { locale: ru })}
+              </span>
+
+              <span className="mt-3 flex h-2 items-center justify-center gap-2">
+                {markers.length > 0 ? (
+                  markers.map((color, index) => (
+                    <span
+                      key={`${dateKey}-${color}-${index}`}
+                      className="h-2 w-2 rounded-full"
+                      style={{ backgroundColor: color }}
+                    />
+                  ))
+                ) : (
+                  <span className="h-2 w-2 rounded-full bg-transparent" />
+                )}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 export default function DesktopPlannerShell({
   planner,
   ui,
 }: PlannerShellProps) {
   const editingTask = ui.sheet.editingTask;
   const focusTask = ui.activeTask;
+  const [isHabitCreateOpen, setIsHabitCreateOpen] = useState(false);
 
   const header: PlannerHeaderViewModel = {
     selectedDate: planner.selectedDate,
@@ -88,6 +191,7 @@ export default function DesktopPlannerShell({
     onReorder: planner.handleReorder,
     onToggleActive: planner.toggleActiveTask,
     updateTask: planner.updateTask,
+    onQuickAdd: planner.addTask,
     className: 'pl-0 pr-0',
   };
 
@@ -100,6 +204,8 @@ export default function DesktopPlannerShell({
     onAddHabit: planner.addHabit,
     onDeleteHabit: planner.deleteHabit,
     selectedDate: planner.selectedDate,
+    isCreateOpen: isHabitCreateOpen,
+    onCreateOpenChange: setIsHabitCreateOpen,
   };
 
   const taskSheetProps = {
@@ -147,221 +253,224 @@ export default function DesktopPlannerShell({
       }
     : null;
 
+  const selectedDateKey = format(header.selectedDate, 'yyyy-MM-dd');
+  const habitSummary = {
+    completedToday: planner.habits.filter((habit) =>
+      planner.isHabitChecked(habit.id, selectedDateKey),
+    ).length,
+    total: planner.habits.length,
+    weekChecks: planner.habits.reduce(
+      (sum, habit) =>
+        sum +
+        header.weekDays.filter((day) =>
+          planner.isHabitChecked(habit.id, format(day, 'yyyy-MM-dd')),
+        ).length,
+      0,
+    ),
+  };
+
   const isToday = isSameDay(header.selectedDate, new Date());
-  const progressPercent =
-    header.totalCount > 0 ? header.completedCount / header.totalCount : 0;
+  const progressDone =
+    ui.activeTab === 'habits' ? habitSummary.completedToday : header.completedCount;
+  const progressTotal =
+    ui.activeTab === 'habits' ? habitSummary.total : header.totalCount;
+  const progressPercent = progressTotal > 0 ? progressDone / progressTotal : 0;
+  const dateLabel = `${format(header.selectedDate, 'd MMMM', {
+    locale: ru,
+  })}, ${format(header.selectedDate, 'EEEE', { locale: ru })}`;
+  const currentCountLabel =
+    ui.activeTab === 'habits'
+      ? `${habitSummary.total} ${getHabitLabel(habitSummary.total)}`
+      : `${planner.currentTasks.length} ${getTaskLabel(planner.currentTasks.length)}`;
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-[var(--bg)] font-sans text-[var(--ink)]">
-      <aside className="z-10 flex w-80 flex-none flex-col gap-6 border-r border-[var(--border)] bg-[var(--surface)] p-6 shadow-xl">
-        <div className="flex items-center gap-3 px-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--ink)] text-[var(--bg)] shadow-lg shadow-[var(--ink)]/20">
-            <CalendarDays size={24} />
+    <div className="flex h-screen w-full flex-col overflow-hidden bg-[var(--bg)] font-sans text-[var(--ink)]">
+      <header className="no-scrollbar z-20 flex h-[86px] shrink-0 items-center gap-4 overflow-x-auto border-b border-[var(--border)] bg-[var(--surface)] px-5">
+        <div className="flex min-w-[160px] shrink-0 items-center gap-3">
+          <div className="grid h-9 w-9 place-items-center rounded-lg bg-[var(--accent)] text-[var(--accent-ink)] shadow-[var(--shadow-soft)]">
+            <Check size={24} strokeWidth={3.2} />
           </div>
-          <h1 className="text-2xl font-bold font-[var(--font-display)]">
+          <h1 className="text-[25px] font-bold tracking-tight font-[var(--font-display)]">
             Planner
           </h1>
         </div>
 
-        <div className="flex flex-col gap-4">
-          <div className="rounded-[24px] border border-[var(--border)] bg-[var(--surface-2)]/30 p-4">
-            <div className="mb-4 flex items-center justify-between px-2">
-              <span className="text-lg font-bold capitalize text-[var(--ink)]">
-                {format(header.selectedDate, 'LLLL yyyy', { locale: ru })}
-              </span>
-              <div className="flex gap-1">
-                <button
-                  type="button"
-                  onClick={header.onPrev}
-                  className="rounded-lg p-1 transition-colors hover:bg-[var(--surface-2)]"
-                  aria-label="Предыдущий месяц"
-                >
-                  <ChevronLeft size={20} />
-                </button>
-                <button
-                  type="button"
-                  onClick={header.onNext}
-                  className="rounded-lg p-1 transition-colors hover:bg-[var(--surface-2)]"
-                  aria-label="Следующий месяц"
-                >
-                  <ChevronRight size={20} />
-                </button>
-              </div>
-            </div>
-            <MonthGrid
-              days={header.monthDays}
-              selectedDate={header.selectedDate}
-              onSelectDate={header.onSelectDate}
-              taskDates={header.taskDates}
-            />
-          </div>
+        <nav
+          aria-label="Разделы планера"
+          className="flex h-11 overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface)] p-0.5 shadow-sm"
+        >
+          {PLANNER_TABS.map((tab) => {
+            const Icon = tab.id === 'tasks' ? ListTodo : Sparkles;
 
-          <div className="grid grid-cols-2 gap-3">
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => ui.setActiveTab(tab.id)}
+                className={cn(
+                  'flex min-w-[110px] items-center justify-center gap-2 rounded-md px-4 text-[15px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]',
+                  ui.activeTab === tab.id
+                    ? 'bg-[var(--accent)]/10 text-[var(--accent)]'
+                    : 'text-[var(--ink)] hover:bg-[var(--surface-2)]',
+                )}
+              >
+                <Icon size={18} /> {tab.label}
+              </button>
+            );
+          })}
+        </nav>
+
+        <div className="ml-auto flex min-w-0 shrink-0 items-center gap-3">
+          <div className="flex h-11 overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface)] shadow-sm">
             <button
               type="button"
-              onClick={header.onOpenStats}
-              className="group flex flex-col gap-2 rounded-[20px] border border-[var(--border)] bg-[var(--surface)] p-4 text-left shadow-sm transition-colors hover:border-[var(--accent)]"
-              aria-label="Статистика"
+              onClick={header.onPrev}
+              className="grid w-11 place-items-center border-r border-[var(--border)] transition-colors hover:bg-[var(--surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+              aria-label="Предыдущий период"
             >
-              <div className="w-fit rounded-full bg-orange-500/10 p-2 text-orange-500 transition-transform group-hover:scale-110">
-                <Flame size={18} fill="currentColor" />
-              </div>
-              <div>
-                <div className="text-2xl font-bold leading-none tabular-nums">
-                  {planner.streak}
-                </div>
-                <div className="mt-1 text-[10px] font-bold uppercase tracking-wider text-[var(--muted)]">
-                  Серия
-                </div>
-              </div>
+              <ChevronLeft size={22} />
             </button>
-
-            <div className="flex flex-col gap-2 rounded-[20px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm">
-              <div className="w-fit rounded-full bg-[var(--ink)]/5 p-2 text-[var(--ink)]">
-                <Clock size={18} />
-              </div>
-              <div>
-                <div className="flex items-baseline gap-0.5 text-xl font-bold leading-none tabular-nums">
-                  {header.hours}
-                  <span className="text-xs font-medium text-[var(--muted)]">
-                    ч
-                  </span>
-                  {header.minutes}
-                  <span className="text-xs font-medium text-[var(--muted)]">
-                    м
-                  </span>
-                </div>
-                <div className="mt-1 text-[10px] font-bold uppercase tracking-wider text-[var(--muted)]">
-                  За день
-                </div>
-              </div>
+            <div className="flex min-w-[240px] items-center justify-center gap-3 px-4 text-[16px] font-semibold capitalize">
+              <CalendarDays size={19} />
+              <span>{dateLabel}</span>
             </div>
+            <button
+              type="button"
+              onClick={header.onNext}
+              className="grid w-11 place-items-center border-l border-[var(--border)] transition-colors hover:bg-[var(--surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+              aria-label="Следующий период"
+            >
+              <ChevronRight size={22} />
+            </button>
           </div>
-        </div>
 
-        <div className="mt-auto">
-          {ui.activeTask && (
+          <button
+            type="button"
+            onClick={header.onToday}
+            className={cn(
+              'h-11 rounded-lg border border-[var(--border)] px-4 text-[15px] font-semibold shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]',
+              isToday
+                ? 'bg-[var(--accent)]/10 text-[var(--accent)]'
+                : 'bg-[var(--surface)] text-[var(--ink)] hover:bg-[var(--surface-2)]',
+            )}
+          >
+            Сегодня
+          </button>
+
+          <button
+            type="button"
+            onClick={header.onOpenStats}
+            className="flex h-11 items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 text-[15px] font-semibold shadow-sm transition-colors hover:bg-[var(--surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+            aria-label="Статистика"
+          >
+            <Flame size={18} className="text-orange-500" fill="currentColor" />
+            <span>Серия {planner.streak}</span>
+          </button>
+
+          <div
+            className="flex h-11 items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 text-[15px] font-semibold shadow-sm"
+            aria-label={currentCountLabel}
+          >
+            {ui.activeTab === 'habits' ? (
+              <>
+                <Sparkles size={18} className="text-[var(--accent)]" />
+                <span>Неделя {habitSummary.weekChecks}</span>
+              </>
+            ) : (
+              <>
+                <Clock size={18} />
+                <span>
+                  {header.hours}ч {header.minutes}м
+                </span>
+              </>
+            )}
+          </div>
+
+          <div className="flex h-11 items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 text-[15px] font-semibold shadow-sm">
+            <Target size={18} className="text-emerald-500" />
+            <span>
+              {progressDone}/{progressTotal}
+            </span>
+            <span
+              className="h-2 w-10 overflow-hidden rounded-full bg-[var(--border)]"
+              aria-hidden
+            >
+              <span
+                className="block h-full rounded-full bg-emerald-500"
+                style={{ width: `${Math.round(progressPercent * 100)}%` }}
+              />
+            </span>
+          </div>
+
+          {ui.activeTask ? (
             <button
               type="button"
               onClick={ui.openFocus}
-              className="mb-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-[var(--accent)] py-4 font-bold text-[var(--accent-ink)] shadow-lg transition-[filter,transform] hover:brightness-110 active:scale-95"
+              className="flex h-11 items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 text-[15px] font-semibold shadow-sm transition-colors hover:bg-[var(--surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
             >
-              <Clock className="animate-pulse" /> Текущая задача
+              <Clock size={18} className="animate-pulse" />
+              <span>Фокус</span>
             </button>
-          )}
+          ) : null}
 
-          {ui.activeTab === 'tasks' && (
+          {ui.activeTab === 'tasks' ? (
             <button
               type="button"
               onClick={header.onOpenRecurring}
-              className="mb-3 flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] font-bold text-[var(--ink)] shadow-sm transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]"
+              className="grid h-11 w-11 place-items-center rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--ink)] shadow-sm transition-colors hover:bg-[var(--surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+              aria-label="Повторяющиеся задачи"
             >
-              <Repeat size={18} />
-              <span>Повторы</span>
+              <Repeat size={20} />
             </button>
-          )}
+          ) : null}
 
-          {ui.activeTab === 'tasks' && (
-            <button
-              type="button"
-              onClick={ui.openCreate}
-              className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-[var(--ink)] font-bold text-[var(--bg)] shadow-xl shadow-[var(--ink)]/20 transition-transform hover:scale-[1.02] active:scale-[0.98]"
-            >
-              <Plus size={20} strokeWidth={2.5} />
-              <span>Новая задача</span>
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={planner.clearSyncError}
+            className="grid h-11 w-11 place-items-center rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--ink)] shadow-sm transition-colors hover:bg-[var(--surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+            aria-label="Обновить данные"
+          >
+            <RefreshCw size={20} />
+          </button>
+
+          <button
+            type="button"
+            className="grid h-11 w-11 place-items-center rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--ink)] shadow-sm transition-colors hover:bg-[var(--surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+            aria-label="Открыть в отдельном окне"
+          >
+            <ExternalLink size={20} />
+          </button>
+
+          <button
+            type="button"
+            onClick={
+              ui.activeTab === 'tasks'
+                ? ui.openCreate
+                : () => setIsHabitCreateOpen(true)
+            }
+            className="flex h-11 items-center gap-2 rounded-lg bg-[var(--accent)] px-4 text-[15px] font-semibold text-[var(--accent-ink)] shadow-[var(--shadow-soft)] transition-[filter,transform] hover:brightness-105 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface)]"
+          >
+            <Plus size={20} strokeWidth={2.5} />
+            <span>{ui.activeTab === 'tasks' ? 'Задача' : 'Привычка'}</span>
+          </button>
         </div>
-      </aside>
+      </header>
 
-      <main className="relative flex min-w-0 flex-1 flex-col bg-[var(--surface-2)]/30">
-        <header className="sticky top-0 z-20 flex h-[102px] shrink-0 items-center justify-between border-b border-[var(--border)] bg-[var(--surface)] px-12">
-          <div>
-            <div className="mb-1 flex items-baseline gap-4">
-              <h2 className="text-[36px] font-bold capitalize leading-none tracking-tight font-[var(--font-display)]">
-                {format(header.selectedDate, 'd MMMM', { locale: ru })}
-              </h2>
-              {isToday && (
-                <span className="rounded-full bg-[var(--accent)]/10 px-3 py-1.5 text-sm font-bold uppercase tracking-wide text-[var(--accent)]">
-                  Сегодня
-                </span>
-              )}
-            </div>
-            <p className="text-[17px] font-medium capitalize text-[var(--muted)]">
-              {format(header.selectedDate, 'EEEE', { locale: ru })} •{' '}
-              {planner.currentTasks.length} {getTaskLabel(planner.currentTasks.length)}
-            </p>
-          </div>
-
-          <div className="flex items-center gap-4">
-            {header.totalCount > 0 && (
-              <div className="flex h-[76px] min-w-[200px] items-center gap-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-5 shadow-sm">
-                <div
-                  className="grid h-11 w-11 place-items-center rounded-full"
-                  style={{
-                    background: `conic-gradient(var(--accent) ${Math.round(
-                      progressPercent * 360,
-                    )}deg, color-mix(in srgb, var(--accent) 12%, transparent) 0deg)`,
-                  }}
-                  aria-hidden
-                >
-                  <div className="h-7 w-7 rounded-full bg-[var(--surface)]" />
-                </div>
-                <div>
-                  <div className="text-[11px] font-bold uppercase tracking-[0.22em] text-[var(--muted)]">
-                    Прогресс
-                  </div>
-                  <div className="mt-1 text-[20px] font-bold tabular-nums text-[var(--ink)]">
-                    {header.completedCount}
-                    <span className="px-1.5 text-[var(--muted)]">/</span>
-                    {header.totalCount}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <button
-              type="button"
-              onClick={closeTelegramApp}
-              className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--muted)]/65 text-[var(--surface)] transition-colors hover:bg-[var(--muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface)]"
-              aria-label="Закрыть приложение"
-            >
-              <X size={24} strokeWidth={2.4} />
-            </button>
-          </div>
-        </header>
-
-        <div className="shrink-0 border-b border-[var(--border)] bg-[var(--surface)] px-12">
-          <div className="flex gap-1">
-            {PLANNER_TABS.map((tab) => {
-              const Icon = tab.id === 'tasks' ? ListTodo : Sparkles;
-
-              return (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => ui.setActiveTab(tab.id)}
-                  className={cn(
-                    'flex h-[58px] items-center gap-2 border-b-2 px-5 text-[15px] font-bold transition-colors',
-                    ui.activeTab === tab.id
-                      ? 'border-[var(--accent)] text-[var(--accent)]'
-                      : 'border-transparent text-[var(--muted)] hover:text-[var(--ink)]',
-                  )}
-                >
-                  <Icon size={18} /> {tab.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
+      <main className="relative flex min-h-0 min-w-0 flex-1 flex-col bg-[var(--bg)]">
+        <DesktopDateStrip
+          activeTab={ui.activeTab}
+          habits={planner.habits}
+          header={header}
+          isHabitChecked={planner.isHabitChecked}
+        />
 
         <div className="relative flex-1 overflow-hidden">
           <div
             className={cn(
-              'no-scrollbar absolute inset-0 mx-auto w-full overflow-y-auto',
+              'no-scrollbar absolute inset-0 mx-auto w-full overflow-y-auto px-5',
               ui.activeTab === 'habits'
-                ? 'max-w-[1220px] px-6 py-[22px] 2xl:px-0'
-                : 'max-w-[1248px] px-10 py-6',
+                ? 'max-w-[1540px] py-[18px]'
+                : 'max-w-[1540px] py-[18px]',
             )}
           >
             {ui.activeTab === 'tasks' ? (
@@ -373,6 +482,38 @@ export default function DesktopPlannerShell({
           </div>
         </div>
       </main>
+
+      <footer className="flex h-[68px] shrink-0 items-center justify-between gap-4 border-t border-[var(--border)] bg-[var(--surface)] px-5 text-[14px] text-[var(--muted)]">
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="h-3 w-3 rounded-full bg-emerald-500" />
+          <span>Синхронизировано с Telegram</span>
+          <span>•</span>
+          <span>{format(new Date(), 'HH:mm')}</span>
+        </div>
+
+        <div className="flex shrink-0 items-center gap-4">
+          <div className="flex items-center gap-2">
+            <span className="grid h-8 min-w-8 place-items-center rounded-md border border-[var(--border)] text-[13px] font-semibold text-[var(--ink)]">
+              ⌘
+            </span>
+            <span className="grid h-8 min-w-8 place-items-center rounded-md border border-[var(--border)] text-[13px] font-semibold text-[var(--ink)]">
+              K
+            </span>
+            <span className="inline-flex items-center gap-2">
+              <Keyboard size={16} />
+              Быстрое добавление
+            </span>
+          </div>
+          <span className="h-6 w-px bg-[var(--border)]" />
+          <button
+            type="button"
+            className="inline-flex items-center gap-2 transition-colors hover:text-[var(--ink)]"
+          >
+            <Settings size={18} />
+            Настройки
+          </button>
+        </div>
+      </footer>
 
       <AnimatePresence>
         {ui.sheet.isOpen && <DesktopTaskSheet key="task-sheet" {...taskSheetProps} />}

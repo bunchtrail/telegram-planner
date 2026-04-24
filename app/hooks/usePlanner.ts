@@ -25,6 +25,10 @@ import { useStreak } from './useStreak';
 import { useRecurringTasks } from './useRecurringTasks';
 import { useHabits } from './useHabits';
 import { usePomodoroStats } from './usePomodoroStats';
+import {
+	DEV_PLANNER_MOCK_USER_ID,
+	useDevPlannerMock,
+} from './useDevPlannerMock';
 
 type PlannerViewMode = 'week' | 'month';
 
@@ -108,6 +112,11 @@ const getTelegramInitData = () => {
 	return null;
 };
 
+const shouldUseDevPlannerMock = () =>
+	process.env.NODE_ENV !== 'production' &&
+	typeof window !== 'undefined' &&
+	!getTelegramInitData();
+
 const hexToRgb = (hex: string) => {
 	const normalized = normalizeHex(hex);
 	if (!normalized) return null;
@@ -143,7 +152,10 @@ export function usePlanner() {
 	const [userId, setUserId] = useState<string | null>(null);
 	const [isAddOpen, setIsAddOpen] = useState(false);
 	const [platform, setPlatform] = useState<PlannerPlatform>('mobile');
+	const [authLoading, setAuthLoading] = useState(true);
+	const [useDevMockData, setUseDevMockData] = useState(false);
 	const authRefreshPromiseRef = useRef<Promise<boolean> | null>(null);
+	const devMock = useDevPlannerMock({ selectedDate });
 
 	// --- Auth ---
 
@@ -217,6 +229,16 @@ export function usePlanner() {
 		[refreshSupabaseAuth],
 	);
 
+	const plannerRunWithAuthRetry = useCallback(
+		async <T extends { error: SupabaseErrorLike | null | undefined }>(
+			operation: () => PromiseLike<T> | T,
+		) => {
+			if (useDevMockData) return { error: null } as T;
+			return runWithAuthRetry(operation);
+		},
+		[runWithAuthRetry, useDevMockData],
+	);
+
 	// --- Date navigation ---
 
 	const activeMonthKey = useMemo(
@@ -252,26 +274,28 @@ export function usePlanner() {
 		return days;
 	}, [monthStart, monthEnd]);
 
+	const remoteUserId = useDevMockData ? null : userId;
+
 	// --- Tasks (TanStack Query) ---
 
 	const {
-		tasks,
-		isLoading: tasksLoading,
-		isSyncing: tasksSyncing,
-		syncError: tasksSyncError,
-		clearSyncError: clearTasksSyncError,
-		addTask,
-		updateTask,
-		deleteTask,
-		toggleTask,
-		moveTask,
-		restoreTask,
-		handleReorder,
-		toggleActiveTask,
-		refetchTasks,
-		setTasksCache,
+		tasks: remoteTasks,
+		isLoading: remoteTasksLoading,
+		isSyncing: remoteTasksSyncing,
+		syncError: remoteTasksSyncError,
+		clearSyncError: clearRemoteTasksSyncError,
+		addTask: addRemoteTask,
+		updateTask: updateRemoteTask,
+		deleteTask: deleteRemoteTask,
+		toggleTask: toggleRemoteTask,
+		moveTask: moveRemoteTask,
+		restoreTask: restoreRemoteTask,
+		handleReorder: handleRemoteReorder,
+		toggleActiveTask: toggleRemoteActiveTask,
+		refetchTasks: refetchRemoteTasks,
+		setTasksCache: setRemoteTasksCache,
 	} = useTasks({
-		userId,
+		userId: remoteUserId,
 		monthStartKey,
 		monthEndKey,
 		selectedDate,
@@ -281,7 +305,7 @@ export function usePlanner() {
 
 	// --- Streak (TanStack Query) ---
 
-	const streak = useStreak({ userId, runWithAuthRetry });
+	const remoteStreak = useStreak({ userId: remoteUserId, runWithAuthRetry });
 
 	// --- Habits ---
 
@@ -292,35 +316,48 @@ export function usePlanner() {
 	const weekEnd = useMemo(() => addDays(weekStart, 6), [weekStart]);
 
 	const habitsData = useHabits({
-		userId,
+		userId: remoteUserId,
 		weekStartKey: formatDateOnly(weekStart),
 		weekEndKey: formatDateOnly(weekEnd),
 		runWithAuthRetry,
 	});
 	const {
-		habits,
-		isLoading: habitsLoading,
-		isSyncing: habitsSyncing,
-		syncError: habitsSyncError,
-		clearSyncError: clearHabitsSyncError,
-		addHabit,
-		deleteHabit,
-		toggleLog: toggleHabitLog,
-		isChecked: isHabitChecked,
-		isLogPending: isHabitLogPending,
+		habits: remoteHabits,
+		isLoading: remoteHabitsLoading,
+		isSyncing: remoteHabitsSyncing,
+		syncError: remoteHabitsSyncError,
+		clearSyncError: clearRemoteHabitsSyncError,
+		addHabit: addRemoteHabit,
+		deleteHabit: deleteRemoteHabit,
+		toggleLog: toggleRemoteHabitLog,
+		isChecked: isRemoteHabitChecked,
+		isLogPending: isRemoteHabitLogPending,
 	} = habitsData;
 
-	const isSyncing = tasksSyncing || habitsSyncing;
-	const syncError = tasksSyncError ?? habitsSyncError;
+	const isSyncing = useDevMockData
+		? devMock.isSyncing
+		: remoteTasksSyncing || remoteHabitsSyncing;
+	const syncError = useDevMockData
+		? devMock.syncError
+		: remoteTasksSyncError ?? remoteHabitsSyncError;
 	const clearSyncError = useCallback(() => {
-		clearTasksSyncError();
-		clearHabitsSyncError();
-	}, [clearTasksSyncError, clearHabitsSyncError]);
+		if (useDevMockData) {
+			devMock.clearSyncError();
+			return;
+		}
+		clearRemoteTasksSyncError();
+		clearRemoteHabitsSyncError();
+	}, [
+		clearRemoteHabitsSyncError,
+		clearRemoteTasksSyncError,
+		devMock,
+		useDevMockData,
+	]);
 
 	// --- Pomodoro Stats ---
 
-	const pomodoroStats = usePomodoroStats({
-		userId,
+	const remotePomodoroStats = usePomodoroStats({
+		userId: remoteUserId,
 		weekEndDate: formatDateOnly(selectedDate),
 		runWithAuthRetry,
 	});
@@ -328,17 +365,78 @@ export function usePlanner() {
 	// --- Recurring tasks (TanStack Query) ---
 
 	const {
-		recurringTasks,
-		recurringSkips,
-		fetchRecurringTasks,
-		deleteTaskSeries,
-		skipTaskSeriesDate,
+		recurringTasks: remoteRecurringTasks,
+		recurringSkips: remoteRecurringSkips,
+		fetchRecurringTasks: fetchRemoteRecurringTasks,
+		deleteTaskSeries: deleteRemoteTaskSeries,
+		skipTaskSeriesDate: skipRemoteTaskSeriesDate,
 	} = useRecurringTasks({
-		userId,
+		userId: remoteUserId,
 		runWithAuthRetry,
-		onTasksChanged: refetchTasks,
-		setTasksCache,
+		onTasksChanged: refetchRemoteTasks,
+		setTasksCache: setRemoteTasksCache,
 	});
+
+	const tasks = useDevMockData ? devMock.tasks : remoteTasks;
+	const streak = useDevMockData ? devMock.streak : remoteStreak;
+	const habits = useDevMockData ? devMock.habits : remoteHabits;
+	const habitsLoading = useDevMockData
+		? devMock.isLoading
+		: remoteHabitsLoading;
+	const addTask = useDevMockData ? devMock.addTask : addRemoteTask;
+	const updateTask = useDevMockData
+		? devMock.updateTask
+		: updateRemoteTask;
+	const deleteTask = useDevMockData
+		? devMock.deleteTask
+		: deleteRemoteTask;
+	const toggleTask = useDevMockData
+		? devMock.toggleTask
+		: toggleRemoteTask;
+	const moveTask = useDevMockData ? devMock.moveTask : moveRemoteTask;
+	const restoreTask = useDevMockData
+		? devMock.restoreTask
+		: restoreRemoteTask;
+	const handleReorder = useDevMockData
+		? devMock.handleReorder
+		: handleRemoteReorder;
+	const toggleActiveTask = useDevMockData
+		? devMock.toggleActiveTask
+		: toggleRemoteActiveTask;
+	const refetchTasks = useDevMockData
+		? devMock.refetchTasks
+		: refetchRemoteTasks;
+	const pomodoroStats = useDevMockData
+		? devMock.pomodoroStats
+		: remotePomodoroStats;
+	const recurringTasks = useDevMockData
+		? devMock.recurringTasks
+		: remoteRecurringTasks;
+	const recurringSkips = useDevMockData
+		? devMock.recurringSkips
+		: remoteRecurringSkips;
+	const fetchRecurringTasks = useDevMockData
+		? devMock.fetchRecurringTasks
+		: fetchRemoteRecurringTasks;
+	const deleteTaskSeries = useDevMockData
+		? devMock.deleteTaskSeries
+		: deleteRemoteTaskSeries;
+	const skipTaskSeriesDate = useDevMockData
+		? devMock.skipTaskSeriesDate
+		: skipRemoteTaskSeriesDate;
+	const addHabit = useDevMockData ? devMock.addHabit : addRemoteHabit;
+	const deleteHabit = useDevMockData
+		? devMock.deleteHabit
+		: deleteRemoteHabit;
+	const toggleHabitLog = useDevMockData
+		? devMock.toggleHabitLog
+		: toggleRemoteHabitLog;
+	const isHabitChecked = useDevMockData
+		? devMock.isHabitChecked
+		: isRemoteHabitChecked;
+	const isHabitLogPending = useDevMockData
+		? devMock.isHabitLogPending
+		: isRemoteHabitLogPending;
 
 	// --- Derived task data ---
 
@@ -408,13 +506,19 @@ export function usePlanner() {
 
 	// --- Auth loading state ---
 
-	const [authLoading, setAuthLoading] = useState(true);
-
 	useEffect(() => {
 		let isCancelled = false;
 
 		const initAuth = async () => {
 			try {
+				if (shouldUseDevPlannerMock()) {
+					if (!isCancelled) {
+						setUseDevMockData(true);
+						setAuthLoading(false);
+					}
+					return;
+				}
+
 				const authPayload = await requestTelegramAuth();
 				if (!authPayload?.token) {
 					if (!isCancelled) setAuthLoading(false);
@@ -433,12 +537,14 @@ export function usePlanner() {
 		};
 	}, [applyAuthSession, requestTelegramAuth]);
 
-	const isLoading = authLoading || tasksLoading;
+	const isLoading = useDevMockData
+		? devMock.isLoading
+		: authLoading || remoteTasksLoading;
 
 	// --- Visibility refetch ---
 
 	useEffect(() => {
-		if (!userId) return;
+		if (!remoteUserId) return;
 
 		const onVisible = () => {
 			if (document.visibilityState === 'visible') refetchTasks();
@@ -447,7 +553,7 @@ export function usePlanner() {
 		document.addEventListener('visibilitychange', onVisible);
 		return () =>
 			document.removeEventListener('visibilitychange', onVisible);
-	}, [userId, refetchTasks]);
+	}, [remoteUserId, refetchTasks]);
 
 	// --- Telegram WebApp setup ---
 
@@ -681,8 +787,8 @@ export function usePlanner() {
 		deleteTaskSeries,
 		skipTaskSeriesDate,
 		platform,
-		runWithAuthRetry,
-		userId,
+		runWithAuthRetry: plannerRunWithAuthRetry,
+		userId: useDevMockData ? DEV_PLANNER_MOCK_USER_ID : userId,
 		isSyncing,
 		syncError,
 		clearSyncError,

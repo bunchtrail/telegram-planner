@@ -43,6 +43,10 @@
 
 ## QA чеклист (ручной)
 
+- Локальный dev browser:
+  - при запуске `npm run dev` вне Telegram и без `NEXT_PUBLIC_TELEGRAM_INIT_DATA` планер показывает in-memory мок задач и привычек;
+  - мок не обращается к Supabase, не меняет RLS и сбрасывается после перезагрузки страницы;
+  - при наличии Telegram `initData` или `NEXT_PUBLIC_TELEGRAM_INIT_DATA` используется обычный auth/Supabase flow.
 - На iOS:
   - клавиатура не перекрывает sheet
   - нет скачка layout при открытии/закрытии

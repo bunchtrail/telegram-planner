@@ -80,18 +80,20 @@ describe('desktop habits tab', () => {
     ).toBeInTheDocument();
     expect(screen.getByText('Уже выполнено 1 из 3')).toBeInTheDocument();
 
-    const remainingSection = screen.getByRole('region', {
-      name: 'Осталось сегодня',
-    });
-    const completedSection = screen.getByRole('region', {
-      name: 'Уже выполнено',
-    });
+    const nowSection = screen.getByRole('region', { name: 'Сейчас' });
+    const planSection = screen.getByRole('region', { name: 'План' });
+    const completedSection = screen.getByRole('region', { name: 'Готово' });
 
     expect(
-      within(remainingSection).getAllByRole('heading', { level: 3 }).map((item) =>
+      within(nowSection).getAllByRole('heading', { level: 3 }).map((item) =>
         item.textContent?.trim(),
       ),
-    ).toEqual(['Чтение', 'Прогулка']);
+    ).toEqual(['Чтение']);
+    expect(
+      within(planSection).getAllByRole('heading', { level: 3 }).map((item) =>
+        item.textContent?.trim(),
+      ),
+    ).toEqual(['Прогулка']);
     expect(
       within(completedSection).getAllByRole('heading', { level: 3 }).map((item) =>
         item.textContent?.trim(),
@@ -99,7 +101,7 @@ describe('desktop habits tab', () => {
     ).toEqual(['Вода']);
 
     expect(
-      within(remainingSection).getAllByRole('button', { name: 'Отметить сегодня' }),
+      screen.getAllByRole('button', { name: 'Отметить сегодня' }),
     ).toHaveLength(2);
     expect(
       within(completedSection).getByRole('button', { name: 'Снять отметку' }),
@@ -107,7 +109,6 @@ describe('desktop habits tab', () => {
 
     expect(screen.queryByText('Свободно')).not.toBeInTheDocument();
     expect(screen.queryByText('Не отмечено')).not.toBeInTheDocument();
-    expect(screen.getByText('Выполнено сегодня')).toBeInTheDocument();
     expect(
       screen.getAllByRole('button', { name: /без отметки/i }).length,
     ).toBeGreaterThan(0);
@@ -123,7 +124,7 @@ describe('desktop habits tab', () => {
 
     expect(
       within(
-        screen.getByRole('region', { name: 'Осталось сегодня' }),
+        screen.getByRole('region', { name: 'Сейчас' }),
       ).getByRole('heading', { level: 3, name: 'Чтение' }),
     ).toBeInTheDocument();
 
@@ -145,12 +146,12 @@ describe('desktop habits tab', () => {
 
     expect(
       within(
-        screen.getByRole('region', { name: 'Уже выполнено' }),
+        screen.getByRole('region', { name: 'Готово' }),
       ).getByRole('heading', { level: 3, name: 'Чтение' }),
     ).toBeInTheDocument();
     expect(
       within(
-        screen.getByRole('region', { name: 'Уже выполнено' }),
+        screen.getByRole('region', { name: 'Готово' }),
       ).getByRole('button', { name: 'Снять отметку' }),
     ).toBeInTheDocument();
   });

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { CheckCircle2, Clock, Plus } from 'lucide-react';
+import { CheckCircle2, Clock, Plus, Sparkles } from 'lucide-react';
 import { addDays, format, startOfWeek } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { cn } from '../lib/cn';
@@ -23,6 +23,8 @@ type HabitsTabProps = {
   onDeleteHabit: (habitId: string) => void;
   selectedDate: Date;
   isDesktop?: boolean;
+  isCreateOpen?: boolean;
+  onCreateOpenChange?: (isOpen: boolean) => void;
 };
 
 const getHabitLabel = (count: number) => {
@@ -68,12 +70,23 @@ export default function HabitsTab({
   onDeleteHabit,
   selectedDate,
   isDesktop = false,
+  isCreateOpen,
+  onCreateOpenChange,
 }: HabitsTabProps) {
-  const [showAddForm, setShowAddForm] = useState(false);
+  const [internalShowAddForm, setInternalShowAddForm] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const deleteResetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
+  const showAddForm = isCreateOpen ?? internalShowAddForm;
+  const setAddFormOpen = (isOpen: boolean) => {
+    if (onCreateOpenChange) {
+      onCreateOpenChange(isOpen);
+      return;
+    }
+
+    setInternalShowAddForm(isOpen);
+  };
 
   const weekDays = useMemo(() => {
     const start = startOfWeek(selectedDate, { weekStartsOn: 1 });
@@ -141,12 +154,8 @@ export default function HabitsTab({
         ? `Уже выполнено ${completedHabits.length} из ${habits.length}`
         : `Отмечено ${completedHabits.length} из ${habits.length} на ${selectedDateLabel}`;
 
-  const remainingSectionTitle = isSelectedDateToday
-    ? 'Осталось сегодня'
-    : `Не отмечено на ${selectedDateLabel}`;
-  const completedSectionTitle = isSelectedDateToday
-    ? 'Уже выполнено'
-    : `Выполнено ${selectedDateLabel}`;
+  const focusHabit = remainingHabits[0] ?? null;
+  const plannedHabits = remainingHabits.slice(1);
 
   useEffect(() => {
     return () => {
@@ -158,7 +167,7 @@ export default function HabitsTab({
 
   const handleSubmit = ({ color, icon, name }: HabitFormSubmitValue) => {
     onAddHabit(name, icon, color);
-    setShowAddForm(false);
+    setAddFormOpen(false);
   };
 
   const handleDelete = (id: string) => {
@@ -180,7 +189,7 @@ export default function HabitsTab({
   };
 
   const renderDesktopHabitList = (items: Habit[]) => (
-    <div className="overflow-visible rounded-[20px] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-card)]">
+    <div className="flex flex-col gap-2">
       <AnimatePresence mode="popLayout">
         {items.map((habit, index) => (
           <motion.div
@@ -189,13 +198,14 @@ export default function HabitsTab({
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
-            className={cn(index > 0 && 'border-t border-[var(--border)]')}
+            transition={{ duration: 0.18, ease: 'easeOut' }}
           >
             <HabitCard
               habit={habit}
               isChecked={isChecked}
               isDesktop
-              isDesktopListItem
+              isDesktopBoardItem
+              isDesktopFeatured={index === 0 && items.length === 1}
               desktopFocusDate={selectedDate}
               isDeleting={deletingId === habit.id}
               isLogPending={isLogPending}
@@ -206,6 +216,18 @@ export default function HabitsTab({
           </motion.div>
         ))}
       </AnimatePresence>
+    </div>
+  );
+
+  const renderDesktopEmptyState = (title: string, description: string) => (
+    <div className="rounded-lg border border-dashed border-[var(--border)] bg-[var(--surface)] px-5 py-8 text-center">
+      <div className="mx-auto grid h-11 w-11 place-items-center rounded-lg bg-[var(--surface-2)] text-[22px]">
+        <Sparkles size={20} className="text-[var(--muted)]" />
+      </div>
+      <p className="mt-3 text-[15px] font-semibold text-[var(--ink)]">{title}</p>
+      <p className="mx-auto mt-1 max-w-[18rem] text-[13px] leading-5 text-[var(--muted)]">
+        {description}
+      </p>
     </div>
   );
 
@@ -242,50 +264,49 @@ export default function HabitsTab({
   if (isDesktop) {
     return (
       <div className={scrollClasses}>
-        <div className="flex flex-col gap-3">
-          <section className="rounded-[20px] border border-[var(--border)] bg-[var(--surface)] px-8 py-[22px] shadow-[var(--shadow-card)]">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-3 text-[13px] font-bold uppercase tracking-[0.24em] text-[var(--accent)]">
-                  <span className="grid h-5 w-5 place-items-center rounded-full border-2 border-[var(--accent)]">
-                    <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent)]" />
-                  </span>
-                  Фокус дня
-                </div>
+        <div className="flex flex-col gap-4">
+          <section className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3 shadow-sm">
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setDeletingId(null);
+                  setAddFormOpen(true);
+                }}
+                className="flex h-12 min-w-[320px] flex-1 items-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 text-left text-[16px] font-medium text-[var(--muted)] transition-colors hover:bg-[var(--surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+              >
+                <Plus size={20} />
+                <span>Новая привычка...</span>
+              </button>
 
-                <h2 className="mt-4 text-[28px] font-bold leading-tight tracking-tight text-[var(--ink)] font-[var(--font-display)]">
-                  {summaryHeading}
-                </h2>
+              <div className="flex h-12 items-center rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 text-[15px] text-[var(--ink)]">
+                <h2 className="text-[15px] font-semibold">{summaryHeading}</h2>
+              </div>
 
-                <p className="mt-1.5 text-[17px] font-medium text-[var(--muted)]">
-                  {summarySubheading}
-                </p>
+              <div className="flex h-12 items-center rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 text-[15px] text-[var(--muted)]">
+                {summarySubheading}
+              </div>
+
+              <div className="flex h-12 items-center rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 text-[15px] text-[var(--muted)]">
+                За неделю:{' '}
+                <span className="ml-1 font-semibold text-[var(--ink)]">
+                  {desktopStats.totalChecks}
+                </span>{' '}
+                {getCheckLabel(desktopStats.totalChecks)}
               </div>
 
               {!showAddForm ? (
                 <Button
                   variant="accent"
-                  className="h-[52px] min-w-[220px] self-start rounded-[14px] text-[17px] shadow-[var(--shadow-soft)]"
+                  className="h-12 rounded-lg px-5 text-[16px] shadow-[var(--shadow-soft)]"
                   onClick={() => {
                     setDeletingId(null);
-                    setShowAddForm(true);
+                    setAddFormOpen(true);
                   }}
                 >
-                  <Plus size={18} strokeWidth={2.5} />
-                  <span>Новая привычка</span>
+                  <span>Добавить</span>
                 </Button>
               ) : null}
-            </div>
-
-            <div className="mt-5 flex flex-wrap gap-3 text-[15px] text-[var(--ink)]">
-              <div className="rounded-full border border-[var(--border)] bg-[var(--surface)] px-5 py-2 shadow-sm">
-                За неделю: <span className="font-semibold">{desktopStats.totalChecks}</span>{' '}
-                {getCheckLabel(desktopStats.totalChecks)}
-              </div>
-              <div className="rounded-full border border-[var(--border)] bg-[var(--surface)] px-5 py-2 shadow-sm">
-                Дата фокуса:{' '}
-                <span className="font-semibold capitalize">{selectedDateLabel}</span>
-              </div>
             </div>
           </section>
 
@@ -298,71 +319,119 @@ export default function HabitsTab({
                 exit={{ opacity: 0, y: -10 }}
               >
                 <HabitForm
-                  className="rounded-[28px]"
+                  className="rounded-lg"
                   onSubmit={handleSubmit}
-                  onCancel={() => setShowAddForm(false)}
+                  onCancel={() => setAddFormOpen(false)}
                 />
               </motion.div>
             ) : null}
           </AnimatePresence>
 
           {habits.length > 0 ? (
-            <div className="flex flex-col gap-4">
-              {remainingHabits.length > 0 ? (
-                <section
-                  aria-labelledby="desktop-habits-remaining-heading"
-                  className="flex flex-col gap-2.5"
-                >
-                  <div className="flex items-center gap-3 px-3">
+            <div className="grid items-start gap-4 xl:grid-cols-[minmax(260px,0.9fr)_minmax(340px,1fr)_minmax(260px,0.9fr)]">
+              <section
+                aria-labelledby="desktop-habits-now-heading"
+                className="overflow-visible rounded-lg border border-[var(--border)] bg-[var(--surface)] shadow-sm"
+              >
+                <div className="flex h-16 items-center justify-between gap-3 border-b border-[var(--border)] px-5">
+                  <div className="flex min-w-0 items-center gap-3">
                     <Clock
-                      size={24}
-                      strokeWidth={2}
+                      size={22}
+                      strokeWidth={2.2}
                       className="text-[var(--accent)]"
                     />
                     <h2
-                      id="desktop-habits-remaining-heading"
-                      className="text-[18px] font-bold text-[var(--ink)]"
+                      id="desktop-habits-now-heading"
+                      className="truncate text-[19px] font-bold text-[var(--ink)]"
                     >
-                      {remainingSectionTitle}
+                      Сейчас
                     </h2>
-                    <span className="rounded-full bg-[var(--accent)]/10 px-3 py-1 text-sm font-bold tabular-nums text-[var(--accent)]">
-                      {remainingHabits.length}
-                    </span>
                   </div>
+                  <span className="rounded-full bg-[var(--accent)]/10 px-3 py-1 text-sm font-bold tabular-nums text-[var(--accent)]">
+                    {focusHabit ? 1 : 0}
+                  </span>
+                </div>
+                <div className="p-3">
+                  {focusHabit
+                    ? renderDesktopHabitList([focusHabit])
+                    : renderDesktopEmptyState(
+                        'Фокус чист',
+                        isSelectedDateToday
+                          ? 'Все привычки на сегодня уже отмечены.'
+                          : `На ${selectedDateLabel} нет ожидающих привычек.`,
+                      )}
+                </div>
+              </section>
 
-                  {renderDesktopHabitList(remainingHabits)}
-                </section>
-              ) : null}
-
-              {completedHabits.length > 0 ? (
-                <section
-                  aria-labelledby="desktop-habits-completed-heading"
-                  className="flex flex-col gap-2.5"
-                >
-                  <div className="flex items-center gap-3 px-3">
-                    <CheckCircle2
-                      size={24}
-                      strokeWidth={2}
+              <section
+                aria-labelledby="desktop-habits-plan-heading"
+                className="overflow-visible rounded-lg border border-[var(--border)] bg-[var(--surface)] shadow-sm"
+              >
+                <div className="flex h-16 items-center justify-between gap-3 border-b border-[var(--border)] px-5">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <Sparkles
+                      size={22}
+                      strokeWidth={2.2}
                       className="text-[var(--accent)]"
+                    />
+                    <h2
+                      id="desktop-habits-plan-heading"
+                      className="truncate text-[19px] font-bold text-[var(--ink)]"
+                    >
+                      План
+                    </h2>
+                  </div>
+                  <span className="rounded-full bg-[var(--surface-2)] px-3 py-1 text-sm font-bold tabular-nums text-[var(--muted)]">
+                    {plannedHabits.length}
+                  </span>
+                </div>
+                <div className="p-3">
+                  {plannedHabits.length > 0
+                    ? renderDesktopHabitList(plannedHabits)
+                    : renderDesktopEmptyState(
+                        'Очередь пуста',
+                        remainingHabits.length > 0
+                          ? 'Следующая привычка уже вынесена в фокус.'
+                          : 'Нет привычек, ожидающих отметки.',
+                      )}
+                </div>
+              </section>
+
+              <section
+                aria-labelledby="desktop-habits-completed-heading"
+                className="overflow-visible rounded-lg border border-[var(--border)] bg-[var(--surface)] shadow-sm"
+              >
+                <div className="flex h-16 items-center justify-between gap-3 border-b border-[var(--border)] px-5">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <CheckCircle2
+                      size={22}
+                      strokeWidth={2.2}
+                      className="text-emerald-500"
                     />
                     <h2
                       id="desktop-habits-completed-heading"
-                      className="text-[18px] font-bold text-[var(--ink)]"
+                      className="truncate text-[19px] font-bold text-[var(--ink)]"
                     >
-                      {completedSectionTitle}
+                      Готово
                     </h2>
-                    <span className="rounded-full bg-[var(--accent)]/10 px-3 py-1 text-sm font-bold tabular-nums text-[var(--accent)]">
-                      {completedHabits.length}
-                    </span>
                   </div>
-
-                  {renderDesktopHabitList(completedHabits)}
-                </section>
-              ) : null}
+                  <span className="rounded-full bg-[var(--surface-2)] px-3 py-1 text-sm font-bold tabular-nums text-[var(--muted)]">
+                    {completedHabits.length}
+                  </span>
+                </div>
+                <div className="p-3">
+                  {completedHabits.length > 0
+                    ? renderDesktopHabitList(completedHabits)
+                    : renderDesktopEmptyState(
+                        'Пока пусто',
+                        `Отмеченные привычки за ${selectedDateLabel} появятся здесь.`,
+                      )}
+                </div>
+              </section>
             </div>
           ) : !showAddForm ? (
-            <div className="rounded-[28px] border border-dashed border-[var(--border)] bg-[var(--surface)] px-8 py-14 text-center shadow-[var(--shadow-soft)]">
-              <div className="mx-auto flex h-[4.5rem] w-[4.5rem] items-center justify-center rounded-[28px] bg-[var(--accent)]/10 text-4xl">
+            <div className="rounded-lg border border-dashed border-[var(--border)] bg-[var(--surface)] px-8 py-14 text-center shadow-sm">
+              <div className="mx-auto flex h-[4.5rem] w-[4.5rem] items-center justify-center rounded-lg bg-[var(--accent)]/10 text-4xl">
                 🌱
               </div>
               <h3 className="mt-5 text-2xl font-bold text-[var(--ink)] font-[var(--font-display)]">
@@ -375,7 +444,7 @@ export default function HabitsTab({
               <Button
                 variant="accent"
                 className="mx-auto mt-6"
-                onClick={() => setShowAddForm(true)}
+                onClick={() => setAddFormOpen(true)}
               >
                 <Plus size={18} strokeWidth={2.5} />
                 <span>Добавить первую привычку</span>
@@ -434,7 +503,7 @@ export default function HabitsTab({
             >
               <HabitForm
                 onSubmit={handleSubmit}
-                onCancel={() => setShowAddForm(false)}
+                onCancel={() => setAddFormOpen(false)}
               />
             </motion.div>
           ) : null}
@@ -448,7 +517,7 @@ export default function HabitsTab({
           whileTap={{ scale: 0.9 }}
           onClick={() => {
             setDeletingId(null);
-            setShowAddForm(true);
+            setAddFormOpen(true);
           }}
           className="fixed bottom-[calc(5.5rem+max(env(safe-area-inset-bottom),var(--tg-content-safe-bottom,0px)))] right-[max(1rem,env(safe-area-inset-right),var(--tg-content-safe-right,0px))] z-40 flex h-14 w-14 items-center justify-center rounded-full bg-[var(--accent)] text-[var(--accent-ink)] shadow-lg"
           aria-label="Добавить привычку"

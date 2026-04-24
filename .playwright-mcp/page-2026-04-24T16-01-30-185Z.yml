@@ -1,0 +1,83 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - img [ref=e6]
+        - heading "Planner" [level=1] [ref=e8]
+      - navigation "Разделы планера" [ref=e9]:
+        - button "Задачи" [ref=e10]:
+          - img [ref=e11]
+          - text: Задачи
+        - button "Привычки" [active] [ref=e14]:
+          - img [ref=e15]
+          - text: Привычки
+      - generic [ref=e18]:
+        - generic [ref=e19]:
+          - button "Предыдущий период" [ref=e20]:
+            - img [ref=e21]
+          - generic [ref=e23]:
+            - img [ref=e24]
+            - generic [ref=e26]: 24 апреля, пятница
+          - button "Следующий период" [ref=e27]:
+            - img [ref=e28]
+        - button "Сегодня" [ref=e30]
+        - button "Статистика" [ref=e31]:
+          - img [ref=e32]
+          - generic [ref=e34]: Серия 0
+        - generic "0 привычек" [ref=e212]:
+          - img [ref=e213]
+          - generic [ref=e39]: Неделя 0
+        - generic [ref=e40]:
+          - img [ref=e41]
+          - generic [ref=e45]: 0/0
+        - button "Привычка" [ref=e216]:
+          - img [ref=e54]
+          - generic [ref=e55]: Привычка
+    - main [ref=e56]:
+      - generic [ref=e57]:
+        - generic [ref=e58]:
+          - heading "апрель 2026" [level=2] [ref=e59]
+          - button "Закрыть приложение" [ref=e60]:
+            - img [ref=e61]
+        - generic [ref=e64]:
+          - button "понедельник, 20 апреля" [ref=e65]:
+            - generic [ref=e66]: пнд 20
+          - button "вторник, 21 апреля" [ref=e69]:
+            - generic [ref=e70]: втр 21
+          - button "среда, 22 апреля" [ref=e73]:
+            - generic [ref=e74]: срд 22
+          - button "четверг, 23 апреля" [ref=e77]:
+            - generic [ref=e78]: чтв 23
+          - button "пятница, 24 апреля" [pressed] [ref=e81]:
+            - generic [ref=e82]: птн 24
+          - button "суббота, 25 апреля" [ref=e85]:
+            - generic [ref=e86]: суб 25
+          - button "воскресенье, 26 апреля" [ref=e89]:
+            - generic [ref=e90]: вск 26
+      - generic [ref=e218]:
+        - generic [ref=e220]:
+          - button "Новая привычка..." [ref=e221]:
+            - img [ref=e222]
+            - generic [ref=e223]: Новая привычка...
+          - heading "Пока нет привычек" [level=2] [ref=e225]
+          - generic [ref=e226]: Добавьте первую привычку, чтобы каждый день было проще держать ритм.
+          - generic [ref=e227]:
+            - text: "За неделю:"
+            - generic [ref=e228]: "0"
+            - text: отметок
+          - button "Добавить" [ref=e229]:
+            - generic [ref=e230]: Добавить
+        - generic [ref=e231]:
+          - generic [ref=e232]: 🌱
+          - heading "Здесь появятся ваши привычки" [level=3] [ref=e233]
+          - paragraph [ref=e234]: Добавьте первую привычку и отмечайте её прямо с сегодняшнего экрана.
+          - button "Добавить первую привычку" [ref=e235]:
+            - img [ref=e236]
+            - generic [ref=e237]: Добавить первую привычку
+  - generic [ref=e104]:
+    - img [ref=e106]
+    - button "Open Tanstack query devtools" [ref=e154] [cursor=pointer]:
+      - img [ref=e155]
+  - button "Open Next.js Dev Tools" [ref=e208] [cursor=pointer]:
+    - img [ref=e209]
+  - alert [ref=e103]

@@ -14,6 +14,8 @@ export type HabitCardProps = {
   habit: Habit;
   isChecked: (habitId: string, date: string) => boolean;
   isDesktop?: boolean;
+  isDesktopBoardItem?: boolean;
+  isDesktopFeatured?: boolean;
   isDesktopListItem?: boolean;
   desktopFocusDate?: Date;
   isDeleting?: boolean;
@@ -42,6 +44,8 @@ export default function HabitCard({
   habit,
   isChecked,
   isDesktop = false,
+  isDesktopBoardItem = false,
+  isDesktopFeatured = false,
   isDesktopListItem = false,
   desktopFocusDate,
   isDeleting = false,
@@ -109,6 +113,119 @@ export default function HabitCard({
       : isFocusToday
         ? 'Не отмечено на сегодня'
         : `Не отмечено ${focusDateShortLabel}`;
+
+    if (isDesktopBoardItem) {
+      return (
+        <div
+          className={cn(
+            'relative overflow-visible rounded-lg border border-[var(--border)] border-l-4 bg-[var(--surface)] p-4 shadow-sm transition-colors',
+            isFocusCompleted && 'bg-[var(--surface-2)]/45',
+            isDesktopFeatured && 'ring-1 ring-[var(--accent)]/45',
+          )}
+          style={{ borderLeftColor: habit.color }}
+        >
+          <div className="flex items-start gap-3">
+            <div
+              className="grid h-11 w-11 shrink-0 place-items-center rounded-lg text-[24px]"
+              style={{
+                backgroundColor: withAlpha(habit.color, '18'),
+              }}
+              aria-hidden
+            >
+              {habit.icon}
+            </div>
+
+            <div className="min-w-0 flex-1">
+              <h3
+                className={cn(
+                  'truncate text-[16px] font-semibold leading-6 text-[var(--ink)]',
+                  isFocusCompleted && 'text-[var(--muted)] line-through',
+                )}
+              >
+                {habit.name}
+              </h3>
+              <p className="mt-0.5 text-[13px] font-medium text-[var(--muted)]">
+                {checkedCount}/{weekDays.length} за неделю
+              </p>
+            </div>
+
+            <div ref={actionsRef} className="relative shrink-0">
+              <button
+                type="button"
+                aria-label={`Действия для привычки ${habit.name}`}
+                aria-haspopup="menu"
+                aria-expanded={actionsOpen}
+                aria-controls={actionsOpen ? menuId : undefined}
+                className="grid h-9 w-9 place-items-center rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--muted)] transition-colors hover:text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface)]"
+                onClick={() => setActionsOpen((current) => !current)}
+              >
+                <Ellipsis size={18} />
+              </button>
+
+              {actionsOpen ? (
+                <div
+                  id={menuId}
+                  role="menu"
+                  className="absolute right-0 top-[calc(100%+0.5rem)] z-20 min-w-[14rem] rounded-lg border border-[var(--border)] bg-[var(--surface)] p-2 shadow-[var(--shadow-pop)]"
+                >
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className={cn(
+                      'flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm font-medium transition-colors',
+                      isDeleting
+                        ? 'bg-[var(--danger)]/10 text-[var(--danger)]'
+                        : 'text-[var(--ink)] hover:bg-[var(--surface-2)]',
+                    )}
+                    onClick={() => {
+                      onDelete(habit.id);
+                      if (isDeleting) {
+                        setActionsOpen(false);
+                      }
+                    }}
+                  >
+                    <Trash2 size={16} />
+                    <span>
+                      {isDeleting
+                        ? 'Подтвердить удаление привычки'
+                        : 'Удалить привычку'}
+                    </span>
+                  </button>
+                </div>
+              ) : null}
+            </div>
+          </div>
+
+          <div className="mt-4">
+            <HabitWeekGrid
+              color={habit.color}
+              days={weekDays}
+              habitId={habit.id}
+              habitName={habit.name}
+              isChecked={isChecked}
+              layout="mobile"
+              isPending={isLogPending}
+              onToggle={onToggleLog}
+            />
+          </div>
+
+          <Button
+            type="button"
+            variant={isFocusCompleted || isFocusFuture ? 'secondary' : 'accent'}
+            size="sm"
+            className="mt-4 h-10 w-full rounded-lg shadow-none"
+            disabled={focusPending || isFocusFuture}
+            onClick={() => {
+              if (!focusPending && !isFocusFuture) {
+                onToggleLog(habit.id, focusDateKey);
+              }
+            }}
+          >
+            {primaryActionLabel}
+          </Button>
+        </div>
+      );
+    }
 
     const desktopContent = (
       <div className="grid gap-4 xl:grid-cols-[minmax(320px,1fr)_44px_minmax(476px,540px)] xl:items-center">
