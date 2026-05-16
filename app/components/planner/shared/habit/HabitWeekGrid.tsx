@@ -51,9 +51,9 @@ export default function HabitWeekGrid({
             <motion.button
               type="button"
               whileTap={{ scale: 0.85 }}
-              disabled={pending}
+              disabled={pending || dateKey > todayKey}
               onClick={() => {
-                if (!pending) {
+                if (!pending && dateKey <= todayKey) {
                   onToggle(habitId, dateKey);
                 }
               }}
