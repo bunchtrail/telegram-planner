@@ -1,8 +1,8 @@
 import type { ComponentProps } from 'react';
 import FocusOverlay from '../../FocusOverlay';
 
-type DesktopFocusOverlayProps = ComponentProps<typeof FocusOverlay>;
+type DesktopFocusOverlayProps = Omit<ComponentProps<typeof FocusOverlay>, 'isDesktop'>;
 
 export default function DesktopFocusOverlay(props: DesktopFocusOverlayProps) {
-  return <FocusOverlay {...props} />;
+  return <FocusOverlay {...props} isDesktop />;
 }

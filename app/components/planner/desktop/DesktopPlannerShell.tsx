@@ -65,7 +65,6 @@ export default function DesktopPlannerShell({
     onReorder: planner.handleReorder,
     onToggleActive: planner.toggleActiveTask,
     updateTask: planner.updateTask,
-    className: 'pl-0 pr-0',
   };
 
   const habitsTabProps = {
@@ -128,17 +127,19 @@ export default function DesktopPlannerShell({
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-[var(--bg)] font-sans text-[var(--ink)]">
-      <aside className="z-10 flex w-80 flex-none flex-col gap-6 border-r border-[var(--border)] bg-[var(--surface)] p-6 shadow-xl">
-        <div className="flex items-center gap-3 px-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--ink)] text-[var(--bg)] shadow-lg shadow-[var(--ink)]/20">
-            <CalendarDays size={24} />
+      <aside className="z-10 flex w-[340px] flex-none flex-col border-r border-[var(--border)] bg-[var(--surface)] shadow-xl">
+        <div className="flex-none px-6 pb-2 pt-6">
+          <div className="flex items-center gap-3 px-2">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--ink)] text-[var(--bg)] shadow-lg shadow-[var(--ink)]/20">
+              <CalendarDays size={24} />
+            </div>
+            <h1 className="text-2xl font-bold font-[var(--font-display)]">
+              Planner
+            </h1>
           </div>
-          <h1 className="text-2xl font-bold font-[var(--font-display)]">
-            Planner
-          </h1>
         </div>
 
-        <div className="flex flex-col gap-4">
+        <div className="custom-scrollbar flex flex-1 flex-col gap-6 overflow-y-auto px-6 py-4">
           <div className="rounded-[24px] border border-[var(--border)] bg-[var(--surface-2)]/30 p-4">
             <div className="mb-4 flex items-center justify-between px-2">
               <span className="text-lg font-bold capitalize text-[var(--ink)]">
@@ -214,7 +215,7 @@ export default function DesktopPlannerShell({
           </div>
         </div>
 
-        <div className="mt-auto">
+        <div className="flex flex-none flex-col px-6 pb-6 pt-2">
           {ui.activeTask && (
             <button
               type="button"
@@ -308,13 +309,12 @@ export default function DesktopPlannerShell({
         </div>
 
         <div className="relative flex-1 overflow-hidden">
-          <div className="no-scrollbar absolute inset-0 mx-auto w-full max-w-6xl overflow-y-auto px-12 py-10">
+          <div className="absolute inset-0 mx-auto w-full max-w-4xl">
             {ui.activeTab === 'tasks' ? (
               <DesktopTaskList {...taskListProps} />
             ) : (
               <DesktopHabitsTab {...habitsTabProps} />
             )}
-            <div className="h-32" />
           </div>
         </div>
       </main>
@@ -334,14 +334,14 @@ export default function DesktopPlannerShell({
 
         {ui.undoTask && (
           <motion.div
-            initial={{ opacity: 0, y: 50, scale: 0.9 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 20, scale: 0.9 }}
-            className="fixed bottom-10 left-1/2 z-50 -translate-x-1/2"
+            initial={{ opacity: 0, x: 50, scale: 0.9 }}
+            animate={{ opacity: 1, x: 0, scale: 1 }}
+            exit={{ opacity: 0, x: 20, scale: 0.9 }}
+            className="fixed bottom-10 right-10 z-50"
             role="status"
             aria-live="polite"
           >
-            <div className="flex items-center justify-between gap-4 rounded-2xl border border-[var(--border)] bg-[var(--ink)] px-6 py-4 text-sm font-medium text-[var(--bg)] shadow-2xl">
+            <div className="flex items-center justify-between gap-6 rounded-2xl border border-[var(--border)] bg-[var(--ink)] px-6 py-4 text-sm font-medium text-[var(--bg)] shadow-2xl">
               <span>Задача удалена</span>
               <button
                 type="button"

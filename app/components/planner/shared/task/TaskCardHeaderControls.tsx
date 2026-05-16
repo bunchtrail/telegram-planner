@@ -116,10 +116,10 @@ export default function TaskCardHeaderControls({
 			<div
 				aria-hidden="true"
 				className={cn(
-					'flex items-center justify-center text-[var(--muted)] touch-none [touch-action:none]',
+					'flex items-center justify-center text-[var(--muted)] touch-none [touch-action:none] transition-opacity duration-200',
 					isDesktop
-						? 'h-9 w-6 opacity-20 hover:opacity-100'
-						: 'h-8 w-8 opacity-20 group-hover:opacity-50 transition-opacity -mr-1',
+						? 'h-9 w-6 opacity-0 group-hover:opacity-40 hover:!opacity-100'
+						: 'h-8 w-8 opacity-20 group-hover:opacity-50 -mr-1',
 					canReorder
 						? 'cursor-grab active:cursor-grabbing'
 						: 'cursor-not-allowed opacity-10',

@@ -19,6 +19,7 @@ type StatsModalProps = {
 	tasks: Task[];
 	selectedDate: Date;
 	pomodoroStats: PomodoroWeeklyStats;
+	isDesktop?: boolean;
 };
 
 export default function StatsModal({
@@ -27,12 +28,13 @@ export default function StatsModal({
 	tasks,
 	selectedDate,
 	pomodoroStats,
+	isDesktop = false,
 }: StatsModalProps) {
 	const prefersReducedMotion = useReducedMotion();
 	const reduceMotion = Boolean(prefersReducedMotion);
 	const motionCapabilities = getMotionCapabilities({
 		isTelegramIOS: isTelegramIOS(),
-		isDesktop: false,
+		isDesktop,
 		prefersReducedMotion: reduceMotion,
 	});
 	const useLiteMotion = motionCapabilities.tier !== 'full';
@@ -144,7 +146,7 @@ export default function StatsModal({
 		<Dialog
 			ariaLabelledby="stats-title"
 			backdropClassName="sheet-backdrop"
-			contentClassName="max-w-sm p-6"
+			contentClassName={cn('p-6', isDesktop ? 'max-w-2xl' : 'max-w-sm')}
 			onClose={onClose}
 		>
 			<ModalHeader
@@ -172,11 +174,26 @@ export default function StatsModal({
 				titleId="stats-title"
 			/>
 
-			<div className="flex-1 overflow-y-auto no-scrollbar min-h-0 -mx-6 px-6 pb-2">
+			<div
+				className={cn(
+					'flex-1 min-h-0 -mx-6 px-6 pb-2 overflow-y-auto',
+					isDesktop ? 'custom-scrollbar' : 'no-scrollbar',
+				)}
+			>
 					{/* Grid Layout */}
-					<div className="grid grid-cols-2 gap-3 mb-4">
+					<div
+						className={cn(
+							'grid gap-3 mb-4',
+							isDesktop ? 'grid-cols-4' : 'grid-cols-2',
+						)}
+					>
 						{/* Hero Card (Completion) */}
-						<div className="col-span-2 relative overflow-hidden rounded-[24px] bg-[var(--surface)] shadow-[var(--shadow-card)] border border-[var(--border)] p-5 min-h-[110px] flex flex-col justify-center group">
+						<div
+							className={cn(
+								'relative overflow-hidden rounded-[24px] bg-[var(--surface)] shadow-[var(--shadow-card)] border border-[var(--border)] p-5 min-h-[110px] flex flex-col justify-center group',
+								isDesktop ? 'col-span-4' : 'col-span-2',
+							)}
+						>
 							{/* Glow & Gradient Overlay */}
 							<div className="absolute inset-0 bg-gradient-to-br from-[var(--accent)] to-transparent opacity-5 pointer-events-none" />
 							{!useLiteMotion ? (

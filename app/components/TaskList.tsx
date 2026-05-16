@@ -78,8 +78,10 @@ export default function TaskList({
 	}, [tasks, reduceMotion]);
 
 	const scrollClasses = cn(
-		'h-full w-full overflow-y-auto pt-2 touch-pan-y overscroll-contain no-scrollbar pl-[max(1rem,env(safe-area-inset-left),var(--tg-content-safe-left,0px))] pr-[max(1rem,env(safe-area-inset-right),var(--tg-content-safe-right,0px))] [-webkit-overflow-scrolling:touch]',
-		isDesktop ? 'pb-8 pt-4 px-0' : 'pb-32',
+		'h-full w-full touch-pan-y overscroll-contain [-webkit-overflow-scrolling:touch]',
+		isDesktop
+			? 'overflow-y-auto custom-scrollbar px-6 pb-12 pt-6'
+			: 'overflow-y-auto no-scrollbar pb-32 pt-2 pl-[max(1rem,env(safe-area-inset-left),var(--tg-content-safe-left,0px))] pr-[max(1rem,env(safe-area-inset-right),var(--tg-content-safe-right,0px))]',
 	);
 
 	if (isLoading) {

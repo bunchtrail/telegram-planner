@@ -50,7 +50,7 @@ const TaskTitleField = forwardRef<HTMLTextAreaElement, TaskTitleFieldProps>(
           aria-label="Название задачи"
           className={cn(
             'w-full min-h-[50px] resize-none bg-transparent font-[var(--font-display)] font-bold leading-tight tracking-tight text-[var(--ink)] outline-none transition-colors placeholder:text-[var(--muted)]/30',
-            isDesktop ? 'text-[40px]' : 'text-[32px]',
+            isDesktop ? 'text-[32px]' : 'text-[32px]',
           )}
           style={{ caretColor: color }}
         />
