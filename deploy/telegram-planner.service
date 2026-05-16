@@ -1,0 +1,42 @@
+[Unit]
+Description=Telegram Planner (Next.js standalone)
+Documentation=https://github.com/bunchtrail/telegram-planner/blob/main/docs/DEPLOY_VPS.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=devin
+Group=devin
+WorkingDirectory=/home/devin/apps/telegram-planner
+
+# Файл с переменными окружения; права 0600, владелец devin:devin.
+EnvironmentFile=/home/devin/apps/telegram-planner/.env.local
+Environment=NODE_ENV=production
+Environment=HOSTNAME=127.0.0.1
+Environment=PORT=3000
+Environment=NEXT_TELEMETRY_DISABLED=1
+
+# Запускаем standalone-сервер, который генерирует `next build` при output:'standalone'.
+ExecStart=/usr/bin/node /home/devin/apps/telegram-planner/.next/standalone/server.js
+
+Restart=always
+RestartSec=5s
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=telegram-planner
+
+# Безопасность
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=read-only
+ReadWritePaths=/home/devin/apps/telegram-planner/.next/cache /home/devin/apps/telegram-planner/.next/standalone
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictNamespaces=true
+LockPersonality=true
+
+[Install]
+WantedBy=multi-user.target

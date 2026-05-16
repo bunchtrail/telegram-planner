@@ -1,0 +1,28 @@
+[Unit]
+Description=Cloudflare Tunnel for telegram-planner
+Documentation=https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/
+After=network-online.target telegram-planner.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=devin
+Group=devin
+
+# Создайте именованный тоннель и положите его credentials JSON в
+# /home/devin/.cloudflared/<TUNNEL_ID>.json, а конфиг —
+# в /home/devin/.cloudflared/config.yml (см. docs/DEPLOY_VPS.md).
+ExecStart=/usr/bin/cloudflared --no-autoupdate tunnel --config /home/devin/.cloudflared/config.yml run
+
+Restart=always
+RestartSec=5s
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=cloudflared-telegram-planner
+
+# Безопасность
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
