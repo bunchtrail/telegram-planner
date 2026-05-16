@@ -1,0 +1,27 @@
+[Unit]
+Description=Cloudflare Quick Tunnel for telegram-planner (random *.trycloudflare.com URL)
+Documentation=https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/do-more-with-tunnels/trycloudflare/
+After=network-online.target telegram-planner.service
+Wants=network-online.target
+
+# Quick Tunnel — no Cloudflare account / domain required.
+# WARNING: every restart produces a NEW random URL; you will need to update
+# the Telegram bot's WebApp URL (BotFather or setChatMenuButton) on each
+# restart. Prefer the named-tunnel unit cloudflared-telegram-planner.service
+# (see deploy/cloudflared-telegram-planner.service) for production.
+
+[Service]
+Type=simple
+User=devin
+Group=devin
+ExecStart=/usr/local/bin/cloudflared --no-autoupdate tunnel --url http://127.0.0.1:3000
+Restart=always
+RestartSec=5s
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=cloudflared-quick
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

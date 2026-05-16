@@ -197,12 +197,34 @@ curl -sS -I https://planner.example.com/ | head -1   # 200 OK через HTTPS
 
 ### 5.6. Quick Tunnel (если нет своего домена)
 
-Только для разовых проверок, URL меняется при перезапуске:
+Удобный fallback без аккаунта Cloudflare — URL вида
+`https://<random>.trycloudflare.com`. **Внимание:** URL новый при каждом
+старте процесса, поэтому подходит для смоук-тестов и временного хостинга,
+но не для прод-режима с фиксированной ссылкой в BotFather.
+
+Разовый запуск в терминале:
 
 ```bash
 cloudflared tunnel --url http://127.0.0.1:3000
 # В логах появится https://<random>.trycloudflare.com
 ```
+
+Постоянный systemd-сервис (готовый unit лежит в репозитории
+[`deploy/cloudflared-telegram-planner-quick.service`](../deploy/cloudflared-telegram-planner-quick.service)):
+
+```bash
+sudo install -m 0644 deploy/cloudflared-telegram-planner-quick.service \
+  /etc/systemd/system/cloudflared-telegram-planner-quick.service
+sudo systemctl daemon-reload
+sudo systemctl enable --now cloudflared-telegram-planner-quick.service
+
+# Получить актуальный URL после старта
+sudo journalctl -u cloudflared-telegram-planner-quick --no-pager \
+  | grep -oE 'https://[a-z0-9-]+\.trycloudflare\.com' | tail -1
+```
+
+После каждого `systemctl restart` URL меняется — не забудьте обновить
+WebApp URL в BotFather или через `setChatMenuButton` Bot API.
 
 ---
 
