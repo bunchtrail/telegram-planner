@@ -130,9 +130,7 @@ describe('shared habit form composition', () => {
 
     expect(onAddHabit).toHaveBeenCalledWith('Пить воду', '💧', '#007aff');
 
-    await user.click(
-      screen.getByRole('button', { name: new RegExp(expectedDayLabel) }),
-    );
+    await user.click(screen.getByRole('button', { name: expectedDayLabel }));
     expect(onToggleLog).toHaveBeenCalledWith('habit-1', '2026-04-17');
 
     await user.click(screen.getByRole('button', { name: 'Удалить привычку' }));
@@ -169,9 +167,7 @@ describe('shared habit form composition', () => {
       />,
     );
 
-    const dayButton = screen.getByRole('button', {
-      name: new RegExp(expectedDayLabel),
-    });
+    const dayButton = screen.getByRole('button', { name: expectedDayLabel });
     expect(dayButton).toBeDisabled();
 
     await user.click(dayButton);

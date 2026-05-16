@@ -242,24 +242,42 @@ WebApp URL в BotFather или через `setChatMenuButton` Bot API.
 
 ---
 
-## 7. Cron для напоминаний (опционально)
+## 7. Напоминания: systemd timer
 
-`/api/reminders/run` — серверный обработчик, который надо вызывать по cron.
-Простейший вариант — `cron` на самом VPS:
+`/api/reminders/run` — серверный обработчик, который:
+
+1. Атомарно «забирает» задачи, у которых `remind_at <= now` и
+   `reminder_sent_at IS NULL`, проставляя им `reminder_sent_at = now`.
+2. Для каждой забранной задачи отправляет сообщение в Telegram (`sendMessage`
+   с `chat_id = telegram_id` владельца, текст содержит `title` и время
+   `HH:MM`). Если доставка не прошла (бот заблокирован пользователем,
+   сеть), это логируется в journal, но `reminder_sent_at` не откатывается —
+   на следующей итерации эта задача уже не будет переотправлена.
+
+Запуск раз в минуту через systemd timer (готовые юниты в репозитории):
 
 ```bash
-sudo tee /etc/cron.d/telegram-planner-reminders >/dev/null <<'CRON'
-# Каждую минуту дёргать reminders runner.
-# Секрет — в /etc/telegram-planner/reminders.secret (chmod 0600 root:root).
-* * * * * devin curl -sS -X POST \
-  -H "x-reminders-secret: $(cat /etc/telegram-planner/reminders.secret)" \
-  http://127.0.0.1:3000/api/reminders/run \
-  >>/var/log/telegram-planner-reminders.log 2>&1
-CRON
+sudo install -m 0644 deploy/telegram-planner-reminders.service \
+  /etc/systemd/system/telegram-planner-reminders.service
+sudo install -m 0644 deploy/telegram-planner-reminders.timer \
+  /etc/systemd/system/telegram-planner-reminders.timer
+sudo systemctl daemon-reload
+sudo systemctl enable --now telegram-planner-reminders.timer
+
+# Что и когда запустится
+systemctl list-timers telegram-planner-reminders.timer
+# Логи последних запусков
+sudo journalctl -u telegram-planner-reminders -n 50 --no-pager
 ```
 
-Положите `REMINDERS_RUN_SECRET` в `/etc/telegram-planner/reminders.secret`
-(тот же, что в `.env.local`), и не забудьте `chmod 0600`.
+`telegram-planner-reminders.service` — `Type=oneshot`, дёргает curl на
+`127.0.0.1:3000/api/reminders/run` с заголовком
+`x-reminders-secret: ${REMINDERS_RUN_SECRET}`, секрет приходит из
+`EnvironmentFile=/home/devin/apps/telegram-planner/.env.local`.
+
+> ⚠️ Чтобы пользователь получал сообщения, он должен **хотя бы раз нажать
+> Start** у вашего бота — иначе Telegram вернёт 403 (`bot was blocked by
+> the user` / `chat not found`).
 
 ---
 

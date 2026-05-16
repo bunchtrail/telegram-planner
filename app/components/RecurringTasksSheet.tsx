@@ -440,7 +440,7 @@ export default function RecurringTasksSheet({
 										initial={{ y: useLiteMotion ? 0 : 10, opacity: 0 }}
 										animate={{ y: 0, opacity: 1 }}
 										transition={useLiteMotion ? { duration: 0.16 } : { delay: 0.3 }}
-										className="max-w-[280px] text-[15px] leading-relaxed text-[var(--muted)]"
+										className="text-[15px] max-w-[280px] leading-relaxed opacity-70"
 									>
 										Создайте задачу с повтором в окне
 										добавления, чтобы она появилась здесь.
