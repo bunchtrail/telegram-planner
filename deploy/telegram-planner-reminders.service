@@ -1,0 +1,19 @@
+[Unit]
+Description=telegram-planner reminders runner (oneshot)
+After=telegram-planner.service
+Requires=telegram-planner.service
+
+[Service]
+Type=oneshot
+User=devin
+Group=devin
+EnvironmentFile=/home/devin/apps/telegram-planner/.env.local
+ExecStart=/usr/bin/curl --fail --silent --show-error --max-time 30 \
+  -X POST \
+  -H "x-reminders-secret: ${REMINDERS_RUN_SECRET}" \
+  http://127.0.0.1:3000/api/reminders/run
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=telegram-planner-reminders
+NoNewPrivileges=true
+PrivateTmp=true
