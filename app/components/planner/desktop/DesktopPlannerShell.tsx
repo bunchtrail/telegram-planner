@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { format, isSameDay } from 'date-fns';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { addDays, format, isSameDay } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import {
   CalendarDays,
@@ -16,7 +16,6 @@ import {
   Plus,
   RefreshCw,
   Repeat,
-  Settings,
   Sparkles,
   Target,
   X,
@@ -159,6 +158,14 @@ export default function DesktopPlannerShell({
   const editingTask = ui.sheet.editingTask;
   const focusTask = ui.activeTask;
   const [isHabitCreateOpen, setIsHabitCreateOpen] = useState(false);
+  const [desktopNotice, setDesktopNotice] = useState<{
+    id: number;
+    message: string;
+  } | null>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const quickAddInputRef = useRef<HTMLInputElement>(null);
+  const noticeTimerRef = useRef<number | null>(null);
+  const noticeIdRef = useRef(0);
 
   const header: PlannerHeaderViewModel = {
     selectedDate: planner.selectedDate,
@@ -179,6 +186,119 @@ export default function DesktopPlannerShell({
     onOpenRecurring: ui.openRecurring,
   };
 
+  const selectedDateKey = format(header.selectedDate, 'yyyy-MM-dd');
+
+  const scrollTasksToTop = useCallback((behavior: ScrollBehavior = 'smooth') => {
+    scrollAreaRef.current?.scrollTo({ top: 0, behavior });
+  }, []);
+
+  const showDesktopNotice = useCallback((message: string) => {
+    noticeIdRef.current += 1;
+    setDesktopNotice({ id: noticeIdRef.current, message });
+
+    if (noticeTimerRef.current != null) {
+      window.clearTimeout(noticeTimerRef.current);
+    }
+
+    noticeTimerRef.current = window.setTimeout(() => {
+      setDesktopNotice(null);
+      noticeTimerRef.current = null;
+    }, 2800);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (noticeTimerRef.current != null) {
+        window.clearTimeout(noticeTimerRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    scrollTasksToTop('auto');
+  }, [scrollTasksToTop, selectedDateKey, ui.activeTab]);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (!(event.metaKey || event.ctrlKey)) return;
+      if (event.key.toLowerCase() !== 'k') return;
+
+      event.preventDefault();
+      scrollTasksToTop();
+      window.requestAnimationFrame(() => {
+        quickAddInputRef.current?.focus();
+        quickAddInputRef.current?.select();
+      });
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [scrollTasksToTop]);
+
+  const getMoveDateLabel = useCallback(
+    (nextDateKey: string) => {
+      const [year, month, day] = nextDateKey.split('-').map(Number);
+      if (!year || !month || !day) return 'другую дату';
+
+      const nextDate = new Date(year, month - 1, day);
+      if (isSameDay(nextDate, addDays(planner.selectedDate, 1))) {
+        return 'завтра';
+      }
+
+      return format(nextDate, 'd MMMM', { locale: ru });
+    },
+    [planner.selectedDate],
+  );
+
+  const handleMoveTask = useCallback(
+    (id: string, nextDateKey: string) => {
+      const task = planner.tasks.find((item) => item.id === id);
+      planner.moveTask(id, nextDateKey);
+      showDesktopNotice(
+        `${task?.title ?? 'Задача'} перенесена на ${getMoveDateLabel(
+          nextDateKey,
+        )}`,
+      );
+    },
+    [getMoveDateLabel, planner, showDesktopNotice],
+  );
+
+  const handleToggleActiveTask = useCallback(
+    (id: string) => {
+      const task = planner.tasks.find((item) => item.id === id);
+      planner.toggleActiveTask(id);
+      if (!task?.activeStartedAt) {
+        scrollTasksToTop();
+      }
+    },
+    [planner, scrollTasksToTop],
+  );
+
+  const handleRefreshData = useCallback(() => {
+    planner.clearSyncError();
+    planner.refetchTasks();
+    showDesktopNotice('Данные обновляются');
+  }, [planner, showDesktopNotice]);
+
+  const handleOpenSeparateWindow = useCallback(() => {
+    if (typeof window === 'undefined') return;
+    const opened = window.open(window.location.href, '_blank');
+    if (opened) {
+      opened.opener = null;
+    }
+    if (!opened) {
+      showDesktopNotice('Окно не открылось');
+    }
+  }, [showDesktopNotice]);
+
+  const focusQuickAdd = useCallback(() => {
+    scrollTasksToTop();
+    window.requestAnimationFrame(() => {
+      quickAddInputRef.current?.focus();
+      quickAddInputRef.current?.select();
+    });
+  }, [scrollTasksToTop]);
+
   const taskListProps = {
     dateKey: format(planner.selectedDate, 'yyyy-MM-dd'),
     tasks: planner.currentTasks,
@@ -186,12 +306,13 @@ export default function DesktopPlannerShell({
     onToggle: ui.toggleTask,
     onDelete: ui.deleteTask,
     onEdit: ui.openEdit,
-    onMove: planner.moveTask,
+    onMove: handleMoveTask,
     onAdd: ui.openCreate,
     onReorder: planner.handleReorder,
-    onToggleActive: planner.toggleActiveTask,
+    onToggleActive: handleToggleActiveTask,
     updateTask: planner.updateTask,
     onQuickAdd: planner.addTask,
+    quickAddInputRef,
     className: 'pl-0 pr-0',
   };
 
@@ -253,7 +374,6 @@ export default function DesktopPlannerShell({
       }
     : null;
 
-  const selectedDateKey = format(header.selectedDate, 'yyyy-MM-dd');
   const habitSummary = {
     completedToday: planner.habits.filter((habit) =>
       planner.isHabitChecked(habit.id, selectedDateKey),
@@ -426,7 +546,7 @@ export default function DesktopPlannerShell({
 
           <button
             type="button"
-            onClick={planner.clearSyncError}
+            onClick={handleRefreshData}
             className="grid h-11 w-11 place-items-center rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--ink)] shadow-sm transition-colors hover:bg-[var(--surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
             aria-label="Обновить данные"
           >
@@ -435,6 +555,7 @@ export default function DesktopPlannerShell({
 
           <button
             type="button"
+            onClick={handleOpenSeparateWindow}
             className="grid h-11 w-11 place-items-center rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--ink)] shadow-sm transition-colors hover:bg-[var(--surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
             aria-label="Открыть в отдельном окне"
           >
@@ -466,6 +587,7 @@ export default function DesktopPlannerShell({
 
         <div className="relative flex-1 overflow-hidden">
           <div
+            ref={scrollAreaRef}
             className={cn(
               'no-scrollbar absolute inset-0 mx-auto w-full overflow-y-auto px-5',
               ui.activeTab === 'habits'
@@ -492,7 +614,16 @@ export default function DesktopPlannerShell({
         </div>
 
         <div className="flex shrink-0 items-center gap-4">
-          <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={focusQuickAdd}
+            className="flex items-center gap-2 rounded-lg px-2 py-1 transition-colors hover:text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+            aria-label="Перейти к быстрому добавлению"
+          >
+            <span className="grid h-8 min-w-8 place-items-center rounded-md border border-[var(--border)] text-[13px] font-semibold text-[var(--ink)]">
+              Ctrl
+            </span>
+            <span className="text-[var(--muted)]">/</span>
             <span className="grid h-8 min-w-8 place-items-center rounded-md border border-[var(--border)] text-[13px] font-semibold text-[var(--ink)]">
               ⌘
             </span>
@@ -503,14 +634,6 @@ export default function DesktopPlannerShell({
               <Keyboard size={16} />
               Быстрое добавление
             </span>
-          </div>
-          <span className="h-6 w-px bg-[var(--border)]" />
-          <button
-            type="button"
-            className="inline-flex items-center gap-2 transition-colors hover:text-[var(--ink)]"
-          >
-            <Settings size={18} />
-            Настройки
           </button>
         </div>
       </footer>
@@ -546,6 +669,22 @@ export default function DesktopPlannerShell({
               >
                 Отменить
               </button>
+            </div>
+          </motion.div>
+        )}
+
+        {desktopNotice && !ui.undoTask && (
+          <motion.div
+            key={desktopNotice.id}
+            initial={{ opacity: 0, y: 24, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 16, scale: 0.96 }}
+            className="fixed bottom-10 left-1/2 z-50 -translate-x-1/2"
+            role="status"
+            aria-live="polite"
+          >
+            <div className="rounded-lg border border-[var(--border)] bg-[var(--ink)] px-5 py-3 text-sm font-semibold text-[var(--bg)] shadow-2xl">
+              {desktopNotice.message}
             </div>
           </motion.div>
         )}

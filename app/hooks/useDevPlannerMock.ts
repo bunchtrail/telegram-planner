@@ -436,6 +436,15 @@ export function useDevPlannerMock({ selectedDate }: UseDevPlannerMockConfig) {
 				appliedUpdates.completed = updates.completed;
 				if (updates.completed) appliedUpdates.activeStartedAt = null;
 			}
+			if (updates.elapsedMs !== undefined) {
+				appliedUpdates.elapsedMs = Math.max(
+					0,
+					Math.floor(updates.elapsedMs),
+				);
+			}
+			if (updates.activeStartedAt !== undefined) {
+				appliedUpdates.activeStartedAt = updates.activeStartedAt;
+			}
 
 			return {
 				...prev,

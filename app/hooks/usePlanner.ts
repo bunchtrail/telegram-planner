@@ -780,6 +780,7 @@ export function usePlanner() {
 		restoreTask,
 		updateTask,
 		moveTask,
+		refetchTasks,
 		isLoading,
 		recurringTasks,
 		recurringSkips,

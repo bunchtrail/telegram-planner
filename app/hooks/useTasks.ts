@@ -138,6 +138,27 @@ const applyPendingTaskUpdates = (
 			),
 		};
 	}
+	if ('elapsed_ms' in updates) {
+		const elapsedMs =
+			typeof updates.elapsed_ms === 'number'
+				? updates.elapsed_ms
+				: typeof updates.elapsed_ms === 'string'
+					? Number(updates.elapsed_ms)
+					: 0;
+		nextTask = {
+			...nextTask,
+			elapsedMs: Number.isFinite(elapsedMs) ? Math.max(0, elapsedMs) : 0,
+		};
+	}
+	if ('active_started_at' in updates) {
+		nextTask = {
+			...nextTask,
+			activeStartedAt:
+				typeof updates.active_started_at === 'string'
+					? new Date(updates.active_started_at)
+					: null,
+		};
+	}
 
 	return nextTask;
 };
@@ -1195,6 +1216,13 @@ export function useTasks(config: UseTasksConfig) {
 					updates.remindBeforeMinutes,
 				);
 			if (updates.date !== undefined) appliedUpdates.date = updates.date;
+			if (updates.elapsedMs !== undefined)
+				appliedUpdates.elapsedMs = Math.max(
+					0,
+					Math.floor(updates.elapsedMs),
+				);
+			if (updates.activeStartedAt !== undefined)
+				appliedUpdates.activeStartedAt = updates.activeStartedAt;
 			if (
 				updates.isPinned !== undefined &&
 				updates.isPinned !== existingTask.isPinned &&
@@ -1240,6 +1268,11 @@ export function useTasks(config: UseTasksConfig) {
 					appliedUpdates.remindBeforeMinutes;
 			if (appliedUpdates.date !== undefined)
 				dbUpdates.date = formatDateOnly(appliedUpdates.date);
+			if (appliedUpdates.elapsedMs !== undefined)
+				dbUpdates.elapsed_ms = appliedUpdates.elapsedMs;
+			if (appliedUpdates.activeStartedAt !== undefined)
+				dbUpdates.active_started_at =
+					appliedUpdates.activeStartedAt?.toISOString() ?? null;
 
 			if (
 				appliedUpdates.startMinutes !== undefined ||
@@ -1296,6 +1329,11 @@ export function useTasks(config: UseTasksConfig) {
 								existingTask.remindBeforeMinutes;
 						if (appliedUpdates.date !== undefined)
 							rollback.date = existingTask.date;
+						if (appliedUpdates.elapsedMs !== undefined)
+							rollback.elapsedMs = existingTask.elapsedMs;
+						if (appliedUpdates.activeStartedAt !== undefined)
+							rollback.activeStartedAt =
+								existingTask.activeStartedAt;
 						return { ...task, ...rollback };
 					}),
 				);

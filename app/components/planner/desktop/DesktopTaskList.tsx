@@ -4,8 +4,11 @@ import {
 	type FormEvent,
 	type MouseEvent,
 	type ReactNode,
+	type RefObject,
 	useEffect,
+	useId,
 	useMemo,
+	useRef,
 	useState,
 } from 'react';
 import { addDays, format } from 'date-fns';
@@ -13,9 +16,7 @@ import {
 	Check,
 	ChevronDown,
 	Clock,
-	GripVertical,
 	ListChecks,
-	MoreHorizontal,
 	Move,
 	Pause,
 	Pencil,
@@ -27,6 +28,7 @@ import {
 } from 'lucide-react';
 import type { Task, TaskRepeat } from '@/app/types/task';
 import { cn } from '@/app/lib/cn';
+import { TASK_COLOR_OPTIONS } from '@/app/lib/constants';
 
 type DesktopTaskListProps = {
 	dateKey: string;
@@ -49,10 +51,39 @@ type DesktopTaskListProps = {
 		startMinutes: number | null,
 		remindBeforeMinutes: number,
 	) => void;
+	quickAddInputRef?: RefObject<HTMLInputElement | null>;
 	className?: string;
 };
 
-const QUICK_ADD_COLOR = '#3b82f6';
+const QUICK_ADD_DURATION_OPTIONS = [15, 30, 45, 60, 90, 120] as const;
+const QUICK_ADD_START_OPTIONS = [
+	{ label: 'Без времени', value: '' },
+	{ label: '08:00', value: '480' },
+	{ label: '09:00', value: '540' },
+	{ label: '09:30', value: '570' },
+	{ label: '10:00', value: '600' },
+	{ label: '11:00', value: '660' },
+	{ label: '12:30', value: '750' },
+	{ label: '14:00', value: '840' },
+	{ label: '16:00', value: '960' },
+] as const;
+
+const QUICK_ADD_REPEAT_OPTIONS: ReadonlyArray<{
+	count: number;
+	label: string;
+	value: TaskRepeat;
+}> = [
+	{ count: 1, label: 'Нет', value: 'none' },
+	{ count: 7, label: '7 дней', value: 'daily' },
+	{ count: 4, label: '4 недели', value: 'weekly' },
+];
+
+const QUICK_ADD_DEFAULT_COLOR = TASK_COLOR_OPTIONS[2];
+
+type QuickAddDropdownOption = {
+	label: string;
+	value: string;
+};
 
 const formatElapsed = (value: number) => {
 	const totalSeconds = Math.floor(Math.max(0, value) / 1000);
@@ -101,14 +132,7 @@ function SectionTitle({
 				</span>
 			</div>
 			<div className="flex items-center gap-3 text-[var(--muted)]">
-				{icon}
-				<button
-					type="button"
-					className="grid h-8 w-8 place-items-center rounded-md transition-colors hover:bg-[var(--surface-2)]"
-					aria-label={`Действия раздела ${title}`}
-				>
-					<MoreHorizontal size={20} />
-				</button>
+				{icon ? <span aria-hidden>{icon}</span> : null}
 				{action}
 			</div>
 		</div>
@@ -248,7 +272,6 @@ function ActiveTaskCard({
 }
 
 function PlanTaskCard({
-	isHighlighted,
 	onDelete,
 	onEdit,
 	onMove,
@@ -256,7 +279,6 @@ function PlanTaskCard({
 	onToggleActive,
 	task,
 }: {
-	isHighlighted?: boolean;
 	onDelete: DesktopTaskListProps['onDelete'];
 	onEdit: DesktopTaskListProps['onEdit'];
 	onMove: DesktopTaskListProps['onMove'];
@@ -269,12 +291,7 @@ function PlanTaskCard({
 
 	return (
 		<div
-			className={cn(
-				'group relative flex min-h-[82px] items-center gap-4 overflow-hidden rounded-lg border bg-[var(--surface)] px-5 py-4 shadow-sm transition-colors',
-				isHighlighted
-					? 'border-[var(--accent)] bg-[var(--accent)]/5 ring-1 ring-[var(--accent)]/30'
-					: 'border-[var(--border)] hover:border-[var(--accent)]/30',
-			)}
+			className="group relative flex min-h-[82px] items-center gap-4 overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface)] px-5 py-4 shadow-sm transition-colors hover:border-[var(--accent)]/30 focus-within:border-[var(--accent)]/30"
 		>
 			<span
 				className="absolute left-0 top-0 h-full w-1.5"
@@ -305,10 +322,7 @@ function PlanTaskCard({
 			</div>
 
 			<div
-				className={cn(
-					'flex shrink-0 items-center gap-2 transition-opacity',
-					isHighlighted ? 'opacity-100' : 'opacity-0 group-hover:opacity-100',
-				)}
+				className="flex shrink-0 items-center gap-2 opacity-100 transition-opacity min-[1120px]:opacity-0 min-[1120px]:group-focus-within:opacity-100 min-[1120px]:group-hover:opacity-100"
 			>
 				<button
 					type="button"
@@ -342,7 +356,7 @@ function PlanTaskCard({
 				className="grid h-8 w-8 shrink-0 place-items-center rounded-md text-[var(--muted)] hover:bg-[var(--surface-2)]"
 				aria-label={`Запустить таймер задачи ${task.title}`}
 			>
-				<GripVertical size={19} />
+				<Zap size={18} />
 			</button>
 		</div>
 	);
@@ -386,14 +400,161 @@ function CompletedTaskCard({
 	);
 }
 
+function QuickAddDropdown({
+	icon,
+	label,
+	menuId,
+	onChange,
+	onOpenChange,
+	open,
+	options,
+	value,
+}: {
+	icon: ReactNode;
+	label: string;
+	menuId: string;
+	onChange: (value: string) => void;
+	onOpenChange: (open: boolean) => void;
+	open: boolean;
+	options: readonly QuickAddDropdownOption[];
+	value: string;
+}) {
+	const rootRef = useRef<HTMLDivElement>(null);
+	const selectedOption =
+		options.find((option) => option.value === value) ?? options[0];
+
+	useEffect(() => {
+		if (!open) return;
+
+		const handlePointerDown = (event: PointerEvent) => {
+			if (
+				rootRef.current &&
+				!rootRef.current.contains(event.target as Node)
+			) {
+				onOpenChange(false);
+			}
+		};
+
+		const handleKeyDown = (event: KeyboardEvent) => {
+			if (event.key === 'Escape') {
+				onOpenChange(false);
+			}
+		};
+
+		document.addEventListener('pointerdown', handlePointerDown, true);
+		document.addEventListener('keydown', handleKeyDown);
+
+		return () => {
+			document.removeEventListener('pointerdown', handlePointerDown, true);
+			document.removeEventListener('keydown', handleKeyDown);
+		};
+	}, [onOpenChange, open]);
+
+	return (
+		<div ref={rootRef} className="relative min-w-0">
+			<button
+				type="button"
+				aria-haspopup="listbox"
+				aria-expanded={open}
+				aria-controls={open ? menuId : undefined}
+				onClick={() => onOpenChange(!open)}
+				className={cn(
+					'flex min-h-[58px] w-full flex-col justify-center gap-1 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 text-left transition-[background-color,border-color,box-shadow] hover:border-[var(--accent)]/25 hover:bg-[var(--surface-2)]/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/35',
+					open &&
+						'border-[var(--accent)]/40 bg-[var(--surface-2)]/70 shadow-[var(--shadow-soft)]',
+				)}
+			>
+				<span className="flex items-center gap-1.5 text-[11px] font-bold uppercase text-[var(--muted)]">
+					{icon}
+					{label}
+				</span>
+				<span className="flex min-w-0 items-center gap-2 text-[15px] font-semibold text-[var(--ink)]">
+					<span className="min-w-0 truncate">{selectedOption.label}</span>
+					<ChevronDown
+						size={16}
+						className={cn(
+							'ml-auto shrink-0 text-[var(--muted)] transition-transform',
+							open && 'rotate-180 text-[var(--accent)]',
+						)}
+						aria-hidden
+					/>
+				</span>
+			</button>
+
+			{open ? (
+				<div
+					id={menuId}
+					role="listbox"
+					aria-label={label}
+					className="no-scrollbar absolute left-0 right-0 top-[calc(100%+0.5rem)] z-30 max-h-96 overflow-y-auto rounded-lg border border-[var(--border)] bg-[var(--surface)] p-1.5 shadow-[var(--shadow-pop)] backdrop-blur-xl"
+				>
+					{options.map((option) => {
+						const isSelected = option.value === value;
+
+						return (
+							<button
+								key={option.value || 'none'}
+								type="button"
+								role="option"
+								aria-selected={isSelected}
+								onClick={() => {
+									onChange(option.value);
+									onOpenChange(false);
+								}}
+								className={cn(
+									'flex h-10 w-full items-center justify-between gap-3 rounded-md px-3 text-left text-[14px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/35',
+									isSelected
+										? 'bg-[var(--accent)]/10 text-[var(--accent)]'
+										: 'text-[var(--ink)] hover:bg-[var(--surface-2)]',
+								)}
+							>
+								<span className="truncate">{option.label}</span>
+								{isSelected ? (
+									<Check size={16} strokeWidth={3} aria-hidden />
+								) : null}
+							</button>
+						);
+					})}
+				</div>
+			) : null}
+		</div>
+	);
+}
+
 function QuickAddRow({
 	onAdd,
 	onQuickAdd,
+	quickAddInputRef,
 }: {
 	onAdd: DesktopTaskListProps['onAdd'];
 	onQuickAdd?: DesktopTaskListProps['onQuickAdd'];
+	quickAddInputRef?: DesktopTaskListProps['quickAddInputRef'];
 }) {
 	const [title, setTitle] = useState('');
+	const [duration, setDuration] = useState<number>(45);
+	const [startMinutesValue, setStartMinutesValue] = useState('570');
+	const [color, setColor] = useState<string>(QUICK_ADD_DEFAULT_COLOR);
+	const [repeat, setRepeat] = useState<TaskRepeat>('none');
+	const [openDropdown, setOpenDropdown] = useState<
+		'duration' | 'repeat' | 'start' | null
+	>(null);
+	const startMenuId = useId();
+	const durationMenuId = useId();
+	const repeatMenuId = useId();
+
+	const repeatCount =
+		QUICK_ADD_REPEAT_OPTIONS.find((option) => option.value === repeat)
+			?.count ?? 1;
+	const startMinutes =
+		startMinutesValue === '' ? null : Number(startMinutesValue);
+	const durationOptions = QUICK_ADD_DURATION_OPTIONS.map((option) => ({
+		label: `${option} мин`,
+		value: String(option),
+	}));
+	const repeatOptions = QUICK_ADD_REPEAT_OPTIONS.map((option) => ({
+		label: option.label,
+		value: option.value,
+	}));
 
 	const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
 		event.preventDefault();
@@ -402,18 +563,20 @@ function QuickAddRow({
 			onAdd();
 			return;
 		}
-		onQuickAdd(trimmedTitle, 45, 'none', 1, QUICK_ADD_COLOR, 9 * 60 + 30, 0);
+		onQuickAdd(trimmedTitle, duration, repeat, repeatCount, color, startMinutes, 0);
 		setTitle('');
 	};
 
 	return (
 		<form
 			onSubmit={handleSubmit}
-			className="mb-5 grid grid-cols-[minmax(220px,1fr)_142px_160px_112px_136px_118px] gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3 shadow-sm max-[1120px]:grid-cols-2"
+			className="mb-5 grid grid-cols-[minmax(220px,1fr)_142px_150px_188px_132px_118px] gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3 shadow-sm max-[1120px]:grid-cols-2"
 		>
-			<label className="flex h-12 min-w-0 items-center gap-3 rounded-lg border border-[var(--border)] px-3 text-[15px] text-[var(--muted)] max-[1120px]:col-span-2">
-				<PlusCircle size={22} />
+			<label className="flex min-h-[58px] min-w-0 items-center gap-3 rounded-lg border border-[var(--border)] px-3 text-[15px] text-[var(--muted)] focus-within:border-[var(--accent)] max-[1120px]:col-span-2">
+				<PlusCircle size={22} aria-hidden />
+				<span className="sr-only">Название</span>
 				<input
+					ref={quickAddInputRef}
 					value={title}
 					onChange={(event) => setTitle(event.target.value)}
 					placeholder="Новая задача..."
@@ -421,28 +584,73 @@ function QuickAddRow({
 					aria-label="Новая задача"
 				/>
 			</label>
-			<div className="flex h-12 items-center gap-3 rounded-lg border border-[var(--border)] px-3 text-[15px]">
-				<Clock size={21} />
-				<span>09:30</span>
-				<ChevronDown size={16} className="ml-auto" />
-			</div>
-			<div className="flex h-12 items-center gap-3 rounded-lg border border-[var(--border)] px-3 text-[15px]">
-				<TimerReset size={21} />
-				<span>45 мин</span>
-				<ChevronDown size={16} className="ml-auto" />
-			</div>
-			<div className="flex h-12 items-center gap-3 rounded-lg border border-[var(--border)] px-3">
-				<span className="h-8 w-8 rounded-md bg-[var(--accent)]" />
-				<ChevronDown size={16} className="ml-auto" />
-			</div>
-			<div className="flex h-12 items-center gap-3 rounded-lg border border-[var(--border)] px-3 text-[15px]">
-				<Repeat2 size={21} />
-				<span>Нет</span>
-				<ChevronDown size={16} className="ml-auto" />
-			</div>
+			<QuickAddDropdown
+				icon={<Clock size={13} aria-hidden />}
+				label="Время"
+				menuId={startMenuId}
+				onChange={setStartMinutesValue}
+				onOpenChange={(isOpen) =>
+					setOpenDropdown(isOpen ? 'start' : null)
+				}
+				open={openDropdown === 'start'}
+				options={QUICK_ADD_START_OPTIONS}
+				value={startMinutesValue}
+			/>
+			<QuickAddDropdown
+				icon={<TimerReset size={13} aria-hidden />}
+				label="Длительность"
+				menuId={durationMenuId}
+				onChange={(nextValue) => setDuration(Number(nextValue))}
+				onOpenChange={(isOpen) =>
+					setOpenDropdown(isOpen ? 'duration' : null)
+				}
+				open={openDropdown === 'duration'}
+				options={durationOptions}
+				value={String(duration)}
+			/>
+			<fieldset className="flex min-h-[58px] flex-col justify-center gap-1 rounded-lg border border-[var(--border)] px-3">
+				<legend className="sr-only">Цвет задачи</legend>
+				<span className="text-[11px] font-bold uppercase text-[var(--muted)]">
+					Цвет
+				</span>
+				<div className="flex items-center gap-2">
+					{TASK_COLOR_OPTIONS.map((option) => {
+						const isSelected = color === option;
+
+						return (
+							<button
+								key={option}
+								type="button"
+								onClick={() => setColor(option)}
+								className={cn(
+									'h-7 w-7 rounded-md border transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]',
+									isSelected
+										? 'scale-110 border-[var(--ink)]'
+										: 'border-transparent hover:scale-105',
+								)}
+								style={{ backgroundColor: option }}
+								aria-label={`Выбрать цвет ${option}`}
+								aria-pressed={isSelected}
+							/>
+						);
+					})}
+				</div>
+			</fieldset>
+			<QuickAddDropdown
+				icon={<Repeat2 size={13} aria-hidden />}
+				label="Повтор"
+				menuId={repeatMenuId}
+				onChange={(nextValue) => setRepeat(nextValue as TaskRepeat)}
+				onOpenChange={(isOpen) =>
+					setOpenDropdown(isOpen ? 'repeat' : null)
+				}
+				open={openDropdown === 'repeat'}
+				options={repeatOptions}
+				value={repeat}
+			/>
 			<button
 				type="submit"
-				className="h-12 rounded-lg border border-[var(--border)] px-4 text-[15px] font-semibold text-[var(--ink)] transition-colors hover:bg-[var(--surface-2)]"
+				className="min-h-[58px] rounded-lg border border-[var(--border)] px-4 text-[15px] font-semibold text-[var(--ink)] transition-colors hover:bg-[var(--surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
 			>
 				Добавить
 			</button>
@@ -482,9 +690,11 @@ export default function DesktopTaskList(props: DesktopTaskListProps) {
 		onEdit,
 		onMove,
 		onQuickAdd,
+		quickAddInputRef,
 		onToggle,
 		onToggleActive,
 		tasks,
+		updateTask,
 	} = props;
 
 	const { activeTasks, completedTasks, planTasks } = useMemo(() => {
@@ -511,12 +721,19 @@ export default function DesktopTaskList(props: DesktopTaskListProps) {
 		);
 	}
 
-	const highlightedPlanTask =
-		planTasks.find((task) => task.title === 'Тренировка') ?? planTasks[2];
+	const resetActiveTask = () => {
+		const activeTask = activeTasks[0];
+		if (!activeTask) return;
+		updateTask(activeTask.id, { elapsedMs: 0, activeStartedAt: null });
+	};
 
 	return (
 		<div className={cn('w-full', className)}>
-			<QuickAddRow onAdd={onAdd} onQuickAdd={onQuickAdd} />
+			<QuickAddRow
+				onAdd={onAdd}
+				onQuickAdd={onQuickAdd}
+				quickAddInputRef={quickAddInputRef}
+			/>
 
 			<div className="grid min-h-[520px] grid-cols-[0.92fr_1.08fr_1.08fr] gap-5 max-[960px]:grid-cols-1">
 				<section
@@ -551,6 +768,8 @@ export default function DesktopTaskList(props: DesktopTaskListProps) {
 						</span>
 						<button
 							type="button"
+							onClick={resetActiveTask}
+							disabled={activeTasks.length === 0}
 							className="font-medium text-[var(--accent)]"
 						>
 							Сбросить
@@ -567,7 +786,6 @@ export default function DesktopTaskList(props: DesktopTaskListProps) {
 						{planTasks.map((task) => (
 							<PlanTaskCard
 								key={task.id}
-								isHighlighted={task.id === highlightedPlanTask?.id}
 								onDelete={onDelete}
 								onEdit={onEdit}
 								onMove={onMove}
@@ -606,15 +824,6 @@ export default function DesktopTaskList(props: DesktopTaskListProps) {
 								task={task}
 							/>
 						))}
-					</div>
-					<div className="flex h-14 items-center border-t border-[var(--border)] px-5">
-						<button
-							type="button"
-							className="inline-flex items-center gap-2 text-[15px] text-[var(--ink)]"
-						>
-							Показать скрытые (1)
-							<ChevronDown size={17} />
-						</button>
 					</div>
 				</section>
 			</div>
