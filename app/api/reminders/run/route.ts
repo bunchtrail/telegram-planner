@@ -1,6 +1,10 @@
 import { errorNoStore, jsonNoStore } from '@/app/lib/api-response';
 import { getReminderRunSecret } from '@/app/lib/reminders-config';
 import { getSupabaseAdmin } from '@/app/lib/supabase-admin';
+import {
+	formatReminderText,
+	sendTelegramMessage,
+} from '@/app/lib/telegram-bot';
 import { ReminderRunHeaderSchema } from '@/app/lib/validations/reminders';
 
 export const runtime = 'nodejs';
@@ -9,6 +13,9 @@ const BATCH_LIMIT = 100;
 
 type DueReminderRow = {
 	id: string;
+	telegram_id: string | null;
+	title: string | null;
+	start_minutes: number | null;
 	remind_at: string | null;
 	reminder_sent_at: string | null;
 };
@@ -38,7 +45,7 @@ export async function POST(request: Request) {
 
 	const { data, error } = await supabaseAdmin
 		.from('tasks')
-		.select('id, remind_at, reminder_sent_at')
+		.select('id, telegram_id, title, start_minutes, remind_at, reminder_sent_at')
 		.not('remind_at', 'is', null)
 		.is('reminder_sent_at', null)
 		.lte('remind_at', runStartedAtIso)
@@ -52,9 +59,10 @@ export async function POST(request: Request) {
 	let sent = 0;
 	let skipped = 0;
 	let failed = 0;
+	let deliveryFailed = 0;
 
 	for (const row of dueRows) {
-		if (!row.id || !row.remind_at) {
+		if (!row.id || !row.remind_at || !row.telegram_id || !row.title) {
 			skipped += 1;
 			continue;
 		}
@@ -74,12 +82,29 @@ export async function POST(request: Request) {
 			continue;
 		}
 
-		if (claimed?.id) {
-			// Delivery transport is intentionally out of scope for this runner.
-			sent += 1;
-		} else {
+		if (!claimed?.id) {
 			// Another runner already claimed this reminder.
 			skipped += 1;
+			continue;
+		}
+
+		const delivery = await sendTelegramMessage(
+			row.telegram_id,
+			formatReminderText({
+				title: row.title,
+				start_minutes: row.start_minutes,
+			}),
+		);
+
+		if (delivery.ok) {
+			sent += 1;
+		} else {
+			deliveryFailed += 1;
+			console.error('[reminders] telegram delivery failed', {
+				task_id: row.id,
+				status: delivery.status,
+				error: delivery.error,
+			});
 		}
 	}
 
@@ -91,6 +116,7 @@ export async function POST(request: Request) {
 			sent,
 			skipped,
 			failed,
+			deliveryFailed,
 			runStartedAt: runStartedAtIso,
 		},
 	);
