@@ -440,41 +440,55 @@ const TaskItem = memo(function TaskItem({
 						isDesktop && 'pt-2',
 					)}
 				>
-					{!task.completed ? (
-						<>
-							{timerButton}
+						{!task.completed ? (
+							<>
+								{timerButton}
 
-							<TaskMoveActions
-								effectivePickerValue={effectivePickerValue}
-								hasPendingChange={hasPendingChange}
-								onCancelPendingDate={() => setPendingDate(null)}
-								onChangePendingDate={setPendingDate}
-								onConfirmPendingDate={() => {
-									if (pendingDate) {
-										handleMoveToDate(pendingDate);
-									}
-								}}
-								onMoveTomorrow={() => {
-									setPendingDate(null);
-									handleMoveTomorrow();
-								}}
-							/>
+								<TaskMoveActions
+									effectivePickerValue={effectivePickerValue}
+									hasPendingChange={hasPendingChange}
+									onCancelPendingDate={() => setPendingDate(null)}
+									onChangePendingDate={setPendingDate}
+									onConfirmPendingDate={() => {
+										if (pendingDate) {
+											handleMoveToDate(pendingDate);
+										}
+									}}
+									onMoveTomorrow={() => {
+										setPendingDate(null);
+										handleMoveTomorrow();
+									}}
+								/>
 
-							<ChecklistEditor
-								items={task.checklist}
-								onAddItem={handleAddChecklistItem}
-								onDeleteItem={handleDeleteChecklistItem}
-								onToggleItem={handleToggleChecklistItem}
-								reduceMotion={reduceMotion}
-								taskColor={task.color}
-								taskId={task.id}
-							/>
+								<ChecklistEditor
+									items={task.checklist}
+									onAddItem={handleAddChecklistItem}
+									onDeleteItem={handleDeleteChecklistItem}
+									onToggleItem={handleToggleChecklistItem}
+									reduceMotion={reduceMotion}
+									taskColor={task.color}
+									taskId={task.id}
+								/>
 
-							{!isDesktop ? mobileFooterActions : deleteAction}
-						</>
-					) : (
-						deleteAction
-					)}
+								{!isDesktop ? mobileFooterActions : deleteAction}
+							</>
+						) : (
+							<>
+								{task.checklist.length > 0 ? (
+									<ChecklistEditor
+										items={task.checklist}
+										onAddItem={handleAddChecklistItem}
+										onDeleteItem={handleDeleteChecklistItem}
+										onToggleItem={handleToggleChecklistItem}
+										reduceMotion={reduceMotion}
+										taskColor={task.color}
+										taskId={task.id}
+									/>
+								) : null}
+
+								{deleteAction}
+							</>
+						)}
 				</div>
 			}
 		>
