@@ -82,19 +82,41 @@ $EDITOR .env.local
 cd ~/apps/telegram-planner
 npm ci --no-audit --no-fund
 npm run lint
-npm run build
+npm run build:standalone
 ```
 
 `next.config.ts` использует `output: "standalone"`, поэтому после сборки
-итоговый минимальный сервер лежит в `.next/standalone/server.js`, а статика —
-в `.next/static/` (она автоматически подмонтируется относительными путями).
+итоговый минимальный сервер лежит в `.next/standalone/server.js`.
+
+> ⚠️ Используйте именно `npm run build:standalone`, а не `npm run build`.
+>
+> Next.js в режиме `output: 'standalone'` **не копирует автоматически**
+> ни `.next/static/`, ни `public/` внутрь `.next/standalone/` — это
+> [документированное поведение](https://nextjs.org/docs/app/api-reference/config/next-config-js/output#automatically-copying-traced-files).
+> Без копии запросы к `/_next/static/*` и `/icon-192.png` будут возвращать
+> 404/500. Скрипт `npm run build:standalone` запускает `next build` и затем
+> [`deploy/copy-standalone-assets.sh`](../deploy/copy-standalone-assets.sh),
+> который кладёт ассеты на нужные пути:
+>
+> ```
+> .next/static/   -> .next/standalone/.next/static/
+> public/         -> .next/standalone/public/
+> ```
+>
+> Сборку запускайте **под обычным пользователем (`devin`), не через `sudo`** —
+> иначе `.next/` окажется во владении `root` и при следующем `npm ci`
+> обновлении придётся вручную `chown -R devin:devin .next`.
+>
+> В Docker-сценарии (раздел 9) копия уже зашита в `Dockerfile`.
 
 Быстрая проверка:
 
 ```bash
 PORT=3000 HOSTNAME=127.0.0.1 \
   node --env-file=.env.local .next/standalone/server.js &
-curl -sS -I http://127.0.0.1:3000/ | head -1   # ожидаем 200 OK
+curl -sS -I http://127.0.0.1:3000/ | head -1                              # 200 OK
+curl -sS -I http://127.0.0.1:3000/icon-192.png | head -1                  # 200 OK
+curl -sS -I http://127.0.0.1:3000/_next/static/chunks/$(ls .next/standalone/.next/static/chunks/ | head -1) | head -1  # 200 OK
 kill %1
 ```
 
@@ -289,13 +311,13 @@ git fetch origin
 git checkout main
 git pull --ff-only
 npm ci --no-audit --no-fund
-npm run build
+npm run build:standalone
 sudo systemctl restart telegram-planner.service
 sudo journalctl -u telegram-planner -n 50 --no-pager
 ```
 
-Откат — `git checkout <prev_commit>` + `npm ci && npm run build && systemctl
-restart`.
+Откат — `git checkout <prev_commit>` + `npm ci && npm run build:standalone &&
+sudo systemctl restart telegram-planner.service`.
 
 ---
 
@@ -330,7 +352,9 @@ Cloudflare Tunnel в этом сценарии настраивается точ
 
 | Симптом | Проверьте |
 |---|---|
-| `systemctl status` → exit code 1 | `journalctl -u telegram-planner -n 200` — обычно отсутствует переменная окружения или `.next/standalone/server.js` не собрался (`npm run build`) |
+| `systemctl status` → exit code 1 | `journalctl -u telegram-planner -n 200` — обычно отсутствует переменная окружения или `.next/standalone/server.js` не собрался (`npm run build:standalone`) |
+| `curl 127.0.0.1:3000/` → 200, но `/_next/static/*.js` и `/icon-192.png` → 404/500 (страница «пустая», в DevTools красные ассеты) | Сборка была через `npm run build` без копирования ассетов. Выполните `npm run build:standalone` и `sudo systemctl restart telegram-planner.service`. Проверьте, что существуют `.next/standalone/.next/static/` и `.next/standalone/public/`. |
+| `npm ci` падает на `EACCES` / файлы в `.next/` принадлежат `root` | Сборку запускали через `sudo`. Исправление: `sudo chown -R devin:devin ~/apps/telegram-planner/.next` и пересоберите без `sudo`. |
 | `curl 127.0.0.1:3000` → 500 | Логи приложения: чаще всего неверный `SUPABASE_JWT_SECRET` или `SUPABASE_SERVICE_ROLE_KEY` |
 | Telegram не открывает Mini App | Проверьте, что URL точно HTTPS, без редиректов, и что Cloudflare-зона активна (`cloudflared tunnel info <name>`) |
 | `cloudflared` крутится, но `curl` через домен 502/530 | Сервис `telegram-planner` упал, либо порт в `config.yml` отличается от `PORT` сервиса |
