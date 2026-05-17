@@ -38,6 +38,7 @@ type FocusOverlayProps = {
 		operation: () => PromiseLike<T> | T,
 	) => Promise<T>;
 	reduceHeavyEffectsOnPlatform?: boolean;
+	isDesktop?: boolean;
 };
 
 const formatTime = (ms: number) => {
@@ -67,6 +68,7 @@ export default function FocusOverlay({
 	onClose,
 	runWithAuthRetry,
 	reduceHeavyEffectsOnPlatform = false,
+	isDesktop = false,
 }: FocusOverlayProps) {
 	const [mode, setMode] = useState<FocusMode>('stopwatch');
 	const [soundIdx, setSoundIdx] = useState<number | null>(null);
@@ -166,6 +168,25 @@ export default function FocusOverlay({
 
 	const timerRunning = isPomodoro ? pomodoro.isRunning : isActive;
 
+	const desktopAnim = {
+		initial: reduceMotion ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.95 },
+		animate: { opacity: 1, scale: 1 },
+		exit: reduceMotion ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.95 },
+		transition: { type: 'spring' as const, damping: 25, stiffness: 300 },
+	};
+	const mobileAnim = {
+		initial: { y: reduceMotion ? 0 : '100%' },
+		animate: { y: 0 },
+		exit: { y: reduceMotion ? 0 : '100%' },
+		transition: {
+			type: 'spring' as const,
+			damping: 30,
+			stiffness: 350,
+			mass: 0.8,
+		},
+	};
+	const anim = isDesktop ? desktopAnim : mobileAnim;
+
 	return (
 		<motion.div
 			ref={dialogRef}
@@ -173,16 +194,15 @@ export default function FocusOverlay({
 			aria-modal="true"
 			aria-labelledby="focus-title"
 			tabIndex={-1}
-			initial={{ y: reduceMotion ? 0 : '100%' }}
-			animate={{ y: 0 }}
-			exit={{ y: reduceMotion ? 0 : '100%' }}
-			transition={{
-				type: 'spring',
-				damping: 30,
-				stiffness: 350,
-				mass: 0.8,
-			}}
-			className="fixed inset-0 z-[60] bg-[var(--bg)] flex flex-col items-center justify-center px-6 text-center"
+			initial={anim.initial}
+			animate={anim.animate}
+			exit={anim.exit}
+			transition={anim.transition}
+			className={`fixed inset-0 z-[60] flex flex-col items-center justify-center px-6 text-center ${
+				isDesktop
+					? 'bg-[var(--surface-glass-strong)] backdrop-blur-2xl'
+					: 'bg-[var(--bg)]'
+			}`}
 			style={{
 				paddingTop:
 					'max(env(safe-area-inset-top), var(--tg-content-safe-top, 0px))',

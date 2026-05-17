@@ -77,10 +77,10 @@ export default function HabitsTab({
 	};
 
 	const scrollClasses = cn(
-		'h-full w-full overflow-y-auto pt-2 touch-pan-y overscroll-contain no-scrollbar',
+		'h-full w-full touch-pan-y overscroll-contain',
 		isDesktop
-			? 'pb-8 pt-4 px-0'
-			: 'pb-32 pl-[max(1rem,env(safe-area-inset-left),var(--tg-content-safe-left,0px))] pr-[max(1rem,env(safe-area-inset-right),var(--tg-content-safe-right,0px))]',
+			? 'overflow-y-auto custom-scrollbar px-6 pb-12 pt-6'
+			: 'overflow-y-auto no-scrollbar pb-32 pt-2 pl-[max(1rem,env(safe-area-inset-left),var(--tg-content-safe-left,0px))] pr-[max(1rem,env(safe-area-inset-right),var(--tg-content-safe-right,0px))]',
 	);
 
 	if (isLoading) {
@@ -112,7 +112,13 @@ export default function HabitsTab({
 	return (
 		<div className={scrollClasses}>
 			{/* Habits list */}
-			<div className="flex flex-col gap-3">
+			<div
+				className={cn(
+					isDesktop
+						? 'grid grid-cols-2 items-start gap-4'
+						: 'flex flex-col gap-3',
+				)}
+			>
 				<AnimatePresence mode="popLayout">
 					{habits.map((habit) => (
 						<motion.div
@@ -136,7 +142,12 @@ export default function HabitsTab({
 				</AnimatePresence>
 
 				{habits.length === 0 && !showAddForm && (
-					<div className="flex flex-col items-center justify-center py-16 text-center">
+					<div
+						className={cn(
+							'flex flex-col items-center justify-center py-16 text-center',
+							isDesktop && 'col-span-2',
+						)}
+					>
 						<div className="text-[48px] mb-4">🌱</div>
 						<h3 className="text-lg font-bold text-[var(--ink)] font-[var(--font-display)] mb-2">
 							Нет привычек
@@ -155,7 +166,10 @@ export default function HabitsTab({
 							initial={{ opacity: 0, height: 0 }}
 							animate={{ opacity: 1, height: 'auto' }}
 							exit={{ opacity: 0, height: 0 }}
-							className="overflow-hidden"
+							className={cn(
+								'overflow-hidden',
+								isDesktop && 'col-span-2',
+							)}
 						>
 							<HabitForm
 								onSubmit={handleSubmit}
@@ -164,11 +178,33 @@ export default function HabitsTab({
 						</motion.div>
 					)}
 				</AnimatePresence>
+
+				{/* Inline "new habit" card for desktop */}
+				{isDesktop && !showAddForm && (
+					<motion.button
+						type="button"
+						initial={{ opacity: 0, scale: 0.95 }}
+						animate={{ opacity: 1, scale: 1 }}
+						whileTap={{ scale: 0.98 }}
+						onClick={() => {
+							setDeletingId(null);
+							setShowAddForm(true);
+						}}
+						className="flex min-h-[160px] w-full flex-col items-center justify-center gap-3 rounded-[24px] border-2 border-dashed border-[var(--border)] bg-transparent p-6 text-[var(--muted)] outline-none transition-colors hover:border-[var(--accent)] hover:bg-[var(--surface-2)] hover:text-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+						aria-label="Новая привычка"
+					>
+						<Plus size={32} strokeWidth={2} />
+						<span className="text-[15px] font-bold">
+							Новая привычка
+						</span>
+					</motion.button>
+				)}
 			</div>
 
-			{/* FAB for adding habit */}
-			{!showAddForm && (
+			{/* FAB for adding habit — mobile only */}
+			{!isDesktop && !showAddForm && (
 				<motion.button
+					type="button"
 					initial={{ scale: 0 }}
 					animate={{ scale: 1 }}
 					whileTap={{ scale: 0.9 }}
@@ -176,12 +212,7 @@ export default function HabitsTab({
 						setDeletingId(null);
 						setShowAddForm(true);
 					}}
-					className={cn(
-						'fixed z-40 flex h-14 w-14 items-center justify-center rounded-full bg-[var(--accent)] text-[var(--accent-ink)] shadow-lg',
-						isDesktop
-							? 'bottom-8 right-8'
-							: 'bottom-[calc(5.5rem+max(env(safe-area-inset-bottom),var(--tg-content-safe-bottom,0px)))] right-[max(1rem,env(safe-area-inset-right),var(--tg-content-safe-right,0px))]',
-					)}
+					className="fixed z-40 flex h-14 w-14 items-center justify-center rounded-full bg-[var(--accent)] text-[var(--accent-ink)] shadow-lg bottom-[calc(5.5rem+max(env(safe-area-inset-bottom),var(--tg-content-safe-bottom,0px)))] right-[max(1rem,env(safe-area-inset-right),var(--tg-content-safe-right,0px))]"
 					aria-label="Добавить привычку"
 				>
 					<Plus size={24} strokeWidth={2.5} />
