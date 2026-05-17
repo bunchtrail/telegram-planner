@@ -12,6 +12,7 @@ export type ChecklistEditorProps = {
 	onAddItem: (value: string) => void;
 	onDeleteItem: (index: number) => void;
 	onToggleItem: (index: number) => void;
+	readOnly?: boolean;
 	reduceMotion?: boolean;
 	taskColor: string;
 	taskId: string;
@@ -22,6 +23,7 @@ type ChecklistRowProps = {
 	item: TaskChecklistItem;
 	onDeleteItem: (index: number) => void;
 	onToggleItem: (index: number) => void;
+	readOnly: boolean;
 	reduceMotion: boolean;
 };
 
@@ -30,86 +32,98 @@ function ChecklistRow({
 	item,
 	onDeleteItem,
 	onToggleItem,
+	readOnly,
 	reduceMotion,
 }: ChecklistRowProps) {
+	const checkIcon = item.done ? (
+		reduceMotion ? (
+			<Check size={12} className="text-[var(--bg)]" strokeWidth={3.5} />
+		) : (
+			<motion.div
+				initial={{ scale: 0 }}
+				animate={{ scale: 1 }}
+				transition={{
+					type: 'spring',
+					stiffness: 400,
+					damping: 25,
+				}}
+			>
+				<Check size={12} className="text-[var(--bg)]" strokeWidth={3.5} />
+			</motion.div>
+		)
+	) : null;
+
+	const checkboxClass = cn(
+		'flex-shrink-0 w-5 h-5 rounded-md border-[1.5px] flex items-center justify-center',
+		reduceMotion ? '' : 'transition-colors duration-200',
+		item.done
+			? 'bg-[var(--ink)] border-[var(--ink)]'
+			: reduceMotion
+				? 'border-[var(--muted)]/40'
+				: readOnly
+					? 'border-[var(--muted)]/40'
+					: 'border-[var(--muted)]/40 hover:border-[var(--accent)]',
+	);
+
+	const textClass = cn(
+		'flex-1 text-left text-[14px] leading-snug break-words select-none font-medium rounded-lg outline-none',
+		reduceMotion ? '' : 'transition-colors duration-300',
+		item.done
+			? 'text-[var(--muted)] line-through decoration-[var(--muted)] decoration-2'
+			: 'text-[var(--ink)]',
+	);
+
 	return (
 		<div
 			className={cn(
 				'group flex items-center gap-3 w-full rounded-2xl px-3 py-2.5 border border-[var(--border)]/30',
-				reduceMotion
+				reduceMotion || readOnly
 					? 'bg-[var(--surface-2)]/50'
 					: 'bg-[var(--surface-2)]/50 hover:bg-[var(--surface-2)] transition-colors hover:border-[var(--border)]/60',
 			)}
 		>
-			<button
-				type="button"
-				onClick={() => onToggleItem(index)}
-				aria-label={`Отметить шаг ${item.text}`}
-				className={cn(
-					'flex-shrink-0 w-5 h-5 rounded-md border-[1.5px] flex items-center justify-center',
-					reduceMotion ? '' : 'transition-colors duration-200',
-					item.done
-						? 'bg-[var(--ink)] border-[var(--ink)]'
-						: reduceMotion
-							? 'border-[var(--muted)]/40'
-							: 'border-[var(--muted)]/40 hover:border-[var(--accent)]',
-				)}
-			>
-				{item.done ? (
-					reduceMotion ? (
-						<Check
-							size={12}
-							className="text-[var(--bg)]"
-							strokeWidth={3.5}
-						/>
-					) : (
-						<motion.div
-							initial={{ scale: 0 }}
-							animate={{ scale: 1 }}
-							transition={{
-								type: 'spring',
-								stiffness: 400,
-								damping: 25,
-							}}
-						>
-							<Check
-								size={12}
-								className="text-[var(--bg)]"
-								strokeWidth={3.5}
-							/>
-						</motion.div>
-					)
-				) : null}
-			</button>
+			{readOnly ? (
+				<>
+					<span aria-hidden="true" className={checkboxClass}>
+						{checkIcon}
+					</span>
+					<span className={textClass}>{item.text}</span>
+				</>
+			) : (
+				<>
+					<button
+						type="button"
+						onClick={() => onToggleItem(index)}
+						aria-label={`Отметить шаг ${item.text}`}
+						className={checkboxClass}
+					>
+						{checkIcon}
+					</button>
 
-			<button
-				type="button"
-				onClick={() => onToggleItem(index)}
-				aria-label={`Переключить шаг ${item.text}`}
-				className={cn(
-					'flex-1 text-left text-[14px] leading-snug break-words select-none font-medium rounded-lg outline-none',
-					reduceMotion ? '' : 'transition-colors duration-300',
-					item.done
-						? 'text-[var(--muted)] line-through decoration-[var(--muted)] decoration-2'
-						: 'text-[var(--ink)]',
-				)}
-			>
-				{item.text}
-			</button>
+					<button
+						type="button"
+						onClick={() => onToggleItem(index)}
+						aria-label={`Переключить шаг ${item.text}`}
+						className={textClass}
+					>
+						{item.text}
+					</button>
 
-			<button
-				type="button"
-				onClick={() => onDeleteItem(index)}
-				aria-label={`Удалить шаг ${item.text}`}
-				className={cn(
-					'w-6 h-6 flex items-center justify-center rounded-full text-[var(--muted)]/40 outline-none',
-					reduceMotion
-						? 'opacity-100'
-						: 'hover:text-[var(--danger)] hover:bg-[var(--danger)]/10 focus-visible:opacity-100 focus-visible:text-[var(--danger)] focus-visible:bg-[var(--danger)]/10 focus-visible:ring-2 focus-visible:ring-[var(--danger)]/20 transition-[transform,opacity,colors] active:scale-90 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100',
-				)}
-			>
-				<X size={14} />
-			</button>
+					<button
+						type="button"
+						onClick={() => onDeleteItem(index)}
+						aria-label={`Удалить шаг ${item.text}`}
+						className={cn(
+							'w-6 h-6 flex items-center justify-center rounded-full text-[var(--muted)]/40 outline-none',
+							reduceMotion
+								? 'opacity-100'
+								: 'hover:text-[var(--danger)] hover:bg-[var(--danger)]/10 focus-visible:opacity-100 focus-visible:text-[var(--danger)] focus-visible:bg-[var(--danger)]/10 focus-visible:ring-2 focus-visible:ring-[var(--danger)]/20 transition-[transform,opacity,colors] active:scale-90 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100',
+						)}
+					>
+						<X size={14} />
+					</button>
+				</>
+			)}
 		</div>
 	);
 }
@@ -119,6 +133,7 @@ export default function ChecklistEditor({
 	onAddItem,
 	onDeleteItem,
 	onToggleItem,
+	readOnly = false,
 	reduceMotion = false,
 	taskColor,
 	taskId,
@@ -186,6 +201,7 @@ export default function ChecklistEditor({
 								item={item}
 								onDeleteItem={onDeleteItem}
 								onToggleItem={onToggleItem}
+								readOnly={readOnly}
 								reduceMotion
 							/>
 						</li>
@@ -205,6 +221,7 @@ export default function ChecklistEditor({
 									item={item}
 									onDeleteItem={onDeleteItem}
 									onToggleItem={onToggleItem}
+									readOnly={readOnly}
 									reduceMotion={false}
 								/>
 							</motion.li>
@@ -213,7 +230,7 @@ export default function ChecklistEditor({
 				)}
 			</ul>
 
-			<ChecklistInput onSubmit={onAddItem} />
+			{readOnly ? null : <ChecklistInput onSubmit={onAddItem} />}
 		</div>
 	);
 }
