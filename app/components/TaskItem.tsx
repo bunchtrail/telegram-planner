@@ -480,6 +480,7 @@ const TaskItem = memo(function TaskItem({
 										onAddItem={handleAddChecklistItem}
 										onDeleteItem={handleDeleteChecklistItem}
 										onToggleItem={handleToggleChecklistItem}
+										readOnly
 										reduceMotion={reduceMotion}
 										taskColor={task.color}
 										taskId={task.id}
