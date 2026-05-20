@@ -284,26 +284,37 @@ export default function DesktopPlannerShell({
           )}
         </header>
 
-        <div className="shrink-0 border-b border-[var(--border)] bg-[var(--bg)]/80 px-12 backdrop-blur">
-          <div className="flex gap-1">
-            {PLANNER_TABS.map((tab) => {
-              const Icon = tab.id === 'tasks' ? ListTodo : Sparkles;
+        <div className="shrink-0 border-b border-[var(--border)] bg-[var(--bg)]/80 px-12 py-2 backdrop-blur">
+          <div className="flex justify-center">
+            <div className="relative flex gap-1 rounded-full border border-[var(--border)] bg-[var(--surface)] p-1 shadow-sm">
+              {PLANNER_TABS.map((tab) => {
+                const Icon = tab.id === 'tasks' ? ListTodo : Sparkles;
+                const isActive = ui.activeTab === tab.id;
 
-              return (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => ui.setActiveTab(tab.id)}
-                  className={`flex items-center gap-2 border-b-2 px-5 py-3 text-sm font-bold transition-colors ${
-                    ui.activeTab === tab.id
-                      ? 'border-[var(--accent)] text-[var(--accent)]'
-                      : 'border-transparent text-[var(--muted)] hover:text-[var(--ink)]'
-                  }`}
-                >
-                  <Icon size={18} /> {tab.label}
-                </button>
-              );
-            })}
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => ui.setActiveTab(tab.id)}
+                    className={`relative z-10 flex items-center gap-2 rounded-full px-5 py-2 text-sm font-bold transition-colors ${
+                      isActive
+                        ? 'text-[var(--accent-ink)]'
+                        : 'text-[var(--muted)] hover:text-[var(--ink)]'
+                    }`}
+                  >
+                    {isActive && (
+                      <motion.div
+                        layoutId="desktop-tab-pill"
+                        className="absolute inset-0 rounded-full bg-[var(--accent)] shadow-[var(--shadow-glow)]"
+                        transition={{ type: 'spring', stiffness: 500, damping: 35 }}
+                      />
+                    )}
+                    <span className="relative z-10"><Icon size={18} /></span>
+                    <span className="relative z-10">{tab.label}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
 

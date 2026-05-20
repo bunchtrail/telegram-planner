@@ -130,40 +130,48 @@ export default function MobilePlannerShell({
         ) : (
           <MobileHabitsTab {...habitsTabProps} />
         )}
-        <div className="pointer-events-none absolute bottom-0 left-0 right-0 z-20 h-16 bg-gradient-to-t from-[var(--bg)] to-transparent" />
-      </main>
+        <div className="pointer-events-none absolute bottom-0 left-0 right-0 z-20 h-20 bg-gradient-to-t from-[var(--bg)] to-transparent" />
 
-      {!isKeyboardOpen && (
-        <div
-          className="relative z-30 flex-none border-t border-[var(--border)] bg-[var(--surface)]"
-          style={{
-            paddingBottom:
-              'max(env(safe-area-inset-bottom), var(--tg-content-safe-bottom, 0px))',
-          }}
-        >
-          <div className="flex">
-            {PLANNER_TABS.map((tab) => {
-              const Icon = tab.id === 'tasks' ? ListTodo : Sparkles;
+        {!isKeyboardOpen && (
+          <div
+            className="absolute bottom-0 left-0 right-0 z-30 flex justify-center"
+            style={{
+              paddingBottom:
+                'calc(12px + max(env(safe-area-inset-bottom), var(--tg-content-safe-bottom, 0px)))',
+            }}
+          >
+            <div className="relative flex gap-1 rounded-full border border-[var(--border)] bg-[var(--surface-glass)] p-1 shadow-[var(--shadow-pop)] backdrop-blur-xl">
+              {PLANNER_TABS.map((tab) => {
+                const Icon = tab.id === 'tasks' ? ListTodo : Sparkles;
+                const isActive = ui.activeTab === tab.id;
 
-              return (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => ui.setActiveTab(tab.id)}
-                  className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 transition-colors ${
-                    ui.activeTab === tab.id
-                      ? 'text-[var(--accent)]'
-                      : 'text-[var(--muted)]'
-                  }`}
-                >
-                  <Icon size={22} />
-                  <span className="text-[10px] font-bold">{tab.label}</span>
-                </button>
-              );
-            })}
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => ui.setActiveTab(tab.id)}
+                    className={`relative z-10 flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold transition-colors ${
+                      isActive
+                        ? 'text-[var(--accent-ink)]'
+                        : 'text-[var(--muted)]'
+                    }`}
+                  >
+                    {isActive && (
+                      <motion.div
+                        layoutId="tab-pill"
+                        className="absolute inset-0 rounded-full bg-[var(--accent)] shadow-[var(--shadow-glow)]"
+                        transition={{ type: 'spring', stiffness: 500, damping: 35 }}
+                      />
+                    )}
+                    <span className="relative z-10"><Icon size={16} /></span>
+                    <span className="relative z-10">{tab.label}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </main>
 
       <AnimatePresence>
         {planner.isSyncing && (
