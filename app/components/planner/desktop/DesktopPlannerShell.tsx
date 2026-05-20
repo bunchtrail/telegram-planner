@@ -51,6 +51,7 @@ export default function DesktopPlannerShell({
     onToday: planner.goToToday,
     onOpenStats: ui.openStats,
     onOpenRecurring: ui.openRecurring,
+    streak: planner.streak,
   };
 
   const taskListProps = {

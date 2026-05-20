@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useRef, useState } from 'react';
 import { format } from 'date-fns';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Clock, ListTodo, Sparkles } from 'lucide-react';
@@ -44,6 +45,7 @@ export default function MobilePlannerShell({
     onToday: planner.goToToday,
     onOpenStats: ui.openStats,
     onOpenRecurring: ui.openRecurring,
+    streak: planner.streak,
   };
 
   const taskListProps = {
@@ -117,6 +119,33 @@ export default function MobilePlannerShell({
     : null;
 
   const showFocusShortcut = Boolean(planner.activeTaskId && !ui.showFocus);
+
+  // --- Streak milestone toast ---
+  const STREAK_MILESTONES: Record<number, string> = {
+    3: '🔥 3 дня в огне! Отличный старт!',
+    7: '🔥 Неделя подряд! Ты машина!',
+    14: '🔥 14 дней! Невероятная дисциплина!',
+    30: '🔥 Месяц! Ты легенда!',
+    50: '🔥 50 дней! Просто космос!',
+    100: '🔥 100 дней! Ты — живая легенда!',
+  };
+  const [streakToast, setStreakToast] = useState<string | null>(null);
+  const prevStreakRef = useRef(planner.streak);
+
+  useEffect(() => {
+    const prev = prevStreakRef.current;
+    const curr = planner.streak;
+    prevStreakRef.current = curr;
+
+    if (curr > prev && curr > 0) {
+      const msg = STREAK_MILESTONES[curr];
+      if (msg) {
+        setStreakToast(msg);
+        const timer = setTimeout(() => setStreakToast(null), 4000);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [planner.streak]);
 
   return (
     <div className="fixed inset-0 flex flex-col overflow-hidden bg-[var(--bg)] font-sans text-[var(--ink)]">
@@ -283,6 +312,24 @@ export default function MobilePlannerShell({
               >
                 Отменить
               </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {streakToast && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.9 }}
+            className="fixed bottom-[calc(8rem+max(env(safe-area-inset-bottom),var(--tg-content-safe-bottom,0px)))] left-[max(1rem,env(safe-area-inset-left),var(--tg-content-safe-left,0px))] right-[max(1rem,env(safe-area-inset-right),var(--tg-content-safe-right,0px))] z-40 mx-auto max-w-sm"
+            role="status"
+            aria-live="polite"
+          >
+            <div className="flex items-center gap-3 rounded-2xl border border-orange-500/20 bg-[var(--surface)] px-5 py-4 text-sm font-bold shadow-[var(--shadow-pop)] backdrop-blur-md">
+              <span className="text-lg">🔥</span>
+              <span className="text-[var(--ink)]">{streakToast}</span>
             </div>
           </motion.div>
         )}

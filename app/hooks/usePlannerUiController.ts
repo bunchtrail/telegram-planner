@@ -274,6 +274,8 @@ export function usePlannerUiController(
           fire(window.innerWidth / 2, window.innerHeight, 'climax');
           notification('success');
           setDayCompleteKey(selectedDateKeyRef.current);
+          // Refresh streak after completing all tasks
+          planner.refetchStreak?.();
 
           if (dayCompleteTimeoutRef.current) {
             window.clearTimeout(dayCompleteTimeoutRef.current);

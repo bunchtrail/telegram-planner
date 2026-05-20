@@ -26,6 +26,7 @@ export type PlannerHeaderViewModel = {
   onToday: PlannerModel['goToToday'];
   onOpenStats: PlannerUiController['openStats'];
   onOpenRecurring: PlannerUiController['openRecurring'];
+  streak: number;
 };
 
 export const PLANNER_TABS: ReadonlyArray<{

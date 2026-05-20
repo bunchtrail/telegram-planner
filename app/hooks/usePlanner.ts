@@ -281,7 +281,7 @@ export function usePlanner() {
 
 	// --- Streak (TanStack Query) ---
 
-	const streak = useStreak({ userId, runWithAuthRetry });
+	const { streak, refetchStreak } = useStreak({ userId, runWithAuthRetry });
 
 	// --- Habits ---
 
@@ -656,6 +656,7 @@ export function usePlanner() {
 		setIsAddOpen,
 		tasks,
 		streak,
+		refetchStreak,
 		currentTasks,
 		weekDays,
 		monthDays,
