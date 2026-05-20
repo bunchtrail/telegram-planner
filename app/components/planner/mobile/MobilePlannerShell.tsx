@@ -120,9 +120,21 @@ export default function MobilePlannerShell({
 
   return (
     <div className="fixed inset-0 flex flex-col overflow-hidden bg-[var(--bg)] font-sans text-[var(--ink)]">
-      <div className="relative z-10 flex-none">
-        <PlannerHeader header={header} />
-      </div>
+      <AnimatePresence initial={false}>
+        {!ui.sheet.isOpen && (
+          <motion.div
+            key="planner-header"
+            className="relative z-10 flex-none"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ type: 'spring', damping: 28, stiffness: 350 }}
+            style={{ overflow: 'hidden' }}
+          >
+            <PlannerHeader header={header} />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <main className="relative h-full w-full flex-1 overflow-hidden">
         {ui.activeTab === 'tasks' ? (
