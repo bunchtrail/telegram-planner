@@ -121,7 +121,7 @@ export default function MobilePlannerShell({
   return (
     <div className="fixed inset-0 flex flex-col overflow-hidden bg-[var(--bg)] font-sans text-[var(--ink)]">
       <AnimatePresence initial={false}>
-        {!ui.sheet.isOpen && (
+        {!ui.sheet.isOpen && !isKeyboardOpen && (
           <motion.div
             key="planner-header"
             className="relative z-10 flex-none"
