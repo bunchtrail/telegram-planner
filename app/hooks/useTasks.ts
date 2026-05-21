@@ -881,6 +881,7 @@ export function useTasks(config: UseTasksConfig) {
 			color: Task['color'] = DEFAULT_TASK_COLOR,
 			startMinutes: number | null = null,
 			remindBeforeMinutes = 0,
+			initialChecklist: string[] = [],
 		) => {
 			const trimmedTitle = normalizeTaskTitle(title);
 			if (!isTaskTitleValid(trimmedTitle) || !userId) return;
@@ -918,7 +919,7 @@ export function useTasks(config: UseTasksConfig) {
 					series_id: null,
 					color: resolvedColor,
 					is_pinned: false,
-					checklist: [],
+					checklist: initialChecklist.map((text) => ({ text, done: false })),
 					start_minutes: normalizedStartMinutes,
 					remind_before_minutes: normalizedRemindBefore,
 					remind_at: remindAt,
@@ -938,7 +939,7 @@ export function useTasks(config: UseTasksConfig) {
 					activeStartedAt: null,
 					color: resolvedColor,
 					isPinned: false,
-					checklist: [],
+					checklist: initialChecklist.map((text) => ({ text, done: false })),
 					startMinutes: normalizedStartMinutes,
 					remindBeforeMinutes: normalizedRemindBefore,
 				};
@@ -958,7 +959,7 @@ export function useTasks(config: UseTasksConfig) {
 							series_id: null,
 							color: resolvedColor,
 							is_pinned: false,
-							checklist: [],
+							checklist: initialChecklist.map((text) => ({ text, done: false })),
 							start_minutes: normalizedStartMinutes,
 							remind_before_minutes: normalizedRemindBefore,
 							remind_at: remindAt,
@@ -1040,7 +1041,7 @@ export function useTasks(config: UseTasksConfig) {
 				series_id: seriesId,
 				color: resolvedColor,
 				is_pinned: false,
-				checklist: [],
+				checklist: initialChecklist.map((text) => ({ text, done: false })),
 				start_minutes: normalizedStartMinutes,
 				remind_before_minutes: normalizedRemindBefore,
 				remind_at: remindAt,
@@ -1060,7 +1061,7 @@ export function useTasks(config: UseTasksConfig) {
 				activeStartedAt: null,
 				color: resolvedColor,
 				isPinned: false,
-				checklist: [],
+				checklist: initialChecklist.map((text) => ({ text, done: false })),
 				startMinutes: normalizedStartMinutes,
 				remindBeforeMinutes: normalizedRemindBefore,
 			};
@@ -1080,7 +1081,7 @@ export function useTasks(config: UseTasksConfig) {
 						series_id: seriesId,
 						color: resolvedColor,
 						is_pinned: false,
-						checklist: [],
+						checklist: initialChecklist.map((text) => ({ text, done: false })),
 						start_minutes: normalizedStartMinutes,
 						remind_before_minutes: normalizedRemindBefore,
 						remind_at: remindAt,

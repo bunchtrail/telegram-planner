@@ -25,6 +25,26 @@ export default function MobilePlannerShell({
 }: PlannerShellProps) {
   const keyboardHeight = useKeyboardInset();
   const isKeyboardOpen = keyboardHeight > 0;
+
+  // Universal input focus detection (works on Android too)
+  const [isInputFocused, setIsInputFocused] = useState(false);
+  useEffect(() => {
+    const onFocusIn = (e: FocusEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || (e.target as HTMLElement)?.isContentEditable) {
+        setIsInputFocused(true);
+      }
+    };
+    const onFocusOut = () => setIsInputFocused(false);
+    document.addEventListener("focusin", onFocusIn);
+    document.addEventListener("focusout", onFocusOut);
+    return () => {
+      document.removeEventListener("focusin", onFocusIn);
+      document.removeEventListener("focusout", onFocusOut);
+    };
+  }, []);
+
+  // Universal input focus detection (works on Android too)
   const editingTask = ui.sheet.editingTask;
   const focusTask = ui.activeTask;
 
@@ -150,15 +170,18 @@ export default function MobilePlannerShell({
   return (
     <div className="fixed inset-0 flex flex-col overflow-hidden bg-[var(--bg)] font-sans text-[var(--ink)]">
       <AnimatePresence initial={false}>
-        {!ui.sheet.isOpen && !isKeyboardOpen && (
+        {!ui.sheet.isOpen && !isKeyboardOpen && !isInputFocused && ui.activeTab === 'tasks' && (
           <motion.div
             key="planner-header"
             className="relative z-10 flex-none"
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ type: 'spring', damping: 28, stiffness: 350 }}
-            style={{ overflow: 'hidden' }}
+            transition={{
+              height: { duration: 0.3, ease: [0.4, 0, 0.2, 1] },
+              opacity: { duration: 0.2, ease: 'easeInOut' },
+            }}
+            style={{ overflow: 'hidden', willChange: 'height, opacity' }}
           >
             <PlannerHeader header={header} />
           </motion.div>

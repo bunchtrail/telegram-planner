@@ -3,7 +3,7 @@
 import { useCallback, useRef, useState } from 'react';
 import { cn } from '../lib/cn';
 import { DEFAULT_TASK_COLOR } from '../lib/constants';
-import type { TaskRepeat } from '../types/task';
+import type { TaskChecklistItem, TaskRepeat } from '../types/task';
 import BottomSheet from './planner/shared/ui/BottomSheet';
 import ModalHeader from './planner/shared/ui/ModalHeader';
 import TaskForm, {
@@ -29,6 +29,7 @@ type TaskSheetProps = {
     color: string,
     startMinutes: number | null,
     remindBeforeMinutes: number,
+    checklist: string[],
   ) => void;
   isDesktop?: boolean;
 };
@@ -78,6 +79,7 @@ export default function TaskSheet({
         value.color,
         value.startMinutes,
         value.remindBeforeMinutes,
+        value.checklist,
       );
     },
     [onSubmit],

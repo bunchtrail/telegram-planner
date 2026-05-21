@@ -195,6 +195,7 @@ export function usePlannerUiController(
       color: string,
       startMinutes: number | null,
       remindBeforeMinutes: number,
+      checklist: string[] = [],
     ) => {
       if (sheetModeRef.current === 'create') {
         addTask(
@@ -205,6 +206,7 @@ export function usePlannerUiController(
           color,
           startMinutes,
           remindBeforeMinutes,
+          checklist,
         );
       } else if (editingTaskRef.current) {
         updateTask(editingTaskRef.current.id, {

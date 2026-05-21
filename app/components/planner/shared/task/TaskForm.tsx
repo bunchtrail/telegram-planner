@@ -27,12 +27,14 @@ import TaskReminderSection from './TaskReminderSection';
 import TaskRepeatSection from './TaskRepeatSection';
 import TaskScheduleSection from './TaskScheduleSection';
 import TaskTitleField from './TaskTitleField';
+import ChecklistInput from './ChecklistInput';
 
 const DEFAULT_REPEAT_COUNT = 7;
 const MOBILE_DIVIDER_CLASS_NAME =
   'mx-8 h-px shrink-0 bg-gradient-to-r from-transparent via-[var(--border)]/50 to-transparent';
 
 export type TaskFormValue = {
+  checklist: string[];
   color: string;
   duration: number;
   remindBeforeMinutes: number;
@@ -67,6 +69,7 @@ const assignRef = <T,>(ref: Ref<T> | undefined, value: T | null) => {
 const createInitialValue = (
   initialValue?: Partial<TaskFormValue>,
 ): TaskFormValue => ({
+  checklist: initialValue?.checklist ?? [],
   title: initialValue?.title ?? '',
   duration: normalizeTaskDuration(initialValue?.duration ?? 30),
   repeat: initialValue?.repeat ?? 'none',
@@ -139,6 +142,7 @@ const TaskForm = forwardRef<HTMLFormElement, TaskFormProps>(
 
       onSubmit({
         title,
+        checklist: value.checklist,
         duration: normalizeTaskDuration(value.duration),
         repeat: value.repeat,
         repeatCount: Math.max(1, Math.floor(value.repeatCount)),
@@ -170,6 +174,43 @@ const TaskForm = forwardRef<HTMLFormElement, TaskFormProps>(
             }
             value={value.title}
           />
+        </div>
+
+
+        {/* Checklist / subtasks */}
+        <div className={cn('shrink-0', isDesktop ? 'mb-4' : 'px-6 mt-3')}>
+          <div className="flex flex-col gap-1.5">
+            {value.checklist.map((item, idx) => (
+              <div
+                key={idx}
+                className="flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface-2)]/50 px-3 py-2 text-sm text-[var(--ink)]"
+              >
+                <span className="text-[var(--muted)] text-xs">•</span>
+                <span className="flex-1 truncate">{item}</span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setValue((c) => ({
+                      ...c,
+                      checklist: c.checklist.filter((_, i) => i !== idx),
+                    }))
+                  }
+                  className="text-[var(--muted)] hover:text-[var(--danger)] transition-colors shrink-0"
+                  aria-label="Удалить шаг"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+              </div>
+            ))}
+            <ChecklistInput
+              onSubmit={(text) =>
+                setValue((c) => ({
+                  ...c,
+                  checklist: [...c.checklist, text],
+                }))
+              }
+            />
+          </div>
         </div>
 
         <div
