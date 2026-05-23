@@ -14,7 +14,9 @@ type HabitCardProps = {
   isChecked: (habitId: string, date: string) => boolean;
   isDeleting: boolean;
   isLogPending?: (habitId: string, date: string) => boolean;
-  onDelete: (habitId: string) => void;
+  onCancelDelete?: () => void;
+  onConfirmDelete: (habitId: string) => void;
+  onRequestDelete: (habitId: string) => void;
   onToggleLog: (habitId: string, date: string) => void;
   weekDays: Date[];
 };
@@ -24,7 +26,9 @@ export default function HabitCard({
   isChecked,
   isDeleting,
   isLogPending,
-  onDelete,
+  onCancelDelete,
+  onConfirmDelete,
+  onRequestDelete,
   onToggleLog,
   weekDays,
 }: HabitCardProps) {
@@ -63,9 +67,9 @@ export default function HabitCard({
     longPressTriggered.current = false;
     longPressTimer.current = setTimeout(() => {
       longPressTriggered.current = true;
-      onDelete(habit.id);
+      onRequestDelete(habit.id);
     }, 600);
-  }, [habit.id, onDelete]);
+  }, [habit.id, onRequestDelete]);
 
   const handlePressEnd = useCallback(() => {
     if (longPressTimer.current) {
@@ -199,13 +203,21 @@ export default function HabitCard({
           transition={reduceMotion ? { duration: 0 } : { duration: 0.2, ease: 'easeOut' }}
           className="mt-3 pt-3 border-t border-[rgba(0,0,0,0.04)]"
         >
-          <button
-            onClick={() => onDelete(habit.id)}
-            className="flex items-center gap-2 text-[13px] font-semibold text-[var(--danger)] w-full justify-center py-1"
-          >
-            <Trash2 size={14} />
-            Удалить привычку
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => onConfirmDelete(habit.id)}
+              className="flex-1 flex items-center justify-center gap-2 h-10 rounded-xl bg-[var(--danger)]/10 text-[var(--danger)] text-[13px] font-bold active:scale-[0.96] transition-transform"
+            >
+              <Trash2 size={14} />
+              Удалить
+            </button>
+            <button
+              onClick={onCancelDelete}
+              className="flex-1 flex items-center justify-center gap-2 h-10 rounded-xl bg-[var(--surface-2)] text-[var(--muted)] text-[13px] font-bold active:scale-[0.96] transition-transform"
+            >
+              Отмена
+            </button>
+          </div>
         </motion.div>
       )}
       </AnimatePresence>

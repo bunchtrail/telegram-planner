@@ -72,21 +72,29 @@ export default function HabitsTab({
 		setShowAddForm(false);
 	};
 
-	const handleDelete = (id: string) => {
+	const handleRequestDelete = (id: string) => {
 		if (deleteResetTimeoutRef.current) {
 			clearTimeout(deleteResetTimeoutRef.current);
 			deleteResetTimeoutRef.current = null;
 		}
-		if (deletingId === id) {
-			onDeleteHabit(id);
-			setDeletingId(null);
-		} else {
-			setDeletingId(id);
-			deleteResetTimeoutRef.current = setTimeout(() => {
-				setDeletingId((c) => (c === id ? null : c));
-				deleteResetTimeoutRef.current = null;
-			}, 3000);
+		setDeletingId(id);
+	};
+
+	const handleConfirmDelete = (id: string) => {
+		if (deleteResetTimeoutRef.current) {
+			clearTimeout(deleteResetTimeoutRef.current);
+			deleteResetTimeoutRef.current = null;
 		}
+		onDeleteHabit(id);
+		setDeletingId(null);
+	};
+
+	const handleCancelDelete = () => {
+		if (deleteResetTimeoutRef.current) {
+			clearTimeout(deleteResetTimeoutRef.current);
+			deleteResetTimeoutRef.current = null;
+		}
+		setDeletingId(null);
 	};
 
 	const safeTop =
@@ -200,7 +208,9 @@ export default function HabitsTab({
 								isChecked={isChecked}
 								isDeleting={deletingId === habit.id}
 								isLogPending={isLogPending}
-								onDelete={handleDelete}
+								onCancelDelete={handleCancelDelete}
+							onConfirmDelete={handleConfirmDelete}
+							onRequestDelete={handleRequestDelete}
 								onToggleLog={onToggleLog}
 								weekDays={weekDays}
 							/>
