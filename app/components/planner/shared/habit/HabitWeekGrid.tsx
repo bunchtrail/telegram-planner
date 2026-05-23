@@ -1,6 +1,6 @@
 'use client';
 
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { cn } from '@/app/lib/cn';
@@ -24,6 +24,7 @@ export default function HabitWeekGrid({
   isPending,
   onToggle,
 }: HabitWeekGridProps) {
+  const reduceMotion = Boolean(useReducedMotion());
   const todayKey = format(new Date(), 'yyyy-MM-dd');
 
   return (
@@ -54,7 +55,7 @@ export default function HabitWeekGrid({
             {/* Dot */}
             <motion.button
               type="button"
-              whileTap={{ scale: 0.8 }}
+              whileTap={reduceMotion ? undefined : { scale: 0.8 }}
               disabled={pending || isFuture}
               onClick={() => {
                 if (!pending && !isFuture) onToggle(habitId, dateKey);

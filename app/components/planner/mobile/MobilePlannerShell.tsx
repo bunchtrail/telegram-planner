@@ -243,6 +243,7 @@ export default function MobilePlannerShell({
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 8 }}
+            transition={{ duration: 0.2, ease: 'easeOut' }}
             className="fixed z-40 top-[calc(max(env(safe-area-inset-top),var(--tg-content-safe-top,0px))+0.75rem)] right-[max(1rem,env(safe-area-inset-right),var(--tg-content-safe-right,0px))]"
             role="status"
             aria-live="polite"
@@ -364,6 +365,7 @@ export default function MobilePlannerShell({
             initial={{ opacity: 0, scale: 0.5, y: -20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 20 }}
             className="fixed top-1/2 left-1/2 z-50 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
             role="status"
             aria-live="polite"

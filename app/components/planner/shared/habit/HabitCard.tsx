@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useCallback, useMemo } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { Check, Trash2 } from 'lucide-react';
@@ -31,6 +31,8 @@ export default function HabitCard({
   const todayKey = format(new Date(), 'yyyy-MM-dd');
   const checked = isChecked(habit.id, todayKey);
   const pending = isLogPending?.(habit.id, todayKey) ?? false;
+
+  const reduceMotion = Boolean(useReducedMotion());
 
   // Calculate streak (consecutive days ending today/yesterday)
   const streak = useMemo(() => {
@@ -143,7 +145,7 @@ export default function HabitCard({
 
         {/* Toggle */}
         <motion.button
-          whileTap={{ scale: 0.8 }}
+          whileTap={reduceMotion ? undefined : { scale: 0.8 }}
           disabled={pending}
           onClick={() => onToggleLog(habit.id, todayKey)}
           className={cn(
@@ -188,10 +190,13 @@ export default function HabitCard({
       </div>
 
       {/* Delete button */}
-      {isDeleting && (
+      <AnimatePresence>
+        {isDeleting && (
         <motion.div
           initial={{ opacity: 0, height: 0 }}
           animate={{ opacity: 1, height: 'auto' }}
+          exit={{ opacity: 0, height: 0 }}
+          transition={reduceMotion ? { duration: 0 } : { duration: 0.2, ease: 'easeOut' }}
           className="mt-3 pt-3 border-t border-[rgba(0,0,0,0.04)]"
         >
           <button
@@ -203,6 +208,7 @@ export default function HabitCard({
           </button>
         </motion.div>
       )}
+      </AnimatePresence>
     </div>
   );
 }
