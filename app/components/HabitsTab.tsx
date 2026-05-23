@@ -98,7 +98,7 @@ export default function HabitsTab({
 	};
 
 	const safeTop =
-		'max(env(safe-area-inset-top), var(--tg-content-safe-top, 0px))';
+		'calc(max(env(safe-area-inset-top), var(--tg-content-safe-top, 0px)) + var(--tma-tg-controls-top, 0px))';
 
 	const scrollClasses = cn(
 		'h-full w-full overflow-y-auto touch-pan-y overscroll-contain no-scrollbar',
