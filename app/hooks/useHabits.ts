@@ -290,7 +290,7 @@ export function useHabits({
 		},
 	});
 
-const addHabit = useCallback(
+	const addHabit = useCallback(
 		(name: string, icon: string, color: string, remindAtMinutes?: number | null) =>
 			addHabitMutation.mutate({ name, icon, color, remindAtMinutes }),
 		[addHabitMutation],

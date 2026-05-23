@@ -2,12 +2,12 @@ type RateLimitEntry = { count: number; resetAt: number };
 
 const store = new Map<string, RateLimitEntry>();
 
-const CLEANUPEINTERVAL_MS = 60_000;
+const CLEANUP_INTERVAL_MS = 60_000;
 let lastCleanup = Date.now();
 
 function cleanup() {
 	const now = Date.now();
-	if (now - lastCleanup < CLEANUPEINTERVAL_MS) return;
+	if (now - lastCleanup < CLEANUP_INTERVAL_MS) return;
 	lastCleanup = now;
 	for (const [key, entry] of store) {
 		if (entry.resetAt <= now) store.delete(key);
