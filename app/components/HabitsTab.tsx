@@ -91,8 +91,6 @@ export default function HabitsTab({
 
 	const safeTop =
 		'max(env(safe-area-inset-top), var(--tg-content-safe-top, 0px))';
-	const safeLR =
-		'max(1rem, env(safe-area-inset-left), var(--tg-content-safe-left, 0px))';
 
 	const scrollClasses = cn(
 		'h-full w-full overflow-y-auto touch-pan-y overscroll-contain no-scrollbar',
@@ -101,9 +99,9 @@ export default function HabitsTab({
 
 	if (isLoading) {
 		return (
-			<div className={cn(scrollClasses, 'flex flex-col gap-3')} style={{ paddingTop: isDesktop ? undefined : `calc(0.5rem + ${safeTop})`, paddingLeft: isDesktop ? undefined : `calc(${safeLR})`, paddingRight: isDesktop ? undefined : `calc(${safeLR})` }}>
+			<div className={cn(scrollClasses, 'flex flex-col gap-3')} style={{ paddingTop: isDesktop ? undefined : `calc(0.75rem + ${safeTop})`, paddingLeft: isDesktop ? undefined : '14px', paddingRight: isDesktop ? undefined : '14px' }}>
 				{[0.8, 0.6, 0.9].map((w, i) => (
-					<div key={i} className="rounded-[18px] p-4" style={{ background: 'var(--surface)', boxShadow: '0 0.5px 1px rgba(0,0,0,0.02), 0 2px 6px rgba(0,0,0,0.04)' }}>
+					<div key={i} className="rounded-[20px] p-4" style={{ background: 'var(--surface)', boxShadow: '0 0.5px 1px rgba(0,0,0,0.02), 0 2px 6px rgba(0,0,0,0.04)' }}>
 						<div className="h-5 rounded-lg skeleton-shimmer" style={{ width: `${w * 100}%` }} />
 						<div className="flex gap-2 mt-3">
 							{Array.from({ length: 7 }).map((_, j) => (
@@ -120,14 +118,14 @@ export default function HabitsTab({
 		<div
 			className={scrollClasses}
 			style={{
-				paddingTop: isDesktop ? undefined : `calc(0.5rem + ${safeTop})`,
-				paddingLeft: isDesktop ? undefined : `calc(14px)`,
-				paddingRight: isDesktop ? undefined : `calc(14px)`,
+				paddingTop: isDesktop ? undefined : `calc(0.75rem + ${safeTop})`,
+				paddingLeft: isDesktop ? undefined : '14px',
+				paddingRight: isDesktop ? undefined : '14px',
 			}}
 		>
-			{/* ===== Greeting Header (mockup 1:1) ===== */}
+			{/* ===== Greeting Header ===== */}
 			{!isDesktop && (
-				<div className="px-1.5 pb-3">
+				<div className="px-1.5 pb-4">
 					<div className="flex items-center justify-between gap-3">
 						{/* Left: greeting */}
 						<div className="flex flex-col gap-0.5 min-w-0">
@@ -166,7 +164,7 @@ export default function HabitsTab({
 					{/* Progress bar */}
 					{todayTotal > 0 && (
 						<div
-							className="mt-2.5 h-1 rounded-full overflow-hidden"
+							className="mt-3 h-1 rounded-full overflow-hidden"
 							style={{ background: 'rgba(0,0,0,0.05)' }}
 						>
 							<motion.div
@@ -187,7 +185,7 @@ export default function HabitsTab({
 			)}
 
 			{/* ===== Habits list ===== */}
-			<div className="flex flex-col" style={{ gap: 8 }}>
+			<div className="flex flex-col" style={{ gap: 10 }}>
 				<AnimatePresence mode="popLayout">
 					{habits.map((habit) => (
 						<motion.div

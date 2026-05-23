@@ -73,3 +73,28 @@ export function formatReminderText(task: ReminderMessageTask): string {
 	}
 	return lines.join('\n');
 }
+
+
+export type HabitStreakEntry = {
+	icon: string;
+	name: string;
+	streak: number;
+};
+
+export function formatHabitStreakNudge(habits: HabitStreakEntry[]): string {
+	if (habits.length === 0) return '';
+
+	const lines: string[] = ['🔥 Не сломай серию!', ''];
+
+	for (const h of habits) {
+		if (h.streak > 0) {
+			const days = h.streak === 1 ? 'день' : h.streak < 5 ? 'дня' : 'дней';
+			lines.push(`  ${h.icon} ${h.name} —  ${h.streak} ${days} подряд`);
+		} else {
+			lines.push(`  ${h.icon} ${h.name} — вернись к привычке!`);
+		}
+	}
+
+	lines.push('', 'Отметь в планнере ✨');
+	return lines.join('\n');
+}

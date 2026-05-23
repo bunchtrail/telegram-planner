@@ -27,10 +27,7 @@ export default function HabitWeekGrid({
   const todayKey = format(new Date(), 'yyyy-MM-dd');
 
   return (
-    <div
-      className="grid grid-cols-7 mx-auto"
-      style={{ gap: '5px 6px', maxWidth: 260 }}
-    >
+    <div className="flex justify-between" style={{ gap: 4 }}>
       {days.map((day) => {
         const dateKey = format(day, 'yyyy-MM-dd');
         const label = `${habitName}, ${format(day, 'EEEE, d MMMM', { locale: ru })}`;
@@ -40,11 +37,11 @@ export default function HabitWeekGrid({
         const isFuture = dateKey > todayKey;
 
         return (
-          <div key={dateKey} className="flex flex-col items-center gap-1">
+          <div key={dateKey} className="flex flex-col items-center gap-1.5 flex-1">
             {/* Day label */}
             <span
               className={cn(
-                'text-[10px] font-semibold text-center leading-none',
+                'text-[11px] font-semibold text-center leading-none',
                 isToday
                   ? 'text-[var(--accent)] font-bold'
                   : isFuture
@@ -62,19 +59,19 @@ export default function HabitWeekGrid({
               onClick={() => {
                 if (!pending && !isFuture) onToggle(habitId, dateKey);
               }}
-              className="w-2.5 h-2.5 rounded-full transition-all duration-300 disabled:cursor-not-allowed"
+              className="w-3 h-3 rounded-full transition-all duration-300 disabled:cursor-not-allowed"
               style={{
                 background: checked
                   ? color
                   : isFuture
-                    ? 'rgba(0,0,0,0.08)'
+                    ? 'rgba(0,0,0,0.06)'
                     : isToday
                       ? 'rgba(0, 122, 255, 0.12)'
-                      : 'rgba(0,0,0,0.08)',
-                boxShadow: checked ? `0 0 6px -1px ${color}` : 'none',
+                      : 'rgba(0,0,0,0.06)',
+                boxShadow: checked ? `0 1px 6px -1px ${color}` : 'none',
                 outline: isToday ? '2px solid var(--accent)' : 'none',
                 outlineOffset: isToday ? '2px' : undefined,
-                opacity: isFuture && !checked ? 0.35 : 1,
+                opacity: isFuture && !checked ? 0.3 : 1,
               }}
               aria-label={label}
               aria-busy={pending}

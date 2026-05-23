@@ -14,6 +14,7 @@ type HabitRow = {
 	color: string;
 	sort_order: number;
 	archived: boolean;
+	remind_at_minutes: number | null;
 };
 
 type HabitLogRow = {
@@ -29,6 +30,7 @@ const mapHabitRow = (row: HabitRow): Habit => ({
 	color: row.color,
 	sortOrder: row.sort_order,
 	archived: row.archived,
+	remindAtMinutes: row.remind_at_minutes ?? null,
 });
 
 const mapLogRow = (row: HabitLogRow): HabitLog => ({
@@ -102,7 +104,7 @@ export function useHabits({
 			const { data, error } = await runWithAuthRetry(() =>
 				supabase
 					.from('habits')
-					.select('id, name, icon, color, sort_order, archived')
+					.select('id, name, icon, color, sort_order, archived, remind_at_minutes')
 					.eq('archived', false)
 					.order('sort_order', { ascending: true }),
 			);
@@ -209,6 +211,7 @@ export function useHabits({
 			name: string;
 			icon: string;
 			color: string;
+				remindAtMinutes?: number | null;
 		}) => {
 			const nextOrder = habits.length;
 			const { data, error } = await runWithAuthRetry(() =>
@@ -219,8 +222,9 @@ export function useHabits({
 						icon: params.icon,
 						color: params.color,
 						sort_order: nextOrder,
+							remind_at_minutes: params.remindAtMinutes ?? null,
 					})
-					.select('id, name, icon, color, sort_order, archived')
+					.select('id, name, icon, color, sort_order, archived, remind_at_minutes')
 					.single(),
 			);
 			if (error) throw error;
@@ -261,8 +265,8 @@ export function useHabits({
 	});
 
 	const addHabit = useCallback(
-		(name: string, icon: string, color: string) =>
-			addHabitMutation.mutate({ name, icon, color }),
+		(name: string, icon: string, color: string, remindAtMinutes?: number | null) =>
+			addHabitMutation.mutate({ name, icon, color, remindAtMinutes }),
 		[addHabitMutation],
 	);
 

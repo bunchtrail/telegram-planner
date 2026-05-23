@@ -292,11 +292,14 @@ export function usePlannerUiController(
         } else {
           fire(window.innerWidth / 2, window.innerHeight / 2, 'light');
         }
+      } else {
+        // Uncompleting a task — refresh streak since it might have decreased
+        planner.refetchStreak?.();
       }
 
       togglePlannerTask(id);
     },
-    [fire, notification, togglePlannerTask],
+    [fire, notification, togglePlannerTask, planner],
   );
 
   const openStats = useCallback(() => setShowStats(true), []);
