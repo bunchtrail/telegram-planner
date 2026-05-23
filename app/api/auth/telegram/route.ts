@@ -1,3 +1,4 @@
+import { checkRateLimit } from '@/app/lib/rate-limit';
 import crypto from 'crypto';
 import { errorNoStore, jsonNoStore } from '@/app/lib/api-response';
 import { TelegramAuthSchema } from '@/app/lib/validations/auth';

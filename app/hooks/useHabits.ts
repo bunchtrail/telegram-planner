@@ -264,7 +264,33 @@ export function useHabits({
 		},
 	});
 
-	const addHabit = useCallback(
+	
+	// --- Edit habit ---
+	const editHabitMutation = useMutation({
+		mutationFn: async (params: { id: string; name: string; icon: string; color: string }) => {
+			const { data, error } = await runWithAuthRetry(() =>
+				supabase
+					.from('habits')
+					.update({ name: params.name, icon: params.icon, color: params.color })
+					.eq('id', params.id)
+					.select('id, name, icon, color, sort_order, archived, remind_at_minutes')
+					.single(),
+			);
+			if (error) throw error;
+			return mapHabitRow(data as HabitRow);
+		},
+		onSuccess: (updatedHabit) => {
+			queryClient.setQueryData<Habit[]>(habitsQueryKey, (old) =>
+				sortHabits((old ?? []).map((h) => (h.id === updatedHabit.id ? updatedHabit : h))),
+			);
+			setSyncError(null);
+		},
+		onError: () => {
+			setSyncError('Не удалось изменить привычку');
+		},
+	});
+
+const addHabit = useCallback(
 		(name: string, icon: string, color: string, remindAtMinutes?: number | null) =>
 			addHabitMutation.mutate({ name, icon, color, remindAtMinutes }),
 		[addHabitMutation],
@@ -275,7 +301,14 @@ export function useHabits({
 		[deleteHabitMutation],
 	);
 
-	const toggleLog = useCallback(
+	
+	const editHabit = useCallback(
+		(id: string, name: string, icon: string, color: string) =>
+			editHabitMutation.mutate({ id, name, icon, color }),
+		[editHabitMutation],
+	);
+
+const toggleLog = useCallback(
 		(habitId: string, date: string) => {
 			const key = buildHabitLogKey(habitId, date);
 			if (pendingLogKeysRef.current.has(key)) return;
@@ -418,6 +451,7 @@ export function useHabits({
 		logsQuery.isFetching ||
 		addHabitMutation.isPending ||
 		deleteHabitMutation.isPending ||
+		editHabitMutation.isPending ||
 		pendingLogKeys.size > 0;
 
 	const clearSyncError = useCallback(() => setSyncError(null), []);
@@ -431,6 +465,7 @@ export function useHabits({
 		clearSyncError,
 		addHabit,
 		deleteHabit,
+		editHabit,
 		toggleLog,
 		isChecked,
 		isLogPending,

@@ -20,107 +20,67 @@ export async function POST(request: Request) {
 	const supabaseAdmin = getSupabaseAdmin();
 	if (!supabaseAdmin) return errorNoStore(501, 'SUPABASE_NOT_CONFIGURED');
 
-	// Current time in Moscow (+3)
 	const now = new Date();
 	const moscowOffset = 3 * 60 * 60 * 1000;
 	const moscowNow = new Date(now.getTime() + moscowOffset);
 	const todayStr = moscowNow.toISOString().slice(0, 10);
 	const currentHourMoscow = moscowNow.getUTCHours();
 
-	// Get all unique users who have habits
-	const { data: habitUsers, error: usersError } = await supabaseAdmin
+	// Fetch ALL active habits in one query
+	const { data: allHabits, error: habitsError } = await supabaseAdmin
 		.from('habits')
-		.select('telegram_id')
+		.select('id, name, icon, telegram_id')
 		.eq('archived', false)
 		.not('telegram_id', 'is', null);
 
-	if (usersError) return errorNoStore(500, 'USERS_FETCH_FAILED');
+	if (habitsError) return errorNoStore(500, 'HABITS_FETCH_FAILED');
 
-	const uniqueUserIds = [
-		...new Set((habitUsers ?? []).map((h) => h.telegram_id).filter(Boolean)),
-	] as string[];
+	// Fetch ALL today's logs in one query
+	const { data: allLogs } = await supabaseAdmin
+		.from('habit_logs')
+		.select('habit_id, telegram_id')
+		.eq('date', todayStr);
+
+	const completedSet = new Set((allLogs ?? []).map((l) => l.habit_id));
+
+	// Group habits by user
+	type HRow = { id: string; name: string; icon: string; telegram_id: string };
+	const byUser = new Map<string, HRow[]>();
+	for (const h of (allHabits ?? []) as HRow[]) {
+		if (!h.telegram_id) continue;
+		const arr = byUser.get(h.telegram_id) ?? [];
+		arr.push(h);
+		byUser.set(h.telegram_id, arr);
+	}
 
 	let nudged = 0;
 	let skipped = 0;
 
-	for (const telegramId of uniqueUserIds) {
-		// Get all active habits for this user
-		const { data: habits } = await supabaseAdmin
-			.from('habits')
-			.select('id, name, icon')
-			.eq('telegram_id', telegramId)
-			.eq('archived', false);
-
-		const allHabits = habits ?? [];
-		if (allHabits.length === 0) {
-			skipped += 1;
-			continue;
-		}
-
-		// Get today's logs for this user
-		const { data: logs } = await supabaseAdmin
-			.from('habit_logs')
-			.select('habit_id')
-			.eq('telegram_id', telegramId)
-			.eq('date', todayStr);
-
-		const completedIds = new Set((logs ?? []).map((l) => l.habit_id));
-		const totalHabits = allHabits.length;
-		const completedCount = allHabits.filter((h) => completedIds.has(h.id)).length;
+	for (const [telegramId, habits] of byUser) {
+		const totalHabits = habits.length;
+		const completedCount = habits.filter((h) => completedSet.has(h.id)).length;
 		const allDone = completedCount === totalHabits;
 
-		// Skip if all habits done
-		if (allDone) {
-			skipped += 1;
-			continue;
-		}
+		if (allDone) { skipped += 1; continue; }
 
-		// Build list of uncompleted habits
-		const uncompleted = allHabits
-			.filter((h) => !completedIds.has(h.id))
+		const uncompleted = habits
+			.filter((h) => !completedSet.has(h.id))
 			.map((h) => `  ${h.icon} ${h.name}`)
 			.join('\n');
 
-		let message: string;
-
-		if (currentHourMoscow >= 20) {
-			// Evening nudge
-			message = [
-				`⚠️ Привычки: ${completedCount}/${totalHabits}`,
-				'',
-				'Не отмечено сегодня:',
-				uncompleted,
-				'',
-				'Заверши до конца дня! 💪',
-			].join('\n');
-		} else {
-			// Afternoon nudge
-			message = [
-				`🔔 Привычки: ${completedCount}/${totalHabits}`,
-				'',
-				'Ещё не отмечено:',
-				uncompleted,
-				'',
-				'Не забудь отметить! ✨',
-			].join('\n');
-		}
+		const message = currentHourMoscow >= 20
+			? [`⚠️ Привычки: ${completedCount}/${totalHabits}`, '', 'Не отмечено сегодня:', uncompleted, '', 'Заверши до конца дня! 💪'].join('\n')
+			: [`🔔 Привычки: ${completedCount}/${totalHabits}`, '', 'Ещё не отмечено:', uncompleted, '', 'Не забудь отметить! ✨'].join('\n');
 
 		const result = await sendTelegramMessage(telegramId, message);
-
-		if (result.ok) {
-			nudged += 1;
-		} else {
-			console.error('[habit-nudge] delivery failed', {
-				telegram_id: telegramId,
-				error: result.error,
-			});
-		}
+		if (result.ok) { nudged += 1; }
+		else { console.error('[habit-nudge] delivery failed', { telegram_id: telegramId, error: result.error }); }
 	}
 
 	return jsonNoStore({
 		ok: true,
 		status: 'completed',
-		totalUsers: uniqueUserIds.length,
+		totalUsers: byUser.size,
 		nudged,
 		skipped,
 		hourMoscow: currentHourMoscow,

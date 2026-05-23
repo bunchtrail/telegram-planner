@@ -20,81 +20,67 @@ export async function POST(request: Request) {
 	const supabaseAdmin = getSupabaseAdmin();
 	if (!supabaseAdmin) return errorNoStore(501, 'SUPABASE_NOT_CONFIGURED');
 
-	// Get today's date in UTC (adjust for Moscow timezone +3)
 	const now = new Date();
 	const moscowOffset = 3 * 60 * 60 * 1000;
 	const moscowNow = new Date(now.getTime() + moscowOffset);
 	const todayStr = moscowNow.toISOString().slice(0, 10);
 	const currentHourMoscow = moscowNow.getUTCHours();
 
-	// Get all unique telegram_ids that have tasks
-	const { data: users, error: usersError } = await supabaseAdmin
+	// Fetch ALL today's tasks in one query
+	const { data: allTasks, error: tasksError } = await supabaseAdmin
 		.from('tasks')
-		.select('telegram_id')
+		.select('id, telegram_id, completed')
+		.eq('date', todayStr)
 		.not('telegram_id', 'is', null);
 
-	if (usersError) return errorNoStore(500, 'USERS_FETCH_FAILED');
+	if (tasksError) return errorNoStore(500, 'TASKS_FETCH_FAILED');
 
-	const uniqueUserIds = [...new Set((users ?? []).map((u) => u.telegram_id).filter(Boolean))] as string[];
+	type TRow = { id: string; telegram_id: string; completed: boolean };
+
+	// Group by user
+	const byUser = new Map<string, TRow[]>();
+	for (const t of (allTasks ?? []) as TRow[]) {
+		if (!t.telegram_id) continue;
+		const arr = byUser.get(t.telegram_id) ?? [];
+		arr.push(t);
+		byUser.set(t.telegram_id, arr);
+	}
 
 	let nudged = 0;
 	let skipped = 0;
 
-	for (const telegramId of uniqueUserIds) {
-		// Get user's streak
+	for (const [telegramId, tasks] of byUser) {
+		const totalTasks = tasks.length;
+		const completedTasks = tasks.filter((t) => t.completed).length;
+		const allDone = totalTasks > 0 && completedTasks === totalTasks;
+
+		if (totalTasks === 0 || allDone) { skipped += 1; continue; }
+
+		// Get streak (still needs RPC per user)
 		const { data: streak } = await supabaseAdmin.rpc('get_user_streak', {
 			user_telegram_id: telegramId,
 		});
 
 		const currentStreak = typeof streak === 'number' ? streak : 0;
 
-		// Get today's tasks for this user
-		const { data: todayTasks } = await supabaseAdmin
-			.from('tasks')
-			.select('id, completed')
-			.eq('telegram_id', telegramId)
-			.eq('date', todayStr);
-
-		const tasks = todayTasks ?? [];
-		const totalTasks = tasks.length;
-		const completedTasks = tasks.filter((t) => t.completed).length;
-		const allDone = totalTasks > 0 && completedTasks === totalTasks;
-
-		// Skip if no tasks today or all tasks completed
-		if (totalTasks === 0 || allDone) {
-			skipped += 1;
-			continue;
-		}
-
-		// Determine message based on time and streak
 		let message: string;
 
 		if (currentHourMoscow >= 20) {
-			// Evening nudge (after 20:00)
 			if (currentStreak > 0) {
-				message = [
-					`⚠️ Твоя серия: ${currentStreak} ${currentStreak === 1 ? 'день' : currentStreak < 5 ? 'дня' : 'дней'}`,
-					'',
+				const days = currentStreak === 1 ? 'день' : currentStreak < 5 ? 'дня' : 'дней';
+				message = [`⚠️ Твоя серия: ${currentStreak} ${days}`, '',
 					`Сегодня выполнено ${completedTasks} из ${totalTasks} задач.`,
-					'Не дай серии сгореть — закрой хотя бы одну задачу! 🔥',
-				].join('\n');
+					'Не дай серии сгореть — закрой хотя бы одну задачу! 🔥'].join('\n');
 			} else {
-				message = [
-					'🌙 Вечерний чек-ин',
-					'',
+				message = ['🌙 Вечерний чек-ин', '',
 					`У тебя ${totalTasks - completedTasks} незавершённых задач на сегодня.`,
-					'Заверши хотя бы одну — и начни новую серию! 💪',
-				].join('\n');
+					'Заверши хотя бы одну — и начни новую серию! 💪'].join('\n');
 			}
 		} else {
-			// Afternoon nudge (14:00-19:59)
 			if (currentStreak > 0) {
-				message = [
-					`🔔 Напоминание: серия ${currentStreak} 🔥`,
-					'',
+				message = [`🔔 Напоминание: серия ${currentStreak} 🔥`, '',
 					`Пока выполнено ${completedTasks}/${totalTasks} задач.`,
-					'Не забудь закрыть оставшиеся до конца дня!',
-				].join('\n');
+					'Не забудь закрыть оставшиеся до конца дня!'].join('\n');
 			} else {
 				skipped += 1;
 				continue;
@@ -102,20 +88,14 @@ export async function POST(request: Request) {
 		}
 
 		const result = await sendTelegramMessage(telegramId, message);
-		if (result.ok) {
-			nudged += 1;
-		} else {
-			console.error('[streak-nudge] delivery failed', {
-				telegram_id: telegramId,
-				error: result.error,
-			});
-		}
+		if (result.ok) { nudged += 1; }
+		else { console.error('[streak-nudge] delivery failed', { telegram_id: telegramId, error: result.error }); }
 	}
 
 	return jsonNoStore({
 		ok: true,
 		status: 'completed',
-		totalUsers: uniqueUserIds.length,
+		totalUsers: byUser.size,
 		nudged,
 		skipped,
 		hourMoscow: currentHourMoscow,

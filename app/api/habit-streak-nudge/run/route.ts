@@ -10,41 +10,20 @@ import { ReminderRunHeaderSchema } from '@/app/lib/validations/reminders';
 
 export const runtime = 'nodejs';
 
-type HabitRow = {
-	id: string;
-	name: string;
-	icon: string;
-	telegram_id: string;
-};
-
-type HabitLogRow = {
-	date: string;
-};
-
-/**
- * Calculate the current streak (consecutive days ending yesterday)
- * for a given habit based on its logs.
- */
-function calculateStreak(logs: HabitLogRow[], todayStr: string): number {
-	// Build a set of dates
-	const dateSet = new Set(logs.map((l) => l.date));
-
-	// Start from yesterday and walk backwards
+function calculateStreak(dates: Set<string>, todayStr: string): number {
 	const today = new Date(todayStr + 'T00:00:00Z');
 	let streak = 0;
-	let checkDate = new Date(today);
-	checkDate.setUTCDate(checkDate.getUTCDate() - 1); // start from yesterday
-
+	const checkDate = new Date(today);
+	checkDate.setUTCDate(checkDate.getUTCDate() - 1);
 	while (true) {
 		const dateStr = checkDate.toISOString().slice(0, 10);
-		if (dateSet.has(dateStr)) {
+		if (dates.has(dateStr)) {
 			streak += 1;
 			checkDate.setUTCDate(checkDate.getUTCDate() - 1);
 		} else {
 			break;
 		}
 	}
-
 	return streak;
 }
 
@@ -62,112 +41,84 @@ export async function POST(request: Request) {
 	const supabaseAdmin = getSupabaseAdmin();
 	if (!supabaseAdmin) return errorNoStore(501, 'SUPABASE_NOT_CONFIGURED');
 
-	// Current time in Moscow (+3)
 	const now = new Date();
 	const moscowOffset = 3 * 60 * 60 * 1000;
 	const moscowNow = new Date(now.getTime() + moscowOffset);
 	const todayStr = moscowNow.toISOString().slice(0, 10);
 
-	// Get all unique users who have active habits
-	const { data: habitUsers, error: usersError } = await supabaseAdmin
+	const sixtyDaysAgo = new Date(moscowNow);
+	sixtyDaysAgo.setUTCDate(sixtyDaysAgo.getUTCDate() - 60);
+	const sixtyDaysAgoStr = sixtyDaysAgo.toISOString().slice(0, 10);
+
+	// 1. All active habits in one query
+	const { data: allHabits, error: habitsError } = await supabaseAdmin
 		.from('habits')
-		.select('telegram_id')
+		.select('id, name, icon, telegram_id')
 		.eq('archived', false)
 		.not('telegram_id', 'is', null);
 
-	if (usersError) return errorNoStore(500, 'USERS_FETCH_FAILED');
+	if (habitsError) return errorNoStore(500, 'HABITS_FETCH_FAILED');
 
-	const uniqueUserIds = [
-		...new Set((habitUsers ?? []).map((h) => h.telegram_id).filter(Boolean)),
-	] as string[];
+	// 2. All today's logs
+	const { data: todayLogs } = await supabaseAdmin
+		.from('habit_logs')
+		.select('habit_id')
+		.eq('date', todayStr);
+
+	const completedToday = new Set((todayLogs ?? []).map((l) => l.habit_id));
+
+	// 3. All recent logs for streak calc
+	const { data: recentLogs } = await supabaseAdmin
+		.from('habit_logs')
+		.select('habit_id, date')
+		.gte('date', sixtyDaysAgoStr);
+
+	// Group logs by habit_id
+	const logsByHabit = new Map<string, Set<string>>();
+	for (const l of (recentLogs ?? [])) {
+		const s = logsByHabit.get(l.habit_id) ?? new Set<string>();
+		s.add(l.date);
+		logsByHabit.set(l.habit_id, s);
+	}
+
+	type HRow = { id: string; name: string; icon: string; telegram_id: string };
+
+	// Group habits by user
+	const byUser = new Map<string, HRow[]>();
+	for (const h of (allHabits ?? []) as HRow[]) {
+		if (!h.telegram_id) continue;
+		const arr = byUser.get(h.telegram_id) ?? [];
+		arr.push(h);
+		byUser.set(h.telegram_id, arr);
+	}
 
 	let nudged = 0;
 	let skipped = 0;
 
-	for (const telegramId of uniqueUserIds) {
-		// Get all active habits for this user
-		const { data: habits } = await supabaseAdmin
-			.from('habits')
-			.select('id, name, icon, telegram_id')
-			.eq('telegram_id', telegramId)
-			.eq('archived', false);
+	for (const [telegramId, habits] of byUser) {
+		const startedButNotDone: HabitStreakEntry[] = [];
 
-		const allHabits = (habits ?? []) as HabitRow[];
-		if (allHabits.length === 0) {
-			skipped += 1;
-			continue;
-		}
-
-		// Get today's logs to know which are already done
-		const { data: todayLogs } = await supabaseAdmin
-			.from('habit_logs')
-			.select('habit_id')
-			.eq('telegram_id', telegramId)
-			.eq('date', todayStr);
-
-		const completedToday = new Set(
-			(todayLogs ?? []).map((l) => l.habit_id),
-		);
-
-		// For each habit not done today, check if it was ever done (started)
-		const startedButNotDone: Array<{
-			habit: HabitRow;
-			streak: number;
-		}> = [];
-
-		for (const habit of allHabits) {
-			// Skip if already done today
+		for (const habit of habits) {
 			if (completedToday.has(habit.id)) continue;
-
-			// Check if this habit was ever logged (user started it)
-			const { data: allLogs } = await supabaseAdmin
-				.from('habit_logs')
-				.select('date')
-				.eq('habit_id', habit.id)
-				.order('date', { ascending: false })
-				.limit(60); // last ~2 months is enough for streak calc
-
-			const habitLogs = (allLogs ?? []) as HabitLogRow[];
-
-			// Only include habits the user has done at least once
-			if (habitLogs.length === 0) continue;
-
-			const streak = calculateStreak(habitLogs, todayStr);
-			startedButNotDone.push({ habit, streak });
+			const habitDates = logsByHabit.get(habit.id);
+			if (!habitDates || habitDates.size === 0) continue;
+			const streak = calculateStreak(habitDates, todayStr);
+			startedButNotDone.push({ icon: habit.icon, name: habit.name, streak });
 		}
 
-		// Nothing to nudge
-		if (startedButNotDone.length === 0) {
-			skipped += 1;
-			continue;
-		}
+		if (startedButNotDone.length === 0) { skipped += 1; continue; }
 
-		// Build the message
-		const entries: HabitStreakEntry[] = startedButNotDone.map(
-			({ habit, streak }) => ({
-				icon: habit.icon,
-				name: habit.name,
-				streak,
-			}),
-		);
-
-		const message = formatHabitStreakNudge(entries);
+		const message = formatHabitStreakNudge(startedButNotDone);
 		const result = await sendTelegramMessage(telegramId, message);
 
-		if (result.ok) {
-			nudged += 1;
-		} else {
-			console.error('[habit-streak-nudge] delivery failed', {
-				telegram_id: telegramId,
-				error: result.error,
-			});
-		}
+		if (result.ok) { nudged += 1; }
+		else { console.error('[habit-streak-nudge] delivery failed', { telegram_id: telegramId, error: result.error }); }
 	}
 
 	return jsonNoStore({
 		ok: true,
 		status: 'completed',
-		totalUsers: uniqueUserIds.length,
+		totalUsers: byUser.size,
 		nudged,
 		skipped,
 		date: todayStr,

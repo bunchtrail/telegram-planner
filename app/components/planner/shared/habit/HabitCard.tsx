@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useCallback } from 'react';
+import { useRef, useCallback, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
@@ -33,7 +33,7 @@ export default function HabitCard({
   const pending = isLogPending?.(habit.id, todayKey) ?? false;
 
   // Calculate streak (consecutive days ending today/yesterday)
-  const streak = (() => {
+  const streak = useMemo(() => {
     let count = 0;
     const now = new Date();
     for (let i = 0; i < 60; i++) {
@@ -49,7 +49,7 @@ export default function HabitCard({
       }
     }
     return count;
-  })();
+  }, [habit.id, isChecked]);
 
   const habitColor = habit.color || 'var(--accent)';
 
