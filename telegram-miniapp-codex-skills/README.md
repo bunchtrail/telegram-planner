@@ -1,42 +1,67 @@
-# Codex skills for Telegram Mini Apps
+# telegram-miniapp-codex-skills
 
-Этот набор ориентирован на **Telegram Mini Apps** (исторически: Web Apps) и на связку
-**frontend + bot + backend**. Пакет сделан в формате, который понимает Codex:
-отдельные директории со `SKILL.md`, плюс короткий корневой `AGENTS.md`.
+Seven reusable Codex skills that encode production knowledge for **Telegram Mini Apps** — so you spend prompts on your product, not on re-explaining Telegram's runtime quirks every time.
 
-## Что внутри
+> Covers the full stack: architecture choices, Telegram UI shell, server-side auth, bot integration, payments, native APIs, and debug/QA.
 
-- `telegram-miniapp-architecture` — выбор launch surface, структуры репозитория и стартового каркаса.
-- `telegram-miniapp-ui-shell` — оболочка приложения: theme, viewport, safe area, кнопки, lifecycle.
-- `telegram-miniapp-auth-session` — безопасная валидация `initData`, сессии и авторизация.
-- `telegram-miniapp-bot-integration` — команды бота, кнопки, deep links, `sendData`, `answerWebAppQuery`.
-- `telegram-miniapp-payments` — инвойсы, платежный поток, идемпотентность, статусы оплаты.
-- `telegram-miniapp-native-capabilities` — fullscreen, QR, clipboard, location, biometrics, downloads, device storage.
-- `telegram-miniapp-debug-qa` — отладка, воспроизведение багов, регрессии и pre-release checklist.
+## Contents
 
-## Как установить
+| Skill | What it covers |
+|---|---|
+| `telegram-miniapp-architecture` | Launch surface selection, repo shape, env plan, scaffold |
+| `telegram-miniapp-ui-shell` | Theme tokens, viewport, safe-area, MainButton/BackButton, lifecycle |
+| `telegram-miniapp-auth-session` | Server-side `initData` HMAC validation, session issuance, user mapping |
+| `telegram-miniapp-bot-integration` | Bot commands, inline buttons, deep links, `sendData`, `answerWebAppQuery` |
+| `telegram-miniapp-payments` | Invoice flow, idempotency, payment status, error handling |
+| `telegram-miniapp-native-capabilities` | Fullscreen, QR, clipboard, location, biometrics, downloads, device storage |
+| `telegram-miniapp-debug-qa` | Debugging, bug reproduction, regression checklist, pre-release checklist |
 
-1. Положи `AGENTS.md` в корень репозитория или в нужный модуль.
-2. Положи папку `.agents/skills/` рядом.
-3. Запускай Codex из этого каталога или из дочерних директорий.
+## Requirements
 
-## Как вызывать
+- **OpenAI Codex** (CLI) or any agent runtime that supports the `AGENTS.md` + `.agents/skills/` convention
+- A project with an `AGENTS.md` in the root (you can copy the one from this repo as-is)
+- Node / Python / any backend — skills are stack-agnostic; they output strategy + code patterns, not locked-in boilerplate
 
-Явно:
+## Quick start
 
-- `Use $telegram-miniapp-architecture to scaffold a Telegram Mini App for ...`
-- `Используй $telegram-miniapp-ui-shell чтобы привести UI к Telegram Mini App runtime`
-- `Используй $telegram-miniapp-auth-session для безопасной серверной валидации initData`
+```bash
+# 1. Copy AGENTS.md into your project root
+cp AGENTS.md /path/to/your-project/
 
-Неявно:
+# 2. Copy the skills directory alongside it
+cp -r .agents /path/to/your-project/
 
-- Codex сможет сам подтянуть нужный skill, если описание задачи совпадает с `description`.
+# 3. Call a skill from Codex
+codex "Use $telegram-miniapp-auth-session to implement server-side initData validation in Node.js"
+```
 
-## Рекомендуемая структура проекта
+That's it. Codex picks up the skill context automatically.
 
-```text
-repo/
-├─ AGENTS.md
+## How to invoke skills
+
+**Explicit** (always works):
+
+```
+Use $telegram-miniapp-architecture to scaffold a Telegram Mini App with React and Fastify.
+Используй $telegram-miniapp-ui-shell чтобы привести UI к Telegram Mini App runtime.
+Use $telegram-miniapp-auth-session to review this auth flow for replay and trust-boundary issues.
+```
+
+**Implicit** (Codex matches by description):
+
+Just describe the task — Codex selects the relevant skill automatically when the description matches.
+
+## Example outputs
+
+See [`examples/`](examples/) for sample prompts and the kind of output each skill produces.
+
+## Project structure
+
+After installation your repo looks like this:
+
+```
+your-project/
+├─ AGENTS.md               ← copied from this repo
 ├─ .agents/
 │  └─ skills/
 │     ├─ telegram-miniapp-architecture/
@@ -46,15 +71,19 @@ repo/
 │     ├─ telegram-miniapp-payments/
 │     ├─ telegram-miniapp-native-capabilities/
 │     └─ telegram-miniapp-debug-qa/
-├─ apps/
+├─ apps/                   ← your code
 │  ├─ web/
 │  ├─ bot/
 │  └─ api/
-└─ packages/
-   └─ shared/
+└─ ...
 ```
 
-## Практический совет
+For monorepos you can keep the skills in the root and add local skills deeper in the tree for module-specific rules.
 
-Для monorepo можно держать общий набор skills в корне, а для конкретного сервиса добавлять
-локальные skills глубже по дереву, если у отдельного модуля есть свои правила.
+## Contributing
+
+Issues and PRs welcome. If you add a skill, follow the existing `SKILL.md` structure: frontmatter `name` + `description`, then Overview → Non-negotiable rules → Workflow → Output contract → Guardrails → Prompt examples.
+
+## License
+
+MIT — see [LICENSE](LICENSE).
