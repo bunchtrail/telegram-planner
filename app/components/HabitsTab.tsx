@@ -102,10 +102,8 @@ export default function HabitsTab({
 		'calc(max(env(safe-area-inset-top), var(--tg-content-safe-top, 0px)) + var(--tma-tg-controls-top, 0px))';
 
 	const scrollClasses = cn(
-	const scrollClasses = cn(
 		'h-full w-full overflow-y-auto touch-pan-y overscroll-contain',
 		isDesktop ? 'custom-scrollbar px-6 pb-12 pt-6' : 'no-scrollbar pb-32',
-	);
 	);
 
 	if (isLoading) {
