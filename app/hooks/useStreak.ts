@@ -31,5 +31,8 @@ export function useStreak(config: UseStreakConfig) {
 		enabled: !!userId,
 	});
 
-	return streakQuery.data ?? 0;
+	return {
+		streak: streakQuery.data ?? 0,
+		refetchStreak: streakQuery.refetch,
+	};
 }

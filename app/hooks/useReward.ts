@@ -84,11 +84,14 @@ export function useReward() {
             startVelocity: 22,
             zIndex: 9999,
           });
+          // Safety reset after particles should be done
+          setTimeout(() => confetti.reset(), 3000);
           break;
         }
 
         const duration = 2000;
         const end = Date.now() + duration;
+        let rafId = 0;
         const frame = () => {
           confetti({
             particleCount: 5,
@@ -110,11 +113,16 @@ export function useReward() {
           });
 
           if (Date.now() < end) {
-            requestAnimationFrame(frame);
+            rafId = requestAnimationFrame(frame);
           }
         };
 
         frame();
+        // Safety reset: force-clear canvas after animation + settling time
+        setTimeout(() => {
+          cancelAnimationFrame(rafId);
+          confetti.reset();
+        }, duration + 2500);
         break;
       }
     }

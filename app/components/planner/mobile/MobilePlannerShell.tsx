@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useRef, useState } from 'react';
 import { format } from 'date-fns';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Clock, ListTodo, Sparkles } from 'lucide-react';
@@ -24,6 +25,26 @@ export default function MobilePlannerShell({
 }: PlannerShellProps) {
   const keyboardHeight = useKeyboardInset();
   const isKeyboardOpen = keyboardHeight > 0;
+
+  // Universal input focus detection (works on Android too)
+  const [isInputFocused, setIsInputFocused] = useState(false);
+  useEffect(() => {
+    const onFocusIn = (e: FocusEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || (e.target as HTMLElement)?.isContentEditable) {
+        setIsInputFocused(true);
+      }
+    };
+    const onFocusOut = () => setIsInputFocused(false);
+    document.addEventListener("focusin", onFocusIn);
+    document.addEventListener("focusout", onFocusOut);
+    return () => {
+      document.removeEventListener("focusin", onFocusIn);
+      document.removeEventListener("focusout", onFocusOut);
+    };
+  }, []);
+
+  // Universal input focus detection (works on Android too)
   const editingTask = ui.sheet.editingTask;
   const focusTask = ui.activeTask;
 
@@ -44,6 +65,7 @@ export default function MobilePlannerShell({
     onToday: planner.goToToday,
     onOpenStats: ui.openStats,
     onOpenRecurring: ui.openRecurring,
+    streak: planner.streak,
   };
 
   const taskListProps = {
@@ -118,11 +140,53 @@ export default function MobilePlannerShell({
 
   const showFocusShortcut = Boolean(planner.activeTaskId && !ui.showFocus);
 
+  // --- Streak milestone toast ---
+  const STREAK_MILESTONES: Record<number, string> = {
+    3: '🔥 3 дня в огне! Отличный старт!',
+    7: '🔥 Неделя подряд! Ты машина!',
+    14: '🔥 14 дней! Невероятная дисциплина!',
+    30: '🔥 Месяц! Ты легенда!',
+    50: '🔥 50 дней! Просто космос!',
+    100: '🔥 100 дней! Ты — живая легенда!',
+  };
+  const [streakToast, setStreakToast] = useState<string | null>(null);
+  const prevStreakRef = useRef(planner.streak);
+
+  useEffect(() => {
+    const prev = prevStreakRef.current;
+    const curr = planner.streak;
+    prevStreakRef.current = curr;
+
+    if (curr > prev && curr > 0) {
+      const msg = STREAK_MILESTONES[curr];
+      if (msg) {
+        setStreakToast(msg);
+        const timer = setTimeout(() => setStreakToast(null), 4000);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [planner.streak]);
+
   return (
     <div className="fixed inset-0 flex flex-col overflow-hidden bg-[var(--bg)] font-sans text-[var(--ink)]">
-      <div className="relative z-10 flex-none">
-        <PlannerHeader header={header} />
-      </div>
+      <AnimatePresence initial={false}>
+        {!ui.sheet.isOpen && !isKeyboardOpen && !isInputFocused && ui.activeTab === 'tasks' && (
+          <motion.div
+            key="planner-header"
+            className="relative z-10 flex-none"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{
+              height: { duration: 0.3, ease: [0.4, 0, 0.2, 1] },
+              opacity: { duration: 0.2, ease: 'easeInOut' },
+            }}
+            style={{ overflow: 'hidden', willChange: 'height, opacity' }}
+          >
+            <PlannerHeader header={header} />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <main className="relative h-full w-full flex-1 overflow-hidden">
         {ui.activeTab === 'tasks' ? (
@@ -130,40 +194,48 @@ export default function MobilePlannerShell({
         ) : (
           <MobileHabitsTab {...habitsTabProps} />
         )}
-        <div className="pointer-events-none absolute bottom-0 left-0 right-0 z-20 h-16 bg-gradient-to-t from-[var(--bg)] to-transparent" />
-      </main>
+        <div className="pointer-events-none absolute bottom-0 left-0 right-0 z-20 h-20 bg-gradient-to-t from-[var(--bg)] to-transparent" />
 
-      {!isKeyboardOpen && (
-        <div
-          className="relative z-30 flex-none border-t border-[var(--border)] bg-[var(--surface)]"
-          style={{
-            paddingBottom:
-              'max(env(safe-area-inset-bottom), var(--tg-content-safe-bottom, 0px))',
-          }}
-        >
-          <div className="flex">
-            {PLANNER_TABS.map((tab) => {
-              const Icon = tab.id === 'tasks' ? ListTodo : Sparkles;
+        {!isKeyboardOpen && (
+          <div
+            className="absolute bottom-0 left-0 right-0 z-30 flex justify-center"
+            style={{
+              paddingBottom:
+                'calc(12px + max(env(safe-area-inset-bottom), var(--tg-content-safe-bottom, 0px)))',
+            }}
+          >
+            <div className="relative flex gap-1 rounded-full border border-[var(--border)] bg-[var(--surface-glass)] p-1 shadow-[var(--shadow-pop)] backdrop-blur-xl">
+              {PLANNER_TABS.map((tab) => {
+                const Icon = tab.id === 'tasks' ? ListTodo : Sparkles;
+                const isActive = ui.activeTab === tab.id;
 
-              return (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => ui.setActiveTab(tab.id)}
-                  className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 transition-colors ${
-                    ui.activeTab === tab.id
-                      ? 'text-[var(--accent)]'
-                      : 'text-[var(--muted)]'
-                  }`}
-                >
-                  <Icon size={22} />
-                  <span className="text-[10px] font-bold">{tab.label}</span>
-                </button>
-              );
-            })}
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => ui.setActiveTab(tab.id)}
+                    className={`relative z-10 flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold transition-colors ${
+                      isActive
+                        ? 'text-[var(--accent-ink)]'
+                        : 'text-[var(--muted)]'
+                    }`}
+                  >
+                    {isActive && (
+                      <motion.div
+                        layoutId="tab-pill"
+                        className="absolute inset-0 rounded-full bg-[var(--accent)] shadow-[var(--shadow-glow)]"
+                        transition={{ type: 'spring', stiffness: 500, damping: 35 }}
+                      />
+                    )}
+                    <span className="relative z-10"><Icon size={16} /></span>
+                    <span className="relative z-10">{tab.label}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </main>
 
       <AnimatePresence>
         {planner.isSyncing && (
@@ -171,6 +243,7 @@ export default function MobilePlannerShell({
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 8 }}
+            transition={{ duration: 0.2, ease: 'easeOut' }}
             className="fixed z-40 top-[calc(max(env(safe-area-inset-top),var(--tg-content-safe-top,0px))+0.75rem)] right-[max(1rem,env(safe-area-inset-right),var(--tg-content-safe-right,0px))]"
             role="status"
             aria-live="polite"
@@ -188,7 +261,7 @@ export default function MobilePlannerShell({
             initial={{ opacity: 0, y: 40, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.96 }}
-            className="fixed bottom-[calc(10.5rem+max(env(safe-area-inset-bottom),var(--tg-content-safe-bottom,0px)))] left-[max(1rem,env(safe-area-inset-left),var(--tg-content-safe-left,0px))] right-[max(1rem,env(safe-area-inset-right),var(--tg-content-safe-right,0px))] z-40 mx-auto max-w-sm"
+            className="fixed bottom-[calc(10rem+max(env(safe-area-inset-bottom),var(--tg-content-safe-bottom,0px)))] left-[max(1rem,env(safe-area-inset-left),var(--tg-content-safe-left,0px))] right-[max(1rem,env(safe-area-inset-right),var(--tg-content-safe-right,0px))] z-40 mx-auto max-w-sm"
             role="status"
             aria-live="polite"
           >
@@ -238,7 +311,7 @@ export default function MobilePlannerShell({
           layoutId="focus-fab"
           type="button"
           onClick={ui.openFocus}
-          className="fixed bottom-[calc(6rem+max(env(safe-area-inset-bottom),var(--tg-content-safe-bottom,0px)))] right-[max(1rem,env(safe-area-inset-right),var(--tg-content-safe-right,0px))] z-40 flex h-14 items-center gap-2 rounded-full bg-[var(--accent)] px-6 font-bold text-[var(--accent-ink)] shadow-lg"
+          className="fixed bottom-[calc(10rem+max(env(safe-area-inset-bottom),var(--tg-content-safe-bottom,0px)))] right-[max(1rem,env(safe-area-inset-right),var(--tg-content-safe-right,0px))] z-40 flex h-14 items-center gap-2 rounded-full bg-[var(--accent)] px-6 font-bold text-[var(--accent-ink)] shadow-lg"
         >
           <Clock size={20} className="animate-pulse" /> В фокус
         </motion.button>
@@ -250,7 +323,7 @@ export default function MobilePlannerShell({
             initial={{ opacity: 0, y: 50, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.9 }}
-            className="fixed bottom-[calc(6rem+max(env(safe-area-inset-bottom),var(--tg-content-safe-bottom,0px)))] left-[max(1rem,env(safe-area-inset-left),var(--tg-content-safe-left,0px))] right-[max(1rem,env(safe-area-inset-right),var(--tg-content-safe-right,0px))] z-40 mx-auto max-w-sm"
+            className="fixed bottom-[calc(10rem+max(env(safe-area-inset-bottom),var(--tg-content-safe-bottom,0px)))] left-[max(1rem,env(safe-area-inset-left),var(--tg-content-safe-left,0px))] right-[max(1rem,env(safe-area-inset-right),var(--tg-content-safe-right,0px))] z-40 mx-auto max-w-sm"
             role="status"
             aria-live="polite"
           >
@@ -269,11 +342,30 @@ export default function MobilePlannerShell({
       </AnimatePresence>
 
       <AnimatePresence>
+        {streakToast && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.9 }}
+            className="fixed bottom-[calc(10rem+max(env(safe-area-inset-bottom),var(--tg-content-safe-bottom,0px)))] left-[max(1rem,env(safe-area-inset-left),var(--tg-content-safe-left,0px))] right-[max(1rem,env(safe-area-inset-right),var(--tg-content-safe-right,0px))] z-40 mx-auto max-w-sm"
+            role="status"
+            aria-live="polite"
+          >
+            <div className="flex items-center gap-3 rounded-2xl border border-orange-500/20 bg-[var(--surface)] px-5 py-4 text-sm font-bold shadow-[var(--shadow-pop)] backdrop-blur-md">
+              <span className="text-lg">🔥</span>
+              <span className="text-[var(--ink)]">{streakToast}</span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
         {ui.dayCompleteVisible && (
           <motion.div
             initial={{ opacity: 0, scale: 0.5, y: -20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 20 }}
             className="fixed top-1/2 left-1/2 z-50 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
             role="status"
             aria-live="polite"

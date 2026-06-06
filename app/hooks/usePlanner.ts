@@ -281,7 +281,7 @@ export function usePlanner() {
 
 	// --- Streak (TanStack Query) ---
 
-	const streak = useStreak({ userId, runWithAuthRetry });
+	const { streak, refetchStreak } = useStreak({ userId, runWithAuthRetry });
 
 	// --- Habits ---
 
@@ -305,6 +305,7 @@ export function usePlanner() {
 		clearSyncError: clearHabitsSyncError,
 		addHabit,
 		deleteHabit,
+		editHabit,
 		toggleLog: toggleHabitLog,
 		isChecked: isHabitChecked,
 		isLogPending: isHabitLogPending,
@@ -656,6 +657,7 @@ export function usePlanner() {
 		setIsAddOpen,
 		tasks,
 		streak,
+		refetchStreak,
 		currentTasks,
 		weekDays,
 		monthDays,
@@ -690,6 +692,7 @@ export function usePlanner() {
 		habitsLoading,
 		addHabit,
 		deleteHabit,
+		editHabit,
 		toggleHabitLog,
 		isHabitChecked,
 		isHabitLogPending,

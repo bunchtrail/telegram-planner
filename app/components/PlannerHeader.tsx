@@ -79,6 +79,7 @@ export default function PlannerHeader({ header }: PlannerHeaderProps) {
 		onToday,
 		onOpenStats,
 		onOpenRecurring,
+		streak,
 	} = header;
 	const { impact } = useHaptic();
 	const prefersReducedMotion = useReducedMotion();
@@ -268,9 +269,12 @@ export default function PlannerHeader({ header }: PlannerHeaderProps) {
 										onOpenStats();
 									}}
 									aria-label="Открыть статистику"
-									className="h-9 w-9 rounded-[12px] border border-[var(--border)]/50 bg-[var(--surface-2)] text-[var(--accent)] flex items-center justify-center active:scale-95 transition-transform"
+									className={`flex items-center gap-1.5 rounded-[12px] border border-[var(--border)]/50 bg-[var(--surface-2)] active:scale-95 transition-transform ${streak > 0 ? 'h-9 pl-2.5 pr-3' : 'h-9 w-9 justify-center'}`}
 								>
-									<Flame size={18} />
+									<Flame size={18} className={streak > 0 ? 'text-orange-500' : 'text-[var(--accent)]'} />
+									{streak > 0 && (
+										<span className="text-[13px] font-bold tabular-nums text-[var(--ink)]">{streak}</span>
+									)}
 								</button>
 
 								<div className="flex bg-[var(--surface-2)] p-1 rounded-[12px] h-9 border-none">

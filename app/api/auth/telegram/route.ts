@@ -1,3 +1,4 @@
+import { checkRateLimit } from '@/app/lib/rate-limit';
 import crypto from 'crypto';
 import { errorNoStore, jsonNoStore } from '@/app/lib/api-response';
 import { TelegramAuthSchema } from '@/app/lib/validations/auth';
@@ -106,6 +107,12 @@ const verifyInitData = (initData: string, botToken: string) => {
 };
 
 export async function POST(request: Request) {
+	const clientIp = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
+	const limit = checkRateLimit(`auth:${clientIp}`, 20, 60_000);
+	if (!limit.allowed) {
+		return errorNoStore(429, 'RATE_LIMITED');
+	}
+
 	const botToken = process.env.TELEGRAM_BOT_TOKEN;
 	const jwtSecret = process.env.SUPABASE_JWT_SECRET;
 

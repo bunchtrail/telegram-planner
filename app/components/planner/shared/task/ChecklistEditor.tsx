@@ -175,7 +175,7 @@ export default function ChecklistEditor({
 			{totalSteps > 0 ? (
 				<div className="h-1 w-full bg-[var(--surface-2)] rounded-full mb-4 overflow-hidden">
 					<motion.div
-						className="h-full transition-colors duration-500"
+						className="h-full"
 						style={{
 							backgroundColor: isAllStepsDone
 								? taskColor

@@ -5,6 +5,7 @@ export type Habit = {
 	color: string;
 	sortOrder: number;
 	archived: boolean;
+	remindAtMinutes: number | null;
 };
 
 export type HabitLog = {

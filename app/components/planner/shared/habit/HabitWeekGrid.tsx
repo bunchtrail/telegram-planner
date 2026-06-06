@@ -1,7 +1,6 @@
 'use client';
 
-import { motion } from 'framer-motion';
-import { Check } from 'lucide-react';
+import { motion, useReducedMotion } from 'framer-motion';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { cn } from '@/app/lib/cn';
@@ -25,68 +24,59 @@ export default function HabitWeekGrid({
   isPending,
   onToggle,
 }: HabitWeekGridProps) {
+  const reduceMotion = Boolean(useReducedMotion());
   const todayKey = format(new Date(), 'yyyy-MM-dd');
 
   return (
-    <div className="grid grid-cols-7 gap-1">
+    <div className="flex justify-between" style={{ gap: 4 }}>
       {days.map((day) => {
         const dateKey = format(day, 'yyyy-MM-dd');
-        const localizedDayLabel = `${habitName}, ${format(day, 'EEEE, d MMMM', {
-          locale: ru,
-        })}`;
+        const label = `${habitName}, ${format(day, 'EEEE, d MMMM', { locale: ru })}`;
         const checked = isChecked(habitId, dateKey);
         const pending = isPending?.(habitId, dateKey) ?? false;
         const isToday = dateKey === todayKey;
+        const isFuture = dateKey > todayKey;
 
         return (
-          <div key={dateKey} className="flex flex-col items-center gap-1">
+          <div key={dateKey} className="flex flex-col items-center gap-1.5 flex-1">
+            {/* Day label */}
             <span
               className={cn(
-                'text-[9px] font-bold uppercase tracking-wide',
-                isToday ? 'text-[var(--accent)]' : 'text-[var(--muted)]',
+                'text-[11px] font-semibold text-center leading-none',
+                isToday
+                  ? 'text-[var(--accent)] font-bold'
+                  : isFuture
+                    ? 'text-[var(--muted)] opacity-40'
+                    : 'text-[var(--muted)]',
               )}
             >
               {format(day, 'EEEEEE', { locale: ru })}
             </span>
+            {/* Dot */}
             <motion.button
               type="button"
-              whileTap={{ scale: 0.85 }}
-              disabled={pending || dateKey > todayKey}
+              whileTap={reduceMotion ? undefined : { scale: 0.8 }}
+              disabled={pending || isFuture}
               onClick={() => {
-                if (!pending && dateKey <= todayKey) {
-                  onToggle(habitId, dateKey);
-                }
+                if (!pending && !isFuture) onToggle(habitId, dateKey);
               }}
-              className={cn(
-                'flex aspect-square w-full items-center justify-center rounded-xl border-2 transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-60',
-                checked
-                  ? 'border-transparent shadow-sm'
-                  : isToday
-                    ? 'border-[var(--accent)]/60 bg-[var(--accent)]/5'
-                    : 'border-[var(--border)] bg-transparent',
-              )}
-              style={checked ? { backgroundColor: color } : undefined}
-              aria-label={localizedDayLabel}
+              className="w-3 h-3 rounded-full transition-all duration-300 disabled:cursor-not-allowed"
+              style={{
+                background: checked
+                  ? color
+                  : isFuture
+                    ? 'rgba(0,0,0,0.06)'
+                    : isToday
+                      ? 'rgba(0, 122, 255, 0.12)'
+                      : 'rgba(0,0,0,0.06)',
+                boxShadow: checked ? `0 1px 6px -1px ${color}` : 'none',
+                outline: isToday ? '2px solid var(--accent)' : 'none',
+                outlineOffset: isToday ? '2px' : undefined,
+                opacity: isFuture && !checked ? 0.3 : 1,
+              }}
+              aria-label={label}
               aria-busy={pending}
-            >
-              {checked ? (
-                <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{
-                    type: 'spring',
-                    stiffness: 500,
-                    damping: 25,
-                  }}
-                >
-                  <Check
-                    size={14}
-                    strokeWidth={3}
-                    className="text-white"
-                  />
-                </motion.div>
-              ) : null}
-            </motion.button>
+            />
           </div>
         );
       })}

@@ -3,6 +3,8 @@ import { Fraunces, Manrope } from 'next/font/google';
 import Script from 'next/script';
 import QueryProvider from './components/QueryProvider';
 import './globals.css';
+import ErrorBoundary from './components/ErrorBoundary';
+
 
 const manrope = Manrope({ subsets: ['latin'], variable: '--font-body' });
 const fraunces = Fraunces({ subsets: ['latin'], variable: '--font-display' });
@@ -57,7 +59,7 @@ export default function RootLayout({
 			<body
 				className={`${manrope.variable} ${fraunces.variable} antialiased`}
 			>
-				<QueryProvider>{children}</QueryProvider>
+				<QueryProvider><ErrorBoundary>{children}</ErrorBoundary></QueryProvider>
 			</body>
 		</html>
 	);

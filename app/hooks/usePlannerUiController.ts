@@ -195,6 +195,7 @@ export function usePlannerUiController(
       color: string,
       startMinutes: number | null,
       remindBeforeMinutes: number,
+      checklist: string[] = [],
     ) => {
       if (sheetModeRef.current === 'create') {
         addTask(
@@ -205,6 +206,7 @@ export function usePlannerUiController(
           color,
           startMinutes,
           remindBeforeMinutes,
+          checklist,
         );
       } else if (editingTaskRef.current) {
         updateTask(editingTaskRef.current.id, {
@@ -274,6 +276,8 @@ export function usePlannerUiController(
           fire(window.innerWidth / 2, window.innerHeight, 'climax');
           notification('success');
           setDayCompleteKey(selectedDateKeyRef.current);
+          // Refresh streak after completing all tasks
+          planner.refetchStreak?.();
 
           if (dayCompleteTimeoutRef.current) {
             window.clearTimeout(dayCompleteTimeoutRef.current);
@@ -288,11 +292,14 @@ export function usePlannerUiController(
         } else {
           fire(window.innerWidth / 2, window.innerHeight / 2, 'light');
         }
+      } else {
+        // Uncompleting a task — refresh streak since it might have decreased
+        planner.refetchStreak?.();
       }
 
       togglePlannerTask(id);
     },
-    [fire, notification, togglePlannerTask],
+    [fire, notification, togglePlannerTask, planner],
   );
 
   const openStats = useCallback(() => setShowStats(true), []);
